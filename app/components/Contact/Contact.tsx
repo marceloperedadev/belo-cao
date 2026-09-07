@@ -1,7 +1,12 @@
-
 'use client'
 
-import { ArrowUpRight } from 'lucide-react'
+import {
+  ArrowUpRight,
+  Coffee,
+  Heart,
+  Sparkles,
+} from 'lucide-react'
+
 import { Config } from '@/app/constants/config'
 import styles from './Contact.module.css'
 
@@ -10,40 +15,37 @@ export function Contact() {
     <section id="contato" className={styles.contactCta}>
 
       {/* =====================================================
-          ELEMENTOS DECORATIVOS
+          FORMAS DECORATIVAS
           ===================================================== */}
 
       <div
-        className={styles.gridOverlay}
+        className={styles.shapeLarge}
         aria-hidden="true"
       />
 
-      <span
-        className={`${styles.ctaShape} ${styles.ctaShapeOne}`}
+      <div
+        className={styles.shapeSmall}
         aria-hidden="true"
       />
 
-      <span
-        className={`${styles.ctaShape} ${styles.ctaShapeTwo}`}
-        aria-hidden="true"
-      />
-
-      <span
-        className={`${styles.ctaShape} ${styles.ctaShapeThree}`}
+      <div
+        className={styles.dotPattern}
         aria-hidden="true"
       />
 
 
       {/* =====================================================
-          EYEBROW
+          MARCAÇÃO
           ===================================================== */}
 
-      <div className={styles.dentalEyebrow}>
-        <span aria-hidden="true" />
+      <div className={styles.eyebrow}>
+        <span className={styles.eyebrowIcon}>
+          <Heart size={13} fill="currentColor" />
+        </span>
 
-        Agendamento Exclusivo
+        <span>Até a próxima parada</span>
 
-        <span aria-hidden="true" />
+        <span className={styles.eyebrowLine} />
       </div>
 
 
@@ -52,9 +54,9 @@ export function Contact() {
           ===================================================== */}
 
       <h2>
-        Pronto para transformar
+        Vai deixar seu
         <br />
-        <em>o seu sorriso?</em>
+        <span>pet por aqui?</span>
       </h2>
 
 
@@ -63,33 +65,78 @@ export function Contact() {
           ===================================================== */}
 
       <p>
-        Agende uma avaliação inicial. Analisaremos a anatomia
-        do seu sorriso com planejamento digital e total
-        previsibilidade.
+        Então já sabe: eles cuidam, você respira,
+        toma um café e aproveita o tempo.
+        <strong> A gente espera vocês.</strong>
       </p>
 
 
       {/* =====================================================
-          CTA
+          AÇÕES
           ===================================================== */}
 
-      <a
-        href={Config.WHATSAPP_URL}
-        target="_blank"
-        rel="noreferrer"
-        className={styles.dentalButtonLight}
-        aria-label="Solicitar consulta em Taubaté via WhatsApp"
-      >
-        <span>
-          Solicitar consulta 
-        </span>
+      <div className={styles.actions}>
 
-        <ArrowUpRight
-          size={18}
-          strokeWidth={2}
-          aria-hidden="true"
-        />
-      </a>
+        <a
+          href={Config.WHATSAPP_URL}
+          target="_blank"
+          rel="noreferrer"
+          className={styles.primaryButton}
+          aria-label="Falar com o Belo Cão pelo WhatsApp"
+        >
+          <span>falar com a gente</span>
+
+          <span className={styles.buttonIcon}>
+            <ArrowUpRight
+              size={18}
+              strokeWidth={2.4}
+              aria-hidden="true"
+            />
+          </span>
+        </a>
+
+      </div>
+
+
+      {/* =====================================================
+          MINI EXPERIÊNCIAS
+          ===================================================== */}
+
+      <div className={styles.bottomInfo}>
+
+        <div className={styles.infoItem}>
+          <Sparkles
+            size={16}
+            strokeWidth={2}
+            aria-hidden="true"
+          />
+
+          <span>eles ficam bem</span>
+        </div>
+
+        <div className={styles.infoDivider} />
+
+        <div className={styles.infoItem}>
+          <Coffee
+            size={16}
+            strokeWidth={2}
+            aria-hidden="true"
+          />
+
+          <span>você fica também</span>
+        </div>
+
+      </div>
+
+
+      {/* =====================================================
+          ASSINATURA
+          ===================================================== */}
+
+      <div className={styles.signature}>
+        <span>BELO CÃO</span>
+        <small>ESTÉTICA ANIMAL · PET COFFEE · LOJINHA</small>
+      </div>
 
     </section>
   )

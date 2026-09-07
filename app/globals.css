@@ -1,35 +1,256 @@
 @import "tailwindcss";
 
+/* =========================================================
+   BELO CÃO — GLOBAL STYLES
+   ROXO VIVO + BRANCO
+   EDITORIAL / PREMIUM / RESPONSIVO
+   ========================================================= */
+
 :root {
   --background: #ffffff;
-  --foreground: #0f172a;
+  --foreground: #302936;
+
+  --purple: #672f96;
+  --purple-dark: #4f2275;
+  --purple-light: #8d55b4;
+  --purple-pale: #f4eef7;
+
+  --text: #302936;
+  --muted: #817986;
+
+  --border: #eee8f1;
+
+  --font-sans:
+    var(--font-inter),
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
 }
+
+/* =========================================================
+   TAILWIND THEME
+   ========================================================= */
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 }
 
-* {
+/* =========================================================
+   RESET
+   ========================================================= */
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+/* =========================================================
+   DOCUMENTO
+   ========================================================= */
+
 html {
   scroll-behavior: smooth;
-  max-width: 100vw;
+
+  width: 100%;
+  max-width: 100%;
+
   overflow-x: hidden;
+
   -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+
+  scrollbar-width: thin;
+  scrollbar-color: rgba(103, 47, 150, 0.35) transparent;
 }
 
+/* =========================================================
+   BODY
+   ========================================================= */
+
 body {
+  width: 100%;
+  min-height: 100vh;
+  max-width: 100%;
+
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  min-height: 100vh;
-  max-width: 100vw;
+
+  font-family: var(--font-sans);
+
   overflow-x: hidden;
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  text-rendering: optimizeLegibility;
+}
+
+/* =========================================================
+   SELEÇÃO DE TEXTO
+   ========================================================= */
+
+::selection {
+  color: #ffffff;
+  background: var(--purple);
+}
+
+::-moz-selection {
+  color: #ffffff;
+  background: var(--purple);
+}
+
+/* =========================================================
+   SCROLLBAR — WEBKIT
+   ========================================================= */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #ffffff;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(103, 47, 150, 0.28);
+  border-radius: 999px;
+
+  border: 2px solid #ffffff;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(103, 47, 150, 0.48);
+}
+
+/* =========================================================
+   IMAGENS / MÍDIA
+   ========================================================= */
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+img,
+video {
+  height: auto;
+}
+
+/* =========================================================
+   LINKS
+   ========================================================= */
+
+a {
+  color: inherit;
+}
+
+/* =========================================================
+   BOTÕES / FORMULÁRIOS
+   ========================================================= */
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+/* =========================================================
+   TÍTULOS / TEXTOS
+   ========================================================= */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* =========================================================
+   ÂNCORAS DE SEÇÕES
+   Evita que o header fixo cubra o início do conteúdo.
+   ========================================================= */
+
+[id] {
+  scroll-margin-top: 100px;
+}
+
+/* =========================================================
+   FOCO ACESSÍVEL
+   ========================================================= */
+
+:focus-visible {
+  outline: 3px solid rgba(103, 47, 150, 0.38);
+  outline-offset: 3px;
+}
+
+/* =========================================================
+   TOUCH
+   ========================================================= */
+
+button,
+a,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* =========================================================
+   REDUÇÃO DE MOVIMENTO
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+  html {
+    scrollbar-width: none;
+  }
+
+  body {
+    min-width: 0;
+  }
+
+  [id] {
+    scroll-margin-top: 82px;
+  }
 }

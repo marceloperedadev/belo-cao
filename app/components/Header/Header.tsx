@@ -1,231 +1,187 @@
+
 'use client'
 
-import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { ArrowUpRight, Menu, X } from 'lucide-react'
-import { Config } from '@/app/constants/config'
+import { useEffect, useState } from 'react'
+
 import styles from './Header.module.css'
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
-  const [headerVisible, setHeaderVisible] = useState(true)
+  const [scrolled, setScrolled] = useState(false)
 
-  /* =====================================================
-     CONTROLE DO HEADER AO ROLAR
-     ===================================================== */
+  /* =========================================================
+     CONTROLE DA ROLAGEM
+     ========================================================= */
 
   useEffect(() => {
-    let lastScrollY = window.scrollY
-
     const handleScroll = () => {
-      const currentScrollY = window.scrollY
-
-      /* =================================================
-         TOPO DA PÁGINA
-         ================================================= */
-
-      if (currentScrollY <= 20) {
-        setHeaderVisible(true)
-        lastScrollY = currentScrollY
-        return
-      }
-
-      /* =================================================
-         ROLANDO PARA BAIXO
-         ================================================= */
-
-      if (currentScrollY > lastScrollY) {
-        setHeaderVisible(false)
-        setMenuOpen(false)
-      }
-
-      /* =================================================
-         ROLANDO PARA CIMA
-         ================================================= */
-
-      if (currentScrollY < lastScrollY) {
-        setHeaderVisible(true)
-      }
-
-      lastScrollY = currentScrollY
+      setScrolled(window.scrollY > 30)
     }
 
-    window.addEventListener(
-      'scroll',
-      handleScroll,
-      { passive: true }
-    )
+    handleScroll()
+
+    window.addEventListener('scroll', handleScroll, {
+      passive: true,
+    })
 
     return () => {
-      window.removeEventListener(
-        'scroll',
-        handleScroll
-      )
+      window.removeEventListener('scroll', handleScroll)
     }
   }, [])
 
+  /* =========================================================
+     CONTROLE DO BODY NO MENU MOBILE
+     ========================================================= */
 
-  /* =====================================================
-     LOGO
-     ===================================================== */
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
 
-  const handleLogoClick = (
-    e: React.MouseEvent<HTMLAnchorElement>
-  ) => {
-    e.preventDefault()
+    if (menuOpen) {
+      document.body.style.overflow = 'hidden'
+    }
 
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [menuOpen])
+
+  /* =========================================================
+     AÇÕES
+     ========================================================= */
+
+  const closeMenu = () => {
     setMenuOpen(false)
-    setHeaderVisible(true)
-
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    })
   }
 
-
-  /* =====================================================
-     RENDER
-     ===================================================== */
+  const toggleMenu = () => {
+    setMenuOpen((current) => !current)
+  }
 
   return (
     <header
-      className={`${styles.dentalHeader} ${
-        headerVisible
-          ? styles.headerVisible
-          : styles.headerHidden
+      className={`${styles.header} ${
+        scrolled ? styles.headerScrolled : ''
       }`}
     >
-
-      {/* =================================================
+      {/* =====================================================
           MARCA
-          ================================================= */}
+         ===================================================== */}
 
       <a
         href="#inicio"
-        onClick={handleLogoClick}
-        className={styles.dentalBrand}
-        aria-label="Ir para o início"
+        className={styles.logo}
+        onClick={closeMenu}
+        aria-label="Belo Cão — início"
       >
-
-        <span className={styles.brandText}>
-
-          <strong>
-            {Config.DOCTOR_NAME || 'Dra. Bárbara Glayris'}
-          </strong>
-
-          <small>
-            Cirurgiã-Dentista
-          </small>
-
+        <span className={styles.logoImage}>
+          <Image
+            src="/images/logo-header.jpg"
+            alt="Logo Belo Cão Estética Animal"
+            fill
+            priority
+            sizes="(max-width: 390px) 102px, (max-width: 600px) 122px, (max-width: 900px) 136px, 150px"
+            style={{
+              objectFit: 'contain',
+              objectPosition: 'center',
+            }}
+          />
         </span>
-
       </a>
 
-
-      {/* =================================================
+      {/* =====================================================
           NAVEGAÇÃO
-          ================================================= */}
+         ===================================================== */}
 
       <nav
-        className={`${styles.dentalNav} ${
-          menuOpen
-            ? styles.open
-            : ''
+        id="main-navigation"
+        className={`${styles.nav} ${
+          menuOpen ? styles.navOpen : ''
         }`}
         aria-label="Navegação principal"
       >
-
         <a
           href="#especialidades"
-          onClick={() => setMenuOpen(false)}
+          onClick={closeMenu}
         >
-          Especialidades
+          <span>Cuidar</span>
         </a>
 
         <a
           href="#sobre"
-          onClick={() => setMenuOpen(false)}
+          onClick={closeMenu}
         >
-          Sobre
+          <span>Sobre</span>
         </a>
 
         <a
           href="#experiencia"
-          onClick={() => setMenuOpen(false)}
+          onClick={closeMenu}
         >
-          Protocolo
+          <span>Experiência</span>
         </a>
 
         <a
-          href="#contato"
-          onClick={() => setMenuOpen(false)}
+          href="#localizacao"
+          onClick={closeMenu}
         >
-          Contato
+          <span>Onde estamos</span>
         </a>
-
       </nav>
 
-
-      {/* =================================================
-          CTA DESKTOP
-          ================================================= */}
+      {/* =====================================================
+          AGENDAR
+         ===================================================== */}
 
       <a
-        href={Config.WHATSAPP_URL}
+        href="https://wa.me/5512991361808"
         target="_blank"
-        rel="noreferrer"
-        className={styles.headerCta}
-        aria-label="Agendar consulta pelo WhatsApp"
+        rel="noopener noreferrer"
+        className={styles.schedule}
+        aria-label="Agendar atendimento pelo WhatsApp"
       >
-
-        <span>
-          Agendar Consulta
-        </span>
+        <span>Agendar</span>
 
         <ArrowUpRight
-          size={15}
           aria-hidden="true"
+          size={17}
+          strokeWidth={2.2}
         />
-
       </a>
 
-
-      {/* =================================================
+      {/* =====================================================
           MENU MOBILE
-          ================================================= */}
+         ===================================================== */}
 
       <button
         type="button"
-        className={styles.menuToggle}
+        className={`${styles.mobileToggle} ${
+          menuOpen ? styles.mobileToggleOpen : ''
+        }`}
+        onClick={toggleMenu}
         aria-label={
           menuOpen
             ? 'Fechar menu'
             : 'Abrir menu'
         }
         aria-expanded={menuOpen}
-        onClick={() =>
-          setMenuOpen((prev) => !prev)
-        }
+        aria-controls="main-navigation"
       >
-
         {menuOpen ? (
-
           <X
-            size={20}
             aria-hidden="true"
+            size={20}
+            strokeWidth={2.2}
           />
-
         ) : (
-
           <Menu
-            size={20}
             aria-hidden="true"
+            size={21}
+            strokeWidth={2.2}
           />
-
         )}
-
       </button>
-
     </header>
   )
 }

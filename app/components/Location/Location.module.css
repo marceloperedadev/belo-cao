@@ -1,128 +1,92 @@
-
 /* =========================================================
-   LOCATION — ARCHITECTURAL / PREMIUM
-   INTERACTIVE + MOBILE FIRST
+   LOCATION — BELO CÃO
+
+   ROXO VIVO + BRANCO
+   TRAILER / PET COFFEE / IDENTIDADE
+
+   PREMIUM · EDITORIAL · CONTEMPORÂNEO
    ========================================================= */
 
 .locationSection {
-
   position: relative;
-
   width: 100%;
 
-  padding: 6rem 1rem;
+  padding: 7rem 1.5rem 5.5rem;
 
-  background:
-    radial-gradient(
-      circle at 15% 50%,
-      rgba(197, 160, 89, 0.08),
-      transparent 32%
-    ),
-    linear-gradient(
-      180deg,
-      #f8fafc 0%,
-      #ffffff 50%,
-      #f8fafc 100%
-    );
-
-  border-top: 1px solid rgba(15, 23, 42, 0.06);
-
-  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-
-  box-sizing: border-box;
+  background: #ffffff;
+  color: #24112f;
 
   overflow: hidden;
-
   isolation: isolate;
+  box-sizing: border-box;
+
+  scroll-margin-top: 100px;
 }
 
 
 /* =========================================================
-   GRID ARQUITETÔNICO DE FUNDO
+   DECORAÇÕES DE FUNDO
    ========================================================= */
 
-.locationSection::before {
-
-  content: '';
-
-  position: absolute;
-
-  inset: 0;
-
-  background-image:
-    linear-gradient(
-      rgba(15, 23, 42, 0.025) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      rgba(15, 23, 42, 0.025) 1px,
-      transparent 1px
-    );
-
-  background-size: 42px 42px;
-
-  pointer-events: none;
-
-  z-index: -2;
-}
-
-
-/* =========================================================
-   GLOW DOURADO
-   ========================================================= */
-
-.locationSection::after {
-
-  content: '';
-
+.shapeOne {
   position: absolute;
 
   width: 520px;
-
   height: 520px;
 
-  left: -260px;
+  left: -310px;
+  top: 18%;
 
-  top: 50%;
+  border-radius: 50%;
 
-  transform: translateY(-50%);
-
-  background:
-    radial-gradient(
-      circle,
-      rgba(197, 160, 89, 0.12),
-      transparent 70%
-    );
+  background: #672f96;
+  opacity: 0.055;
 
   pointer-events: none;
-
   z-index: -1;
+}
 
-  animation: locationGlow 9s ease-in-out infinite;
+.shapeTwo {
+  position: absolute;
+
+  width: 300px;
+  height: 300px;
+
+  right: -165px;
+  bottom: 9%;
+
+  border-radius: 43% 57% 54% 46%;
+
+  background: #672f96;
+  opacity: 0.065;
+
+  transform: rotate(14deg);
+
+  pointer-events: none;
+  z-index: -1;
 }
 
 
-@keyframes locationGlow {
+/* =========================================================
+   PEQUENO DETALHE GRÁFICO
+   ========================================================= */
 
-  0%,
-  100% {
+.locationSection::before {
+  content: '';
 
-    transform:
-      translateY(-50%)
-      scale(1);
+  position: absolute;
 
-    opacity: 0.65;
-  }
+  top: 0;
+  left: 50%;
 
-  50% {
+  width: 120px;
+  height: 3px;
 
-    transform:
-      translateY(-50%)
-      scale(1.12);
+  transform: translateX(-50%);
 
-    opacity: 1;
-  }
+  background: #672f96;
+
+  z-index: 1;
 }
 
 
@@ -131,159 +95,30 @@
    ========================================================= */
 
 .locationContainer {
-
   position: relative;
 
   width: 100%;
-
-  max-width: 1080px;
+  max-width: 1180px;
 
   margin: 0 auto;
-
-  display: flex;
-
-  flex-direction: column;
-
-  align-items: center;
-
-  gap: 2rem;
 }
 
 
 /* =========================================================
-   CARD PRINCIPAL
+   INTRO
    ========================================================= */
 
-.locationInfo {
-
+.sectionIntro {
   position: relative;
 
   width: 100%;
+  max-width: 780px;
 
-  max-width: 720px;
+  margin: 0 auto 4rem;
 
-  padding: 3.5rem;
+  text-align: center;
 
-  background:
-    linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.98),
-      rgba(248, 250, 252, 0.96)
-    );
-
-  border: 1px solid rgba(15, 23, 42, 0.08);
-
-  border-radius: 10px;
-
-  box-shadow:
-    0 25px 70px rgba(15, 23, 42, 0.08),
-    0 5px 20px rgba(15, 23, 42, 0.04);
-
-  box-sizing: border-box;
-
-  overflow: hidden;
-
-  animation:
-    locationReveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
-
-  transition:
-    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.45s ease,
-    border-color 0.45s ease;
-}
-
-
-@keyframes locationReveal {
-
-  from {
-
-    opacity: 0;
-
-    transform:
-      translateY(30px)
-      scale(0.985);
-  }
-
-  to {
-
-    opacity: 1;
-
-    transform:
-      translateY(0)
-      scale(1);
-  }
-}
-
-
-/* Linha dourada superior */
-
-.locationInfo::before {
-
-  content: '';
-
-  position: absolute;
-
-  top: 0;
-
-  left: 0;
-
-  width: 150px;
-
-  height: 2px;
-
-  background:
-    linear-gradient(
-      90deg,
-      #a87922,
-      #e2c285,
-      transparent
-    );
-
-  transition:
-    width 0.5s ease;
-}
-
-
-/* Reflexo interno */
-
-.locationInfo::after {
-
-  content: '';
-
-  position: absolute;
-
-  width: 280px;
-
-  height: 280px;
-
-  right: -180px;
-
-  bottom: -180px;
-
-  border: 1px solid rgba(197, 160, 89, 0.08);
-
-  transform: rotate(45deg);
-
-  pointer-events: none;
-}
-
-
-.locationInfo:hover {
-
-  transform: translateY(-5px);
-
-  border-color:
-    rgba(197, 160, 89, 0.22);
-
-  box-shadow:
-    0 35px 80px rgba(15, 23, 42, 0.12),
-    0 0 35px rgba(197, 160, 89, 0.06);
-}
-
-
-.locationInfo:hover::before {
-
-  width: 240px;
+  z-index: 2;
 }
 
 
@@ -291,96 +126,35 @@
    EYEBROW
    ========================================================= */
 
-.dentalEyebrow {
-
-  position: relative;
-
-  z-index: 2;
-
+.eyebrow {
   display: inline-flex;
-
   align-items: center;
+  justify-content: center;
 
   gap: 0.65rem;
 
-  margin-bottom: 0.85rem;
+  margin-bottom: 1.25rem;
 
-  color: #a87922;
+  color: #672f96;
 
-  font-size: 0.7rem;
+  font-size: 0.66rem;
+  font-weight: 900;
 
-  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
 
   text-transform: uppercase;
-
-  letter-spacing: 0.2em;
-
-  animation:
-    eyebrowReveal 0.7s 0.1s ease both;
 }
 
-
-@keyframes eyebrowReveal {
-
-  from {
-
-    opacity: 0;
-
-    transform:
-      translateX(-12px);
-  }
-
-  to {
-
-    opacity: 1;
-
-    transform:
-      translateX(0);
-  }
-}
-
-
-.dentalEyebrow span {
-
-  position: relative;
-
-  width: 18px;
-
-  height: 2px;
+.eyebrow span {
+  width: 28px;
+  height: 3px;
 
   flex-shrink: 0;
 
-  background:
-    linear-gradient(
-      90deg,
-      #a87922,
-      #d9b978
-    );
+  border-radius: 999px;
 
-  box-shadow:
-    0 0 8px rgba(197, 160, 89, 0.35);
-
-  animation:
-    eyebrowLine 2.8s ease-in-out infinite;
-}
-
-
-@keyframes eyebrowLine {
-
-  0%,
-  100% {
-
-    width: 18px;
-
-    opacity: 0.7;
-  }
-
-  50% {
-
-    width: 28px;
-
-    opacity: 1;
-  }
+  background: #672f96;
 }
 
 
@@ -388,212 +162,247 @@
    TÍTULO
    ========================================================= */
 
-.locationInfo h2 {
+.sectionIntro h2 {
+  margin: 0;
 
-  position: relative;
+  color: #24112f;
 
-  z-index: 2;
+  font-size: clamp(3rem, 6.5vw, 5.8rem);
+  font-weight: 900;
 
-  margin: 0 0 2.5rem;
+  line-height: 0.92;
+  letter-spacing: -0.07em;
 
-  color: #0f172a;
-
-  font-size:
-    clamp(
-      2rem,
-      4vw,
-      2.8rem
-    );
-
-  font-weight: 750;
-
-  line-height: 1.08;
-
-  letter-spacing: -0.035em;
-
-  animation:
-    titleReveal 0.8s 0.12s ease both;
+  text-wrap: balance;
 }
 
+.sectionIntro h2 em {
+  display: inline-block;
 
-@keyframes titleReveal {
+  margin-top: 0.1em;
 
-  from {
+  padding:
+    0.02em
+    0.14em
+    0.08em;
 
-    opacity: 0;
+  color: #ffffff;
 
+  background: #672f96;
+
+  border-radius: 0.08em;
+
+  font-style: normal;
+
+  transform: rotate(-1.5deg);
+
+  transition:
+    transform 0.35s ease;
+}
+
+@media (hover: hover) {
+  .sectionIntro:hover h2 em {
     transform:
-      translateY(15px);
-  }
-
-  to {
-
-    opacity: 1;
-
-    transform:
-      translateY(0);
+      rotate(1deg)
+      translateY(-3px);
   }
 }
 
 
 /* =========================================================
-   LISTA DE INFORMAÇÕES
+   TEXTO
+   ========================================================= */
+
+.sectionIntro p {
+  max-width: 570px;
+
+  margin: 1.7rem auto 0;
+
+  color: #706675;
+
+  font-size: 0.96rem;
+  line-height: 1.7;
+
+  text-wrap: pretty;
+}
+
+
+/* =========================================================
+   CONTEÚDO
+   ========================================================= */
+
+.locationContent {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 0.82fr)
+    minmax(0, 1.18fr);
+
+  gap: 1.4rem;
+
+  align-items: stretch;
+}
+
+
+/* =========================================================
+   CARD DE INFORMAÇÕES
+   ========================================================= */
+
+.locationInfo {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+
+  padding: 2.2rem;
+
+  background: #672f96;
+
+  border-radius: 26px;
+
+  color: #ffffff;
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+}
+
+.locationInfo::before {
+  content: '';
+
+  position: absolute;
+
+  width: 240px;
+  height: 240px;
+
+  right: -130px;
+  top: -120px;
+
+  border: 1px solid rgba(255, 255, 255, 0.16);
+
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+.locationInfo::after {
+  content: '';
+
+  position: absolute;
+
+  width: 90px;
+  height: 90px;
+
+  left: -50px;
+  bottom: 90px;
+
+  border-radius: 50%;
+
+  background: rgba(255, 255, 255, 0.07);
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   TOPO DO CARD
+   ========================================================= */
+
+.infoTop {
+  position: relative;
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding-bottom: 1.6rem;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.infoNumber {
+  font-size: 0.66rem;
+  font-weight: 900;
+
+  letter-spacing: 0.12em;
+
+  opacity: 0.65;
+}
+
+.infoLabel {
+  font-size: 0.63rem;
+  font-weight: 900;
+
+  letter-spacing: 0.17em;
+}
+
+
+/* =========================================================
+   LISTA
    ========================================================= */
 
 .infoList {
-
   position: relative;
-
   z-index: 2;
 
-  list-style: none;
-
-  padding: 0;
-
-  margin: 0 0 2.8rem;
-
   display: flex;
-
   flex-direction: column;
 
-  gap: 0;
+  margin: 0;
+  padding: 0;
 }
 
-
-/* =========================================================
-   LINHA ENTRE OS ITENS
-   ========================================================= */
-
-.infoList li {
-
-  position: relative;
-
+.infoItem {
   display: flex;
-
   align-items: flex-start;
 
-  gap: 1.2rem;
+  gap: 0.95rem;
 
-  padding:
-    1.25rem 0;
+  padding: 1.15rem 0;
 
-  color: #a87922;
-
-  border-bottom:
-    1px solid rgba(15, 23, 42, 0.07);
-
-  animation:
-    infoReveal 0.7s ease both;
-
-  transition:
-    transform 0.3s ease,
-    padding-left 0.3s ease;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-
-.infoList li:nth-child(1) {
-  animation-delay: 0.2s;
-}
-
-.infoList li:nth-child(2) {
-  animation-delay: 0.3s;
-}
-
-.infoList li:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-
-@keyframes infoReveal {
-
-  from {
-
-    opacity: 0;
-
-    transform:
-      translateX(-15px);
-  }
-
-  to {
-
-    opacity: 1;
-
-    transform:
-      translateX(0);
-  }
-}
-
-
-.infoList li:last-child {
-
+.infoItem:last-child {
   border-bottom: none;
 }
 
 
-.infoList li:hover {
-
-  transform: translateX(5px);
-
-  padding-left: 4px;
-}
-
-
 /* =========================================================
-   ÍCONES
+   ÍCONE
    ========================================================= */
 
-.infoList li svg {
+.iconBox {
+  width: 42px;
+  height: 42px;
 
-  position: relative;
-
-  width: 22px;
-
-  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   flex-shrink: 0;
 
-  margin-top: 2px;
+  color: #672f96;
+  background: #ffffff;
 
-  padding: 9px;
-
-  box-sizing: content-box;
-
-  color: #b58a3d;
-
-  background:
-    linear-gradient(
-      145deg,
-      rgba(197, 160, 89, 0.15),
-      rgba(197, 160, 89, 0.05)
-    );
-
-  border:
-    1px solid rgba(197, 160, 89, 0.22);
-
-  border-radius: 7px;
+  border-radius: 13px;
 
   transition:
-    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-    background 0.35s ease,
-    border-color 0.35s ease,
-    box-shadow 0.35s ease;
+    transform 0.3s ease;
 }
 
+@media (hover: hover) {
+  .infoItem:hover .iconBox {
+    transform: rotate(-5deg);
+  }
+}
 
-.infoList li:hover svg {
-
-  transform:
-    translateY(-2px)
-    rotate(-3deg);
-
-  background:
-    rgba(197, 160, 89, 0.16);
-
-  border-color:
-    rgba(197, 160, 89, 0.45);
-
-  box-shadow:
-    0 8px 20px rgba(197, 160, 89, 0.14);
+.iconBox svg {
+  width: 19px;
+  height: 19px;
 }
 
 
@@ -601,210 +410,375 @@
    TEXTOS
    ========================================================= */
 
-.infoList li div {
-
+.infoText {
   min-width: 0;
 }
 
-
-.infoList li div strong {
-
+.infoText strong {
   display: block;
 
   margin-bottom: 0.3rem;
 
-  color: #0f172a;
+  color: #ffffff;
 
-  font-size: 0.92rem;
+  font-size: 0.83rem;
+  font-weight: 850;
 
-  font-weight: 700;
-
-  letter-spacing: -0.01em;
+  line-height: 1.3;
 }
 
-
-.infoList li div p {
-
+.infoText p {
   margin: 0;
 
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.76);
 
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  line-height: 1.55;
 
-  line-height: 1.6;
+  text-wrap: pretty;
 }
 
 
 /* =========================================================
-   BOTÃO
+   PET COFFEE
+   ========================================================= */
+
+.coffeeNote {
+  position: relative;
+  z-index: 2;
+
+  display: flex;
+
+  gap: 0.85rem;
+
+  margin-top: 0.85rem;
+
+  padding: 0.95rem;
+
+  background: rgba(255, 255, 255, 0.1);
+
+  border: 1px solid rgba(255, 255, 255, 0.13);
+
+  border-radius: 16px;
+}
+
+.coffeeIcon {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  color: #672f96;
+
+  background: #ffffff;
+
+  border-radius: 11px;
+}
+
+.coffeeIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.coffeeNote strong {
+  display: block;
+
+  margin-bottom: 0.2rem;
+
+  font-size: 0.77rem;
+  font-weight: 850;
+
+  line-height: 1.3;
+}
+
+.coffeeNote p {
+  margin: 0;
+
+  color: rgba(255, 255, 255, 0.7);
+
+  font-size: 0.71rem;
+  line-height: 1.5;
+
+  text-wrap: pretty;
+}
+
+
+/* =========================================================
+   CTA
    ========================================================= */
 
 .locationCta {
-
   position: relative;
+  z-index: 2;
 
-  z-index: 3;
-
-  display: inline-flex;
-
+  display: flex;
   align-items: center;
+  justify-content: space-between;
 
-  justify-content: center;
+  gap: 1rem;
 
-  gap: 0.7rem;
+  min-height: 58px;
 
-  width: 100%;
-
-  min-height: 54px;
+  margin-top: 1.15rem;
 
   padding:
-    0 1.5rem;
+    0
+    0.65rem
+    0
+    1.25rem;
 
-  background:
-    linear-gradient(
-      135deg,
-      #0f172a 0%,
-      #172338 55%,
-      #0f172a 100%
-    );
+  color: #672f96;
+
+  background: #ffffff;
+
+  border-radius: 999px;
+
+  font-size: 0.71rem;
+  font-weight: 900;
+
+  letter-spacing: 0.08em;
+
+  text-decoration: none;
+  text-transform: uppercase;
+
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+@media (hover: hover) {
+  .locationCta:hover {
+    transform: translateY(-3px);
+
+    box-shadow:
+      0 12px 30px rgba(40, 15, 55, 0.18);
+  }
+}
+
+.ctaIcon {
+  width: 44px;
+  height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
 
   color: #ffffff;
 
-  border:
-    1px solid rgba(197, 160, 89, 0.15);
+  background: #672f96;
 
-  border-radius: 6px;
-
-  font-weight: 700;
-
-  font-size: 0.82rem;
-
-  letter-spacing: 0.06em;
-
-  text-decoration: none;
-
-  text-transform: uppercase;
-
-  overflow: hidden;
-
-  box-sizing: border-box;
-
-  box-shadow:
-    0 12px 30px rgba(15, 23, 42, 0.22);
-
-  transition:
-    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.3s ease,
-    border-color 0.3s ease;
-}
-
-
-/* =========================================================
-   BRILHO DO BOTÃO
-   ========================================================= */
-
-.locationCta::before {
-
-  content: '';
-
-  position: absolute;
-
-  top: 0;
-
-  bottom: 0;
-
-  left: -100px;
-
-  width: 70px;
-
-  background:
-    linear-gradient(
-      110deg,
-      transparent,
-      rgba(255, 255, 255, 0.22),
-      transparent
-    );
-
-  transform:
-    skewX(-20deg);
-
-  animation:
-    buttonShine 5s ease-in-out infinite;
-}
-
-
-@keyframes buttonShine {
-
-  0% {
-    left: -100px;
-  }
-
-  20% {
-    left: 120%;
-  }
-
-  100% {
-    left: 120%;
-  }
-}
-
-
-/* =========================================================
-   ÍCONE DO BOTÃO
-   ========================================================= */
-
-.locationCta svg {
-
-  position: relative;
-
-  z-index: 2;
+  border-radius: 50%;
 
   transition:
     transform 0.3s ease;
 }
 
-
-.locationCta:hover svg {
-
-  transform:
-    translate(
-      3px,
-      -3px
-    );
+@media (hover: hover) {
+  .locationCta:hover .ctaIcon {
+    transform:
+      rotate(5deg)
+      translate(2px, -2px);
+  }
 }
 
 
 /* =========================================================
-   HOVER BOTÃO
+   MAPA
    ========================================================= */
 
-.locationCta:hover {
+.locationMap {
+  position: relative;
 
-  transform:
-    translateY(-3px);
+  display: flex;
+  flex-direction: column;
 
-  border-color:
-    rgba(197, 160, 89, 0.5);
+  min-width: 0;
+
+  padding: 0.65rem;
+
+  background: #ffffff;
+
+  border: 2px solid #672f96;
+
+  border-radius: 26px;
+
+  box-sizing: border-box;
+
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   TOPO DO MAPA
+   ========================================================= */
+
+.mapTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 52px;
+
+  padding: 0 0.65rem;
+
+  color: #672f96;
+}
+
+.mapTop > div {
+  display: flex;
+  align-items: center;
+
+  gap: 0.6rem;
+}
+
+.mapNumber {
+  font-size: 0.63rem;
+  font-weight: 900;
+
+  opacity: 0.55;
+}
+
+.mapTop strong {
+  font-size: 0.7rem;
+  font-weight: 900;
+
+  letter-spacing: 0.1em;
+
+  text-transform: uppercase;
+}
+
+
+/* =========================================================
+   MOLDURA DO MAPA
+   ========================================================= */
+
+.mapFrame {
+  position: relative;
+
+  width: 100%;
+
+  min-height: 500px;
+
+  overflow: hidden;
+
+  border-radius: 19px;
+
+  background: #eeeeee;
+}
+
+.mapFrame iframe {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  min-height: 500px;
+
+  border: 0;
+
+  filter: grayscale(15%);
+
+  transition:
+    filter 0.4s ease;
+}
+
+@media (hover: hover) {
+  .locationMap:hover .mapFrame iframe {
+    filter: grayscale(0%);
+  }
+}
+
+
+/* =========================================================
+   BADGE DO MAPA
+   ========================================================= */
+
+.mapBadge {
+  position: absolute;
+
+  left: 1rem;
+  bottom: 1rem;
+
+  display: flex;
+  align-items: center;
+
+  gap: 0.45rem;
+
+  padding:
+    0.7rem
+    0.9rem;
+
+  color: #672f96;
+
+  background: #ffffff;
+
+  border-radius: 999px;
 
   box-shadow:
-    0 18px 40px rgba(15, 23, 42, 0.28),
-    0 0 25px rgba(197, 160, 89, 0.1);
+    0 8px 25px rgba(0, 0, 0, 0.12);
+
+  font-size: 0.61rem;
+  font-weight: 900;
+
+  letter-spacing: 0.1em;
+
+  white-space: nowrap;
 }
 
 
-.locationCta:active {
+/* =========================================================
+   RODAPÉ
+   ========================================================= */
 
-  transform:
-    translateY(-1px)
-    scale(0.99);
+.locationFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-wrap: wrap;
+
+  gap: 0.5rem;
+
+  margin-top: 1.75rem;
 }
 
+.locationFooter span {
+  padding:
+    0.52rem
+    0.78rem;
+
+  color: #672f96;
+
+  background: #f5eff9;
+
+  border-radius: 999px;
+
+  font-size: 0.6rem;
+  font-weight: 850;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+}
+
+.locationFooter span:nth-child(2) {
+  color: #ffffff;
+  background: #672f96;
+}
+
+
+/* =========================================================
+   FOCO
+   ========================================================= */
 
 .locationCta:focus-visible {
-
-  outline:
-    2px solid #c5a059;
-
+  outline: 3px solid #b997d0;
   outline-offset: 4px;
 }
 
@@ -813,39 +787,31 @@
    TABLET
    ========================================================= */
 
-@media (max-width: 768px) {
-
+@media (max-width: 950px) {
   .locationSection {
-
     padding:
-      4.5rem 0.75rem;
+      6rem
+      1rem
+      5rem;
   }
 
-  .locationContainer {
+  .sectionIntro {
+    margin-bottom: 3.25rem;
+  }
 
-    width: 100%;
+  .locationContent {
+    grid-template-columns: 1fr;
+
+    gap: 1.25rem;
   }
 
   .locationInfo {
-
-    width: 100%;
-
-    max-width: 680px;
-
-    padding:
-      2.5rem 2rem;
-
-    border-radius: 9px;
+    padding: 2rem;
   }
 
-  .locationInfo h2 {
-
-    margin-bottom: 2rem;
-  }
-
-  .infoList {
-
-    margin-bottom: 2.3rem;
+  .mapFrame,
+  .mapFrame iframe {
+    min-height: 420px;
   }
 }
 
@@ -855,184 +821,257 @@
    ========================================================= */
 
 @media (max-width: 600px) {
-
   .locationSection {
-
     padding:
-      3.5rem 0.65rem;
+      4.75rem
+      0.75rem
+      4.5rem;
   }
 
   .locationSection::before {
-
-    background-size:
-      32px 32px;
+    width: 80px;
+    height: 2px;
   }
 
-  .locationSection::after {
-
-    width: 360px;
-
-    height: 360px;
-
-    left: -220px;
+  .sectionIntro {
+    margin-bottom: 2.6rem;
   }
+
+  .eyebrow {
+    margin-bottom: 0.95rem;
+
+    font-size: 0.57rem;
+
+    letter-spacing: 0.13em;
+  }
+
+  .eyebrow span {
+    width: 20px;
+    height: 2px;
+  }
+
+  .sectionIntro h2 {
+    font-size: clamp(
+      2.6rem,
+      14vw,
+      4rem
+    );
+
+    line-height: 0.94;
+  }
+
+  .sectionIntro p {
+    max-width: 480px;
+
+    margin-top: 1.35rem;
+
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+
+  /* =======================================================
+     CONTEÚDO
+     ======================================================= */
+
+  .locationContent {
+    gap: 1rem;
+  }
+
+
+  /* =======================================================
+     INFORMAÇÕES
+     ======================================================= */
 
   .locationInfo {
+    padding: 1.55rem;
+
+    border-radius: 22px;
+  }
+
+  .infoTop {
+    padding-bottom: 1.3rem;
+  }
+
+  .infoNumber {
+    font-size: 0.6rem;
+  }
+
+  .infoLabel {
+    font-size: 0.57rem;
+  }
+
+  .infoItem {
+    gap: 0.75rem;
 
     padding:
-      2rem 1.25rem;
-
-    border-radius: 8px;
-
-    box-shadow:
-      0 18px 45px rgba(15, 23, 42, 0.08);
+      1rem
+      0;
   }
 
-  .locationInfo:hover {
+  .iconBox {
+    width: 38px;
+    height: 38px;
 
-    transform: none;
+    border-radius: 11px;
   }
 
-  .locationInfo::before {
-
-    width: 90px;
+  .iconBox svg {
+    width: 17px;
+    height: 17px;
   }
 
-  .locationInfo:hover::before {
-
-    width: 130px;
+  .infoText strong {
+    font-size: 0.77rem;
   }
 
-
-  /* -----------------------------------------
-     EYEBROW
-     ----------------------------------------- */
-
-  .dentalEyebrow {
-
-    gap: 0.5rem;
-
-    margin-bottom:
-      0.75rem;
-
-    font-size:
-      0.6rem;
-
-    letter-spacing:
-      0.14em;
-  }
-
-  .dentalEyebrow span {
-
-    width: 14px;
+  .infoText p {
+    font-size: 0.74rem;
+    line-height: 1.5;
   }
 
 
-  /* -----------------------------------------
-     TÍTULO
-     ----------------------------------------- */
+  /* =======================================================
+     PET COFFEE
+     ======================================================= */
 
-  .locationInfo h2 {
+  .coffeeNote {
+    gap: 0.75rem;
 
-    margin-bottom:
-      1.6rem;
+    padding: 0.8rem;
+  }
 
-    font-size:
-      clamp(
-        1.8rem,
-        8vw,
-        2.25rem
-      );
+  .coffeeIcon {
+    width: 34px;
+    height: 34px;
 
-    line-height:
-      1.08;
+    border-radius: 10px;
+  }
+
+  .coffeeIcon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .coffeeNote strong {
+    font-size: 0.74rem;
+  }
+
+  .coffeeNote p {
+    font-size: 0.67rem;
+    line-height: 1.45;
   }
 
 
-  /* -----------------------------------------
-     LISTA
-     ----------------------------------------- */
-
-  .infoList {
-
-    margin-bottom:
-      1.8rem;
-  }
-
-  .infoList li {
-
-    gap:
-      0.85rem;
-
-    padding:
-      1rem 0;
-  }
-
-  .infoList li:hover {
-
-    transform: none;
-
-    padding-left: 0;
-  }
-
-
-  /* -----------------------------------------
-     ÍCONES
-     ----------------------------------------- */
-
-  .infoList li svg {
-
-    width:
-      18px;
-
-    height:
-      18px;
-
-    padding:
-      8px;
-
-    border-radius:
-      6px;
-  }
-
-
-  /* -----------------------------------------
-     TEXTOS
-     ----------------------------------------- */
-
-  .infoList li div strong {
-
-    font-size:
-      0.86rem;
-  }
-
-  .infoList li div p {
-
-    font-size:
-      0.78rem;
-
-    line-height:
-      1.55;
-  }
-
-
-  /* -----------------------------------------
-     BOTÃO
-     ----------------------------------------- */
+  /* =======================================================
+     CTA
+     ======================================================= */
 
   .locationCta {
+    min-height: 54px;
 
-    min-height:
-      52px;
+    margin-top: 1rem;
+
+    padding-left: 1rem;
+
+    font-size: 0.64rem;
+
+    letter-spacing: 0.07em;
+  }
+
+  .ctaIcon {
+    width: 40px;
+    height: 40px;
+  }
+
+
+  /* =======================================================
+     MAPA
+     ======================================================= */
+
+  .locationMap {
+    padding: 0.5rem;
+
+    border-radius: 22px;
+  }
+
+  .mapTop {
+    min-height: 45px;
 
     padding:
-      0 1rem;
+      0
+      0.5rem;
+  }
 
-    font-size:
-      0.73rem;
+  .mapTop > div {
+    gap: 0.5rem;
+  }
 
-    letter-spacing:
-      0.04em;
+  .mapNumber {
+    font-size: 0.57rem;
+  }
+
+  .mapTop strong {
+    font-size: 0.64rem;
+  }
+
+  .mapFrame {
+    min-height: 300px;
+
+    border-radius: 16px;
+  }
+
+  .mapFrame iframe {
+    min-height: 300px;
+  }
+
+  .mapBadge {
+    left: 0.7rem;
+    bottom: 0.7rem;
+
+    padding:
+      0.58rem
+      0.72rem;
+
+    font-size: 0.53rem;
+  }
+
+
+  /* =======================================================
+     RODAPÉ DA SEÇÃO
+     ======================================================= */
+
+  .locationFooter {
+    gap: 0.4rem;
+
+    margin-top: 1.25rem;
+  }
+
+  .locationFooter span {
+    padding:
+      0.44rem
+      0.58rem;
+
+    font-size: 0.51rem;
+  }
+
+
+  /* =======================================================
+     FORMAS
+     ======================================================= */
+
+  .shapeOne {
+    width: 380px;
+    height: 380px;
+
+    left: -270px;
+  }
+
+  .shapeTwo {
+    width: 230px;
+    height: 230px;
+
+    right: -130px;
   }
 }
 
@@ -1042,326 +1081,69 @@
    ========================================================= */
 
 @media (max-width: 380px) {
-
   .locationSection {
-
     padding:
-      3rem 0.5rem;
+      4.35rem
+      0.6rem
+      4.25rem;
   }
 
   .locationInfo {
+    padding: 1.3rem;
 
-    padding:
-      1.7rem 1rem;
+    border-radius: 20px;
   }
 
-  .dentalEyebrow {
-
-    font-size:
-      0.56rem;
-
-    letter-spacing:
-      0.11em;
+  .sectionIntro h2 {
+    font-size: 2.45rem;
   }
 
-  .locationInfo h2 {
-
-    font-size:
-      1.75rem;
+  .sectionIntro p {
+    font-size: 0.82rem;
   }
 
-  .infoList li {
-
-    gap:
-      0.7rem;
+  .infoItem {
+    gap: 0.62rem;
   }
 
-  .infoList li svg {
+  .iconBox {
+    width: 35px;
+    height: 35px;
 
-    width:
-      17px;
-
-    height:
-      17px;
-
-    padding:
-      7px;
+    border-radius: 10px;
   }
 
-  .infoList li div strong {
-
-    font-size:
-      0.82rem;
+  .infoText strong {
+    font-size: 0.73rem;
   }
 
-  .infoList li div p {
+  .infoText p {
+    font-size: 0.69rem;
+  }
 
-    font-size:
-      0.74rem;
+  .coffeeNote {
+    gap: 0.65rem;
+  }
+
+  .coffeeIcon {
+    width: 32px;
+    height: 32px;
   }
 
   .locationCta {
-
-    font-size:
-      0.68rem;
-  }
-}
-
-
-/* =========================================================
-   GOOGLE MAPS — ACRÉSCIMO
-   NÃO ALTERA O CARD ORIGINAL
-   ========================================================= */
-
-.locationMap {
-
-  position: relative;
-
-  width: 100%;
-
-  max-width: 720px;
-
-  padding: 0.75rem;
-
-  box-sizing: border-box;
-
-  background:
-    linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.98),
-      rgba(248, 250, 252, 0.96)
-    );
-
-  border:
-    1px solid rgba(15, 23, 42, 0.08);
-
-  border-radius: 10px;
-
-  box-shadow:
-    0 25px 70px rgba(15, 23, 42, 0.08),
-    0 5px 20px rgba(15, 23, 42, 0.04);
-
-  box-sizing: border-box;
-
-  overflow: hidden;
-
-  animation:
-    locationReveal 0.9s 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-
-/* =========================================================
-   LINHA DOURADA
-   ========================================================= */
-
-.locationMap::before {
-
-  content: '';
-
-  position: absolute;
-
-  top: 0;
-
-  left: 0;
-
-  width: 150px;
-
-  height: 2px;
-
-  background:
-    linear-gradient(
-      90deg,
-      #a87922,
-      #e2c285,
-      transparent
-    );
-
-  z-index: 3;
-
-  transition:
-    width 0.5s ease;
-}
-
-
-.locationMap:hover::before {
-
-  width: 240px;
-}
-
-
-/* =========================================================
-   CABEÇALHO DO MAPA
-   ========================================================= */
-
-.mapHeader {
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 0.55rem;
-
-  height: 38px;
-
-  padding-left: 0.35rem;
-
-  color: #a87922;
-
-  font-size: 0.62rem;
-
-  font-weight: 800;
-
-  letter-spacing: 0.18em;
-
-  text-transform: uppercase;
-
-  box-sizing: border-box;
-}
-
-
-.mapHeader svg {
-
-  color: #b58a3d;
-
-  flex-shrink: 0;
-}
-
-
-/* =========================================================
-   MOLDURA DO MAPA
-   ========================================================= */
-
-.mapFrame {
-
-  position: relative;
-
-  width: 100%;
-
-  height: 420px;
-
-  overflow: hidden;
-
-  border-radius: 7px;
-
-  background: #e5e7eb;
-}
-
-
-/* =========================================================
-   GOOGLE MAPS
-   ========================================================= */
-
-.mapFrame iframe {
-
-  display: block;
-
-  width: 100%;
-
-  height: 100%;
-
-  border: 0;
-
-  filter:
-    grayscale(15%)
-    contrast(96%);
-
-  transition:
-    filter 0.4s ease;
-}
-
-
-.locationMap:hover .mapFrame iframe {
-
-  filter:
-    grayscale(0%)
-    contrast(100%);
-}
-
-
-/* =========================================================
-   TABLET — MAPA
-   ========================================================= */
-
-@media (max-width: 768px) {
-
-  .locationMap {
-
-    width: 100%;
-
-    max-width: 680px;
-
-    padding: 0.65rem;
-
-    border-radius: 9px;
+    font-size: 0.6rem;
   }
 
-  .mapFrame {
-
-    height: 360px;
-  }
-}
-
-
-/* =========================================================
-   MOBILE — MAPA
-   ========================================================= */
-
-@media (max-width: 600px) {
-
-  .locationMap {
-
-    width: 100%;
-
-    padding: 0.65rem;
-
-    border-radius: 8px;
-
-    box-shadow:
-      0 18px 45px rgba(15, 23, 42, 0.08);
+  .mapFrame,
+  .mapFrame iframe {
+    min-height: 270px;
   }
 
-  .locationMap:hover {
+  .mapBadge {
+    max-width: calc(100% - 1.4rem);
 
-    transform: none;
-  }
-
-  .locationMap::before {
-
-    width: 90px;
-  }
-
-  .locationMap:hover::before {
-
-    width: 130px;
-  }
-
-  .mapHeader {
-
-    height: 34px;
-
-    font-size: 0.57rem;
-
-    letter-spacing: 0.14em;
-  }
-
-  .mapFrame {
-
-    height: 300px;
-
-    border-radius: 6px;
-  }
-}
-
-
-/* =========================================================
-   CELULARES PEQUENOS — MAPA
-   ========================================================= */
-
-@media (max-width: 380px) {
-
-  .mapFrame {
-
-    height: 270px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
@@ -1371,13 +1153,10 @@
    ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
-
   .locationSection *,
   .locationSection::before,
   .locationSection::after {
-
     animation: none !important;
-
     transition: none !important;
   }
 }

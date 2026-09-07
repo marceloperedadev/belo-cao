@@ -1,61 +1,120 @@
+
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
 
-// Alterne para a URL temporária da Vercel durante os testes ou use a final
-const SITE_URL = 'https://site-dentista-phi.vercel.app'
+// =========================================================
+// BELO CÃO
+// URL DO SITE
+// =========================================================
+//
+// Em produção, configure:
+// NEXT_PUBLIC_SITE_URL=https://seu-endereco-do-belo-cao.vercel.app
+//
+// Enquanto a variável não existir, usamos localhost
+// para não manter a antiga URL do projeto de dentista.
+//
+
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
+// =========================================================
+// METADATA
+// =========================================================
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+
   title: {
-    default: 'Dra. Bárbara Glayris | Cirurgiã-Dentista em Taubaté',
-    template: '%s | Dra. Bárbara Glayris',
+    default: 'Belo Cão | Estética Animal, Pet Coffee e Lojinha',
+    template: '%s | Belo Cão',
   },
+
   description:
-    'Atendimento odontológico especializado em Taubaté. Reabilitação oral, lâminas de porcelana, implantes e odontologia estética com planejamento 3D.',
+    'Belo Cão — estética animal, pet coffee e lojinha em Taubaté. Um espaço pensado para cuidar dos pets com carinho e transformar cada visita em uma experiência especial.',
+
   keywords: [
-    'dentista taubaté',
-    'implantes taubaté',
-    'facetas de porcelana taubaté',
-    'lâminas de porcelana taubaté',
-    'reabilitação oral taubaté',
-    'dra barbara glayris',
-    'odontologia estética taubaté',
-    'clinica odontologica taubaté',
+    'Belo Cão',
+    'Belo Cão Taubaté',
+    'Belo Cão Estética Animal',
+    'estética animal Taubaté',
+    'pet shop Taubaté',
+    'banho e tosa Taubaté',
+    'banho e tosa',
+    'estética animal',
+    'pet coffee Taubaté',
+    'pet coffee',
+    'lojinha pet',
+    'loja pet Taubaté',
+    'cuidados para pets',
+    'pet shop',
   ],
-  authors: [{ name: 'Dra. Bárbara Glayris' }],
-  creator: 'Dra. Bárbara Glayris',
-  publisher: 'Dra. Bárbara Glayris',
+
+  authors: [
+    {
+      name: 'Belo Cão',
+    },
+  ],
+
+  creator: 'Belo Cão',
+
+  publisher: 'Belo Cão',
+
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
+
   alternates: {
     canonical: '/',
   },
+
+  // =======================================================
+  // OPEN GRAPH
+  // =======================================================
+
   openGraph: {
-    title: 'Dra. Bárbara Glayris | Cirurgiã-Dentista em Taubaté',
+    title: 'Belo Cão | Estética Animal, Pet Coffee e Lojinha',
+
     description:
-      'Reabilitação oral, lâminas de porcelana e odontologia estética com planejamento digital 3D em Taubaté.',
+      'Estética animal, pet coffee e lojinha em Taubaté. Um espaço pensado para cuidar dos pets com carinho.',
+
     url: SITE_URL,
-    siteName: 'Dra. Bárbara Glayris - Odontologia',
+
+    siteName: 'Belo Cão',
+
     locale: 'pt_BR',
+
     type: 'website',
-    images: [
-      {
-        url: `${SITE_URL}/images/logo-dentista.png`, // Usa a URL completa da imagem
-        width: 1200,
-        height: 630,
-        alt: 'Dra. Bárbara Glayris em Taubaté',
-      },
-    ],
   },
+
+  // =======================================================
+  // TWITTER / X
+  // =======================================================
+
+  twitter: {
+    card: 'summary',
+
+    title: 'Belo Cão | Estética Animal, Pet Coffee e Lojinha',
+
+    description:
+      'Estética animal, pet coffee e lojinha em Taubaté.',
+  },
+
+  // =======================================================
+  // ROBOTS
+  // =======================================================
+
   robots: {
     index: true,
     follow: true,
+
     googleBot: {
       index: true,
       follow: true,
@@ -66,51 +125,79 @@ export const metadata: Metadata = {
   },
 }
 
+// =========================================================
+// ROOT LAYOUT
+// =========================================================
+
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
+  // =======================================================
+  // SCHEMA.ORG — BELO CÃO
+  // =======================================================
+
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Dentist',
-    name: 'Dra. Bárbara Glayris - Cirurgiã-Dentista',
-    image: `${SITE_URL}/images/logo-dentistata.png`,
-    '@id': SITE_URL,
+
+    '@type': 'LocalBusiness',
+
+    '@id': `${SITE_URL}/#belo-cao`,
+
+    name: 'Belo Cão',
+
+    alternateName: 'Belo Cão Estética Animal',
+
+    description:
+      'Estética animal, pet coffee e lojinha para pets.',
+
     url: SITE_URL,
-    telephone: '+5512997093459',
+
+    sameAs: [
+      'https://www.instagram.com/belocaoestetica_animal/',
+    ],
+
     address: {
       '@type': 'PostalAddress',
-      streetAddress: 'Atendimento em Taubaté',
+
       addressLocality: 'Taubaté',
+
       addressRegion: 'SP',
-      postalCode: '12000-000',
+
       addressCountry: 'BR',
     },
-    geo: {
-      '@type': 'GeoCoordinates',
-      latitude: -23.0264,
-      longitude: -45.5552,
+
+    areaServed: {
+      '@type': 'City',
+
+      name: 'Taubaté',
+
+      containedInPlace: {
+        '@type': 'State',
+
+        name: 'São Paulo',
+      },
     },
-    openingHoursSpecification: {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-      opens: '08:00',
-      closes: '18:00',
-    },
+
     priceRange: '$$',
-    medicalSpecialty: 'Dentistry',
   }
 
   return (
-    <html lang="pt-BR" className="scroll-smooth">
+    <html lang="pt-BR">
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd),
+          }}
         />
       </head>
-      <body className={inter.className}>{children}</body>
+
+      <body className={inter.className}>
+        {children}
+      </body>
     </html>
   )
 }
+

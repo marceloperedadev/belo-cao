@@ -1,3 +1,4 @@
+
 import { Header } from './components/Header/Header'
 import { Hero } from './components/Hero/Hero'
 import { TrustStrip } from './components/TrustStrip/TrustStrip'
@@ -15,20 +16,38 @@ export default function Home() {
   return (
     <div className="dental-site">
       <Header />
+
       <main>
         <Hero />
+
         <TrustStrip />
-        <Specialties />
-        <About />
-        <Experience />
+
+        <section id="especialidades">
+          <Specialties />
+        </section>
+
+        <section id="sobre">
+          <About />
+        </section>
+
+        <section id="experiencia">
+          <Experience />
+        </section>
+
         <Testimonial />
+
         <Faq />
-        <Location />
+
+        <section id="localizacao">
+          <Location />
+        </section>
+
         <Contact />
+
         <WhatsAppFloat />
       </main>
+
       <Footer />
-      
     </div>
   )
 }

@@ -1,92 +1,84 @@
-
 'use client'
 
 import {
   ArrowRight,
+  Scissors,
+  Bath,
+  Heart,
   Sparkles,
-  Shield,
-  Cpu,
-  Activity,
-  Stethoscope,
-  Award,
+  Coffee,
+  ShoppingBag,
 } from 'lucide-react'
 
 import { Config } from '@/app/constants/config'
 import styles from './Specialties.module.css'
 
-
 const SPECIALTIES_DATA = [
   {
     number: '01',
-    icon: Cpu,
-    title: 'Implantodontia Avançada',
+    icon: Bath,
+    title: 'Banho',
     description:
-      'Planejamento digital guiado por computador para colocação de implantes de alta precisão, garantindo cirurgias minimamente invasivas e rápida recuperação.',
+      'Um banho tranquilo, cuidadoso e pensado para deixar seu pet confortável.',
   },
   {
     number: '02',
-    icon: Sparkles,
-    title: 'Lâminas & Facetas de Porcelana',
+    icon: Scissors,
+    title: 'Tosa',
     description:
-      'Design do sorriso sob medida. Restaurações ultrafinas em cerâmica para correção de forma, alinhamento e tonalidade com naturalidade absoluta.',
+      'Tosa na máquina ou na tesoura, respeitando o estilo e as necessidades de cada pet.',
   },
   {
     number: '03',
-    icon: Shield,
-    title: 'Reabilitação Oral Complexa',
+    icon: Heart,
+    title: 'Comportamento Animal',
     description:
-      'Tratamentos integrados para devolução de função mastigatória e estética em casos de grande perda estrutural ou desgastes acentuados.',
+      'Cuidado que considera o comportamento, o tempo e o jeito único de cada animal.',
   },
   {
     number: '04',
-    icon: Activity,
-    title: 'Cirurgia Guiada & Protocolos',
+    icon: Sparkles,
+    title: 'Estética Animal',
     description:
-      'Soluções fixas para substituição de próteses removíveis com menor tempo cirúrgico e previsibilidade anatômica total.',
+      'Cuidados completos para eles saírem bonitos, cheirosos e, principalmente, bem.',
   },
   {
     number: '05',
-    icon: Stethoscope,
-    title: 'Odontologia Estética & Restauradora',
+    icon: Coffee,
+    title: 'Pet Coffee',
     description:
-      'Clareamentos de alta performance e restaurações estéticas diretas que preservam a estrutura dental hígida.',
+      'Enquanto eles ficam por aqui, você pode tomar um café e aproveitar o momento.',
   },
   {
     number: '06',
-    icon: Award,
-    title: 'Check-up Digital Preventivo',
+    icon: ShoppingBag,
+    title: 'Lojinha',
     description:
-      'Mapeamento completo da saúde bucal com imagens de alta definição e scanner intraoral para diagnóstico precoce.',
+      'Uma seleção de produtos e achadinhos para levar um pouco do Belo Cão para casa.',
   },
 ]
 
-
 export function Specialties() {
-
   const getWhatsappLink = (title: string) => {
+    const baseUrl = Config.WHATSAPP_URL
 
-    const baseUrl =
-      Config.WHATSAPP_URL ||
-      'https://wa.me/5512997093459'
+    if (!baseUrl) {
+      return '#contato'
+    }
 
     const message =
-      `Olá! Gostaria de agendar uma consulta sobre ${title} em Taubaté.`
+      `Olá! Gostaria de saber mais sobre ${title} no Belo Cão.`
 
-    const separator =
-      baseUrl.includes('?')
-        ? '&'
-        : '?'
+    const separator = baseUrl.includes('?') ? '&' : '?'
 
     return `${baseUrl}${separator}text=${encodeURIComponent(message)}`
   }
-
 
   return (
     <section
       id="especialidades"
       className={styles.specialties}
     >
-
       {/* =================================================
           INTRODUÇÃO
           ================================================= */}
@@ -94,24 +86,19 @@ export function Specialties() {
       <div className={styles.sectionIntro}>
 
         <div className={styles.dentalEyebrow}>
-
           <span aria-hidden="true" />
-
-          Alta Performance & Tecnologia
-
+          O QUE TEM POR AQUI
         </div>
 
-
         <h2>
-          Especialidades & <br />
-          <em>Protocolos Clínicos.</em>
+          Cuidado para eles.
+          <br />
+          <em>Tempo para você.</em>
         </h2>
 
-
         <p>
-          Soluções odonto-cirúrgicas integradas em Taubaté
-          que unem rigor científico, tecnologia de
-          escaneamento 3D e estética personalizada.
+          Do banho ao café, cada parte do Belo Cão foi
+          pensada para deixar o momento mais gostoso.
         </p>
 
       </div>
@@ -124,75 +111,48 @@ export function Specialties() {
       <div className={styles.specialtyGrid}>
 
         {SPECIALTIES_DATA.map((item) => {
-
           const Icon = item.icon
-
-          const customLink =
-            getWhatsappLink(item.title)
-
+          const customLink = getWhatsappLink(item.title)
 
           return (
-
             <article key={item.number}>
 
-              {/* Número */}
-
-              <span
-                className={styles.specialtyNumber}
-              >
+              <span className={styles.specialtyNumber}>
                 {item.number}
               </span>
 
-
-              {/* Ícone */}
-
               <div className={styles.icon}>
-
                 <Icon
-                  size={22}
-                  strokeWidth={1.8}
+                  size={21}
+                  strokeWidth={1.9}
                   aria-hidden="true"
                 />
-
               </div>
-
-
-              {/* Título */}
 
               <h3>
                 {item.title}
               </h3>
 
-
-              {/* Descrição */}
-
               <p>
                 {item.description}
               </p>
 
-
-              {/* CTA */}
-
               <a
                 href={customLink}
                 target="_blank"
-                rel="noreferrer"
-                aria-label={
-                  `Saber mais sobre o protocolo de ${item.title} pelo WhatsApp`
-                }
+                rel="noopener noreferrer"
+                aria-label={`Saber mais sobre ${item.title}`}
               >
-                Saber mais sobre protocolo
+                saber mais
 
                 <ArrowRight
                   size={14}
                   strokeWidth={2}
                   aria-hidden="true"
                 />
-
               </a>
 
             </article>
-
           )
         })}
 
@@ -201,4 +161,3 @@ export function Specialties() {
     </section>
   )
 }
-

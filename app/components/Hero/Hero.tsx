@@ -1,174 +1,289 @@
-
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import {
+  ArrowDown,
   ArrowUpRight,
-  Award,
-  ShieldCheck,
+  Heart,
+  ShoppingBag,
+  Sparkles,
 } from 'lucide-react'
 
-import { Config } from '@/app/constants/config'
 import styles from './Hero.module.css'
-
 
 export function Hero() {
   return (
     <section
       id="inicio"
-      className={styles.dentalHero}
+      className={styles.hero}
+      aria-label="Belo Cão — Estética Animal e Pet Coffee"
     >
+      {/* =====================================================
+          ELEMENTOS DECORATIVOS
+          ===================================================== */}
 
-      {/* =================================================
-          CONTEÚDO
-          ================================================= */}
+      <div
+        className={styles.shapeLarge}
+        aria-hidden="true"
+      />
 
-      <div className={styles.heroContent}>
+      <div
+        className={styles.shapeMedium}
+        aria-hidden="true"
+      />
 
-        <div className={styles.dentalEyebrow}>
-          <span aria-hidden="true" />
+      <div
+        className={styles.shapeSmall}
+        aria-hidden="true"
+      />
 
-          Reabilitação Oral & Estética
-        </div>
+      <div
+        className={styles.dotPattern}
+        aria-hidden="true"
+      />
 
+      <div
+        className={styles.circlePattern}
+        aria-hidden="true"
+      />
 
-        <h1>
-          Precisão técnica e <br />
-          <em>
-            estética de alta performance.
-          </em>
-        </h1>
+      {/* =====================================================
+          LINHA SUPERIOR
+          ===================================================== */}
 
+      <div className={styles.introLine}>
+        <span>BELO CÃO</span>
 
-        <p className={styles.heroLead}>
-          Transformamos sorrisos com planejamento digital,
-          implantodontia avançada e lâminas cerâmicas.
-          Protocolos cirúrgicos previsíveis e personalizados
-          para quem exige excelência em Taubaté.
-        </p>
+        <i aria-hidden="true" />
 
+        <span>
+          ESTÉTICA ANIMAL · PET COFFEE · LOJINHA
+        </span>
+      </div>
 
-        <a
-          href={Config.WHATSAPP_URL}
-          target="_blank"
-          rel="noreferrer"
-          className={styles.dentalButton}
-          aria-label="Agendar consulta odontológica em Taubaté pelo WhatsApp"
-        >
-          Agendar Consulta
+      {/* =====================================================
+          CONTEÚDO PRINCIPAL
+          ===================================================== */}
 
-          <ArrowUpRight
-            size={20}
-            strokeWidth={2}
-            aria-hidden="true"
-          />
-        </a>
+      <div className={styles.main}>
+        {/* ===================================================
+            CONTEÚDO
+            =================================================== */}
 
+        <div className={styles.content}>
+          {/* =================================================
+              EYEBROW
+              ================================================= */}
 
-        {/* =============================================
-            PROVA
-            ============================================= */}
+          <div className={styles.eyebrow}>
+            <span
+              className={styles.eyebrowIcon}
+              aria-hidden="true"
+            >
+              <Heart
+                size={13}
+                fill="currentColor"
+                strokeWidth={2}
+              />
+            </span>
 
-        <div className={styles.heroProof}>
+            <span>Um lugar para eles</span>
 
-          <div className={styles.proofBadge}>
-            <Award
-              size={22}
-              strokeWidth={1.8}
+            <span
+              className={styles.eyebrowLine}
               aria-hidden="true"
             />
           </div>
 
-          <div>
+          {/* =================================================
+              TÍTULO
+              ================================================= */}
+
+          <h1>
+            <span>CUIDAR</span>
+
+            <span className={styles.highlight}>
+              É
+            </span>
+
+            <span>FICAR.</span>
+          </h1>
+
+          {/* =================================================
+              TEXTO
+              ================================================= */}
+
+          <p className={styles.lead}>
+            Banho, tosa, cuidado e café.
 
             <strong>
-              Referência em Odontologia Estética
+              {' '}
+              Um lugar onde eles ficam bem
+              e você também.
             </strong>
+          </p>
 
-            <small>
-              Atendimento exclusivo e planejamento 3D
-            </small>
+          {/* =================================================
+              AÇÕES
+              ================================================= */}
 
+          <div className={styles.actions}>
+            <a
+              href="#especialidades"
+              className={styles.primaryButton}
+              aria-label="Conhecer as especialidades do Belo Cão"
+            >
+              <span>
+                conhecer o Belo Cão
+              </span>
+
+              <span
+                className={styles.buttonIcon}
+                aria-hidden="true"
+              >
+                <ArrowUpRight
+                  size={18}
+                  strokeWidth={2.4}
+                />
+              </span>
+            </a>
+
+            <Link
+              href="/loja"
+              className={styles.secondaryAction}
+              aria-label="Visitar a lojinha do Belo Cão"
+            >
+              <ShoppingBag
+                size={16}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
+
+              <span>conhecer a lojinha</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* ===================================================
+            VISUAL PRINCIPAL
+            =================================================== */}
+
+        <div
+          className={styles.visual}
+          aria-label="Espaço do Belo Cão"
+        >
+          {/* =================================================
+              LABEL
+              ================================================= */}
+
+          <div
+            className={styles.photoLabel}
+            aria-hidden="true"
+          >
+            <span>01</span>
+
+            <strong>AQUI</strong>
           </div>
 
-        </div>
+          {/* =================================================
+              FOTO PRINCIPAL
+              ================================================= */}
 
+          <div className={styles.photo}>
+            <Image
+              src="/images/cao-cliente.jpg"
+              alt="Cão cliente no espaço Belo Cão"
+              fill
+              priority
+              sizes="(max-width: 700px) 100vw, (max-width: 1050px) 55vw, 50vw"
+            />
+
+            <div
+              className={styles.photoOverlay}
+              aria-hidden="true"
+            />
+          </div>
+
+          {/* =================================================
+              STICKER
+              ================================================= */}
+
+          <div
+            className={styles.sticker}
+            aria-hidden="true"
+          >
+            <Sparkles
+              size={18}
+              strokeWidth={2}
+            />
+
+            <span>UM LUGAR</span>
+
+            <strong>DIFERENTE</strong>
+          </div>
+
+          {/* =================================================
+              NOTE
+              ================================================= */}
+
+          <div
+            className={styles.note}
+            aria-hidden="true"
+          >
+            <Heart
+              size={15}
+              strokeWidth={2}
+              fill="currentColor"
+            />
+
+            <span>eles gostam daqui</span>
+          </div>
+        </div>
       </div>
 
+      {/* =====================================================
+          RODAPÉ DO HERO
+          ===================================================== */}
 
-      {/* =================================================
-          RETRATO
-          ================================================= */}
+      <div className={styles.bottom}>
+        <div
+          className={styles.serviceList}
+          aria-label="Serviços e experiências"
+        >
+          <span>banho</span>
 
-      <div className={styles.heroPortrait}>
+          <i aria-hidden="true" />
 
-        <div className={styles.portraitFrame}>
+          <span>tosa</span>
 
-          <Image
-            src="/images/proprietaria.png"
-            alt="Dra. Bárbara Glayris - Cirurgiã-Dentista em Taubaté"
-            width={580}
-            height={680}
-            priority
-            sizes="(max-width: 600px) 100vw, (max-width: 900px) 680px, 580px"
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'block',
-            }}
-          />
+          <i aria-hidden="true" />
 
+          <span>comportamento</span>
+
+          <i aria-hidden="true" />
+
+          <span>café</span>
+
+          <i aria-hidden="true" />
+
+          <span>lojinha</span>
         </div>
 
+        <a
+          href="#especialidades"
+          className={styles.explore}
+          aria-label="Descobrir as especialidades do Belo Cão"
+        >
+          <span>descobrir</span>
 
-        {/* =============================================
-            CARD DE SEGURANÇA
-            ============================================= */}
-
-        <div className={styles.portraitCard}>
-
-          <ShieldCheck
-            size={22}
-            strokeWidth={1.8}
-            color="#e2c285"
+          <ArrowDown
+            size={16}
+            strokeWidth={2}
             aria-hidden="true"
           />
-
-          <div>
-
-            <strong>
-              Protocolo de Segurança
-            </strong>
-
-            <small>
-              Procedimentos guiados e minimamente invasivos
-            </small>
-
-          </div>
-
-        </div>
-
-
-        {/* =============================================
-            SELO
-            ============================================= */}
-
-        <div className={styles.portraitSeal}>
-
-          <span>
-            BG
-          </span>
-
-          <small>
-            Dra. Bárbara
-            <br />
-            Glayris
-          </small>
-
-        </div>
-
+        </a>
       </div>
-
     </section>
   )
 }

@@ -1,79 +1,226 @@
-/* =========================================================
-   TRUST STRIP — ARCHITECTURAL / DARK TITANIUM
+ /* =========================================================
+   TRUST STRIP — BELO CÃO
+   ROXO VIVO + BRANCO
+   EDITORIAL / LEVE / IDENTIDADE
    ========================================================= */
 
 .trustStrip {
+  --purple: #672f96;
+  --purple-light: #8d55b4;
+  --purple-pale: #f4eef7;
+  --text: #302936;
+  --muted: #817986;
+
   position: relative;
+
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+
   width: calc(100% - 32px);
-  max-width: 1320px;
+  max-width: 1180px;
+
   margin: 0 auto;
-  padding: 2rem 0;
-  top:20px;
-  gap: 0;
-  text-align: center;
-  background: rgb(15, 23, 42);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+
+  padding: 0.65rem 0;
+
+  background: #ffffff;
+
+  border: 1px solid #eee8f1;
+  border-radius: 20px;
+
+  box-shadow:
+    0 16px 38px rgba(103, 47, 150, 0.07);
+
   box-sizing: border-box;
+
+  z-index: 5;
+
+  overflow: hidden;
+  isolation: isolate;
 }
 
 /* =========================================================
-   DIVISÃO ENTRE OS ITENS DESKTOP
+   DETALHE SUPERIOR
+   ========================================================= */
+
+.trustStrip::before {
+  content: '';
+
+  position: absolute;
+
+  top: 0;
+  left: 50%;
+
+  width: 90px;
+  height: 2px;
+
+  transform: translateX(-50%);
+
+  background: var(--purple);
+
+  border-radius: 0 0 999px 999px;
+
+  transition:
+    width 0.45s ease,
+    opacity 0.3s ease;
+}
+
+/* =========================================================
+   ITEM
    ========================================================= */
 
 .trustStrip > div {
   position: relative;
-  padding: 0 1.25rem;
-  transition: transform 0.3s ease;
+
+  display: grid;
+
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+
+  align-items: center;
+
+  column-gap: 0.7rem;
+
+  min-width: 0;
+
+  padding: 0.75rem 1.35rem;
+
   box-sizing: border-box;
-}
 
-.trustStrip > div:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 0;
-  width: 1px;
-  height: 38px;
-  transform: translateY(-50%);
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(197, 160, 89, 0.3),
-    transparent
-  );
-}
-
-.trustStrip > div:hover {
-  transform: translateY(-2px);
+  transition:
+    transform 0.3s ease;
 }
 
 /* =========================================================
-   NÚMEROS / DESTAQUES
+   DIVISÓRIA
    ========================================================= */
 
-.trustStrip strong {
+.trustStrip > div:not(:last-child)::after {
+  content: '';
+
+  position: absolute;
+
+  top: 50%;
+  right: 0;
+
+  width: 1px;
+  height: 30px;
+
+  transform: translateY(-50%);
+
+  background: #e9e1ed;
+
+  transition:
+    height 0.3s ease,
+    background 0.3s ease;
+}
+
+/* =========================================================
+   HOVER — APENAS DISPOSITIVOS COMPATÍVEIS
+   ========================================================= */
+
+@media (hover: hover) and (pointer: fine) {
+  .trustStrip:hover::before {
+    width: 140px;
+  }
+
+  .trustStrip > div:hover {
+    transform: translateY(-2px);
+  }
+
+  .trustStrip > div:hover:not(:last-child)::after {
+    height: 38px;
+    background: #ded0e5;
+  }
+}
+
+/* =========================================================
+   ÍCONE
+   ========================================================= */
+
+.icon {
+  grid-row: 1 / 3;
+
+  width: 36px;
+  height: 36px;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  margin-bottom: 0.35rem;
-  color: #f8fafc;
-  font-size: 1.75rem;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+
+  flex-shrink: 0;
+
+  color: var(--purple);
+
+  background: var(--purple-pale);
+
+  border: 1px solid rgba(103, 47, 150, 0.05);
+
+  border-radius: 12px;
+
+  transition:
+    transform 0.3s ease,
+    background 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
-.trustStrip strong small {
-  color: #c5a059;
-  font-size: 0.9rem;
-  font-weight: 600;
+.icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* =========================================================
+   ÍCONE — HOVER
+   ========================================================= */
+
+@media (hover: hover) and (pointer: fine) {
+  .trustStrip > div:hover .icon {
+    color: #ffffff;
+
+    background: var(--purple);
+
+    transform:
+      rotate(-5deg)
+      translateY(-1px);
+
+    box-shadow:
+      0 8px 18px rgba(103, 47, 150, 0.18);
+  }
+}
+
+/* =========================================================
+   TEXTO PRINCIPAL
+   ========================================================= */
+
+.trustStrip strong {
+  display: block;
+
+  min-width: 0;
+
+  color: var(--text);
+
+  font-size: 0.78rem;
+  font-weight: 850;
+
+  line-height: 1.15;
+
+  letter-spacing: -0.015em;
+
+  transition:
+    color 0.25s ease,
+    transform 0.25s ease;
+}
+
+/* =========================================================
+   TEXTO PRINCIPAL — HOVER
+   ========================================================= */
+
+@media (hover: hover) and (pointer: fine) {
+  .trustStrip > div:hover strong {
+    color: var(--purple);
+    transform: translateX(2px);
+  }
 }
 
 /* =========================================================
@@ -82,77 +229,187 @@
 
 .trustStrip span {
   display: block;
-  color: #94a3b8;
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  line-height: 1.4;
+
+  min-width: 0;
+
+  margin-top: 0.2rem;
+
+  color: var(--muted);
+
+  font-size: 0.61rem;
+  font-weight: 500;
+
+  line-height: 1.25;
+
+  transition:
+    color 0.25s ease;
 }
 
 /* =========================================================
-   RESPONSIVO (TABLET & MOBILE)
+   DESCRIÇÃO — HOVER
    ========================================================= */
 
-@media (max-width: 800px) {
+@media (hover: hover) and (pointer: fine) {
+  .trustStrip > div:hover span {
+    color: #6f5a77;
+  }
+}
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 900px) {
   .trustStrip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: 1.25rem 0;
-    width: calc(100% - 32px);
+
+    padding: 0.45rem 0;
   }
 
   .trustStrip > div {
-    padding: 1.25rem 0.75rem;
+    padding: 0.8rem 1rem;
   }
 
-  /* Remove divisória padrão e ajusta grade 2x2 */
-  .trustStrip > div:not(:last-child)::after {
+  .trustStrip > div:nth-child(1),
+  .trustStrip > div:nth-child(2) {
+    border-bottom: 1px solid #eee8f1;
+  }
+
+  .trustStrip > div:nth-child(2)::after {
     display: none;
   }
 
-  .trustStrip > div:nth-child(1)::after {
-    display: block;
-  }
-
-  .trustStrip > div:nth-child(3)::after {
-    display: block;
-  }
-
-  .trustStrip > div:nth-child(-n + 2) {
-    border-bottom: 1px solid rgba(197, 160, 89, 0.15);
+  .trustStrip > div:nth-child(4)::after {
+    display: none;
   }
 }
 
-@media (max-width: 640px) {
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 620px) {
   .trustStrip {
     width: calc(100% - 24px);
-    padding: 0.75rem 0;
+
+    border-radius: 17px;
+
+    box-shadow:
+      0 14px 30px rgba(103, 47, 150, 0.08);
+  }
+
+  .trustStrip::before {
+    width: 65px;
   }
 
   .trustStrip > div {
-    padding: 1rem 0.35rem;
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 0.45rem;
+
+    min-width: 0;
+
+    padding: 0.85rem 0.45rem;
+
+    text-align: center;
+
+    transition:
+      transform 0.3s ease;
+  }
+
+  .trustStrip > div:not(:last-child)::after {
+    top: 50%;
+    right: 0;
+
+    width: 1px;
+    height: 34px;
+
+    transform: translateY(-50%);
+  }
+
+  .icon {
+    width: 32px;
+    height: 32px;
+
+    border-radius: 10px;
+  }
+
+  .icon svg {
+    width: 15px;
+    height: 15px;
   }
 
   .trustStrip strong {
-    font-size: 1.4rem;
+    font-size: 0.7rem;
+    line-height: 1.2;
   }
 
   .trustStrip span {
-    font-size: 0.62rem;
-    letter-spacing: 0.06em;
+    margin-top: -0.1rem;
+
+    font-size: 0.55rem;
+    line-height: 1.25;
   }
 }
+
+/* =========================================================
+   MOBILE PEQUENO
+   ========================================================= */
 
 @media (max-width: 380px) {
   .trustStrip {
     width: calc(100% - 16px);
+
+    border-radius: 15px;
+  }
+
+  .trustStrip > div {
+    padding: 0.75rem 0.25rem;
+
+    gap: 0.4rem;
+  }
+
+  .icon {
+    width: 30px;
+    height: 30px;
+
+    border-radius: 9px;
+  }
+
+  .icon svg {
+    width: 14px;
+    height: 14px;
   }
 
   .trustStrip strong {
-    font-size: 1.25rem;
+    font-size: 0.65rem;
   }
 
   .trustStrip span {
-    font-size: 0.56rem;
+    font-size: 0.51rem;
+  }
+}
+
+/* =========================================================
+   FOCO / ACESSIBILIDADE
+   ========================================================= */
+
+.trustStrip > div:focus-within {
+  outline: 2px solid rgba(103, 47, 150, 0.28);
+  outline-offset: -3px;
+  border-radius: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trustStrip *,
+  .trustStrip::before,
+  .trustStrip::after {
+    animation: none !important;
+    transition: none !important;
   }
 }

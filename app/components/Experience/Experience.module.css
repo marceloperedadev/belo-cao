@@ -1,229 +1,1039 @@
 /* =========================================================
-   EXPERIENCE — MASCULINE PREMIUM / PROTOCOL
+   BELO CÃO
+   EXPERIENCE — VISUAL CONECTADO AO CONTACT
+   ROXO VIVO + BRANCO
+   AJUSTE FINO — DESKTOP + MOBILE
    ========================================================= */
 
 .experience {
+  --purple: #672f96;
+  --purple-dark: #4d216f;
+  --purple-light: #9259b7;
+  --purple-pale: #f4edf8;
+  --text: #342039;
+  --muted: #79677f;
+
   position: relative;
+
   width: 100%;
-  padding: 5rem 1.25rem;
-  text-align: center;
-  background: #f1f5f9;
-  overflow: hidden;
+
+  padding:
+    6rem
+    max(1.5rem, calc((100vw - 1320px) / 2))
+    5.25rem;
+
   box-sizing: border-box;
+
+  overflow: hidden;
+
+  background: #ffffff;
 }
 
-/* Detalhe superior */
+
+/* =========================================================
+   DETALHE SUPERIOR
+   ========================================================= */
+
 .experience::before {
   content: '';
+
   position: absolute;
+
+  z-index: 3;
+
   top: 0;
   left: 50%;
-  width: 120px;
+
+  width:
+    min(
+      1320px,
+      calc(100% - 3rem)
+    );
+
   height: 2px;
-  transform: translateX(-50%);
-  background: linear-gradient(
-    90deg,
-    transparent,
-    #b88a45,
-    transparent
-  );
+
+  transform:
+    translateX(-50%);
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      var(--purple) 18%,
+      var(--purple) 82%,
+      transparent
+    );
 }
 
-/* Eyebrow */
-.dentalEyebrow {
+
+/* =========================================================
+   FORMA DE FUNDO
+   ========================================================= */
+
+.experience::after {
+  content: '';
+
+  position: absolute;
+
+  z-index: 0;
+
+  right: -190px;
+  top: -170px;
+
+  width: 430px;
+  height: 430px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(103, 47, 150, 0.11) 0%,
+      rgba(103, 47, 150, 0.055) 48%,
+      rgba(103, 47, 150, 0) 72%
+    );
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   FORMA EXTRA
+   ========================================================= */
+
+.experienceList::before {
+  content: '';
+
+  position: absolute;
+
+  z-index: -1;
+
+  left: -170px;
+  bottom: 55px;
+
+  width: 300px;
+  height: 300px;
+
+  border-radius: 50%;
+
+  background:
+    rgba(103, 47, 150, 0.045);
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   CABEÇALHO
+   ========================================================= */
+
+.header {
+  position: relative;
+
+  z-index: 2;
+
+  max-width: 760px;
+
+  margin:
+    0
+    auto
+    3.25rem;
+
+  text-align: center;
+}
+
+
+/* =========================================================
+   EYEBROW
+   ========================================================= */
+
+.eyebrow {
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
-  gap: 0.65rem;
-  margin-bottom: 0.85rem;
-  color: #142033;
-  font-size: 0.72rem;
-  font-weight: 700;
+
+  gap: 0.55rem;
+
+  margin-bottom: 0.95rem;
+
+  color: var(--purple);
+
+  font-size: 0.58rem;
+  font-weight: 850;
+
+  letter-spacing: 0.15em;
+
   text-transform: uppercase;
-  letter-spacing: 0.22em;
 }
 
-.dentalEyebrow span {
-  width: 12px;
-  height: 2px;
-  background: #b88a45;
-}
 
-/* Título */
-.experience h2 {
-  max-width: 720px;
-  margin: 0 auto 3rem;
-  color: #142033;
-  font-size: clamp(1.8rem, 5vw, 3.1rem);
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.03em;
-  word-break: break-word;
-}
-
-.experience h2 em {
-  font-style: normal;
-  color: #b88a45;
-  font-weight: 600;
-}
-
-/* Grid / Lista Desktop */
-.experienceList {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.5rem;
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0;
-  list-style: none;
-  text-align: left;
-}
-
-/* Card Estruturado */
-.experienceList > li {
-  position: relative;
-  min-height: 160px;
-  display: flex;
-  align-items: flex-start;
-  gap: 1.25rem;
-  padding: 2rem 1.75rem;
-  background: #ffffff;
-  border: 1px solid rgba(20, 32, 51, 0.08);
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(20, 32, 51, 0.03);
-  box-sizing: border-box;
-  overflow: hidden;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Barra de Destaque Bronze */
-.experienceList > li::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
+.eyebrow span {
+  width: 24px;
   height: 3px;
-  background: #b88a45;
-  transition: width 0.35s ease;
+
+  border-radius: 3px;
+
+  background:
+    var(--purple);
 }
 
-/* Interação Desktop */
+
+/* =========================================================
+   TÍTULO
+   ========================================================= */
+
+.header h2 {
+  margin: 0;
+
+  color: var(--text);
+
+  font-size:
+    clamp(
+      2.8rem,
+      5vw,
+      5rem
+    );
+
+  font-weight: 900;
+
+  line-height: 0.93;
+
+  letter-spacing: -0.075em;
+}
+
+
+.header h2 em {
+  display: inline-block;
+
+  padding:
+    0.03em
+    0.12em;
+
+  color: #ffffff;
+
+  background:
+    var(--purple);
+
+  font-style: normal;
+
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+
+/* =========================================================
+   DESCRIÇÃO
+   ========================================================= */
+
+.header p {
+  max-width: 470px;
+
+  margin:
+    1.35rem
+    auto
+    0;
+
+  color: var(--muted);
+
+  font-size: 0.9rem;
+
+  line-height: 1.65;
+
+  font-weight: 500;
+}
+
+
+/* =========================================================
+   LISTA
+   ========================================================= */
+
+.experienceList {
+  position: relative;
+
+  z-index: 2;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 1rem;
+
+  width: 100%;
+
+  max-width: 1200px;
+
+  margin: 0 auto;
+
+  padding: 0;
+
+  list-style: none;
+}
+
+
+/* =========================================================
+   CARD
+   ========================================================= */
+
+.card {
+  position: relative;
+
+  min-height: 350px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: space-between;
+
+  padding: 1.4rem;
+
+  box-sizing: border-box;
+
+  overflow: hidden;
+
+  background: #ffffff;
+
+  border:
+    1px solid
+    rgba(103, 47, 150, 0.12);
+
+  border-radius: 21px;
+
+  box-shadow:
+    0 15px 40px
+    rgba(54, 27, 68, 0.055);
+
+  transition:
+    transform 0.35s
+      cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+
+  -webkit-tap-highlight-color:
+    transparent;
+}
+
+
+/* =========================================================
+   ELEMENTO GRÁFICO
+   ========================================================= */
+
+.card::before {
+  content: '';
+
+  position: absolute;
+
+  right: -55px;
+  bottom: -65px;
+
+  width: 150px;
+  height: 150px;
+
+  border-radius: 50%;
+
+  background:
+    var(--purple-pale);
+
+  opacity: 0.7;
+
+  transition:
+    transform 0.4s ease,
+    opacity 0.4s ease;
+}
+
+
+/* =========================================================
+   LINHA INFERIOR
+   ========================================================= */
+
+.card::after {
+  content: '';
+
+  position: absolute;
+
+  left: 0;
+  bottom: 0;
+
+  width: 0;
+  height: 4px;
+
+  background:
+    var(--purple);
+
+  transition:
+    width 0.35s ease;
+}
+
+
+/* =========================================================
+   CARD ROXO
+   ========================================================= */
+
+.cardPurple {
+  color: #ffffff;
+
+  background:
+    var(--purple);
+
+  border-color:
+    var(--purple);
+
+  box-shadow:
+    0 24px 55px
+    rgba(103, 47, 150, 0.20);
+}
+
+
+.cardPurple::before {
+  width: 190px;
+  height: 190px;
+
+  right: -80px;
+  bottom: -85px;
+
+  background:
+    rgba(255, 255, 255, 0.08);
+}
+
+
+.cardPurple::after {
+  background: #ffffff;
+}
+
+
+/* =========================================================
+   INTERAÇÃO DESKTOP
+   ========================================================= */
+
 @media (hover: hover) {
-  .experienceList > li:hover {
-    transform: translateY(-4px);
-    border-color: rgba(184, 138, 69, 0.4);
-    box-shadow: 0 12px 30px rgba(20, 32, 51, 0.08);
+
+  .card:hover {
+    transform:
+      translateY(-7px);
+
+    border-color:
+      rgba(103, 47, 150, 0.25);
+
+    box-shadow:
+      0 25px 55px
+      rgba(54, 27, 68, 0.11);
   }
 
-  .experienceList > li:hover::before {
+
+  .card:hover::after {
     width: 100%;
   }
 
-  .experienceList > li:hover b {
-    background: #142033;
-    color: #b88a45;
-    border-color: #142033;
+
+  .card:hover::before {
+    transform:
+      scale(1.15);
+
+    opacity: 1;
   }
+
+
+  .cardPurple:hover {
+    transform:
+      translateY(-7px)
+      rotate(-0.5deg);
+
+    box-shadow:
+      0 30px 65px
+      rgba(103, 47, 150, 0.28);
+  }
+
+
+  .card:hover .icon {
+    transform:
+      rotate(-6deg)
+      scale(1.06);
+  }
+
 }
 
-/* Feedback de Toque no Celular (:active) */
-.experienceList > li:active {
-  transform: scale(0.98);
-  border-color: rgba(184, 138, 69, 0.5);
-  box-shadow: 0 2px 10px rgba(20, 32, 51, 0.05);
-}
-
-/* Número / Badge */
-.experienceList b {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 6px;
-  color: #142033;
-  font-size: 0.85rem;
-  font-weight: 700;
-  background: #f1f5f9;
-  border: 1px solid rgba(20, 32, 51, 0.1);
-  transition: background 0.25s ease, color 0.25s ease;
-}
-
-/* Textos */
-.experienceList strong {
-  display: block;
-  margin-bottom: 0.4rem;
-  color: #142033;
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.experienceList small {
-  display: block;
-  color: #64748b;
-  font-size: 0.88rem;
-  line-height: 1.55;
-}
 
 /* =========================================================
-   MELHORIAS ESPECÍFICAS PARA CELULAR / TABLET
+   TOQUE
+   ========================================================= */
+
+.card:active {
+  transform:
+    scale(0.985);
+}
+
+
+.card:active::after {
+  width: 65%;
+}
+
+
+/* =========================================================
+   TOPO
+   ========================================================= */
+
+.cardTop {
+  position: relative;
+
+  z-index: 2;
+
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+}
+
+
+/* =========================================================
+   NÚMERO
+   ========================================================= */
+
+.number {
+  color:
+    var(--purple);
+
+  font-size: 0.58rem;
+
+  font-weight: 900;
+
+  letter-spacing: 0.1em;
+}
+
+
+.cardPurple .number {
+  color:
+    rgba(255, 255, 255, 0.65);
+}
+
+
+/* =========================================================
+   ÍCONE
+   ========================================================= */
+
+.icon {
+  width: 46px;
+  height: 46px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  color:
+    var(--purple);
+
+  background:
+    var(--purple-pale);
+
+  border-radius: 14px;
+
+  transition:
+    transform 0.3s ease,
+    background 0.3s ease;
+}
+
+
+.cardPurple .icon {
+  color:
+    var(--purple);
+
+  background:
+    #ffffff;
+}
+
+
+/* =========================================================
+   CONTEÚDO
+   ========================================================= */
+
+.cardContent {
+  position: relative;
+
+  z-index: 2;
+
+  display: flex;
+
+  flex-direction: column;
+
+  margin-top: 2.7rem;
+}
+
+
+/* =========================================================
+   LABEL
+   ========================================================= */
+
+.cardLabel {
+  margin-bottom: 0.7rem;
+
+  color:
+    var(--purple);
+
+  font-size: 0.5rem;
+
+  font-weight: 850;
+
+  letter-spacing: 0.14em;
+
+  text-transform: uppercase;
+}
+
+
+.cardPurple .cardLabel {
+  color:
+    rgba(255, 255, 255, 0.68);
+}
+
+
+/* =========================================================
+   TÍTULO DO CARD
+   ========================================================= */
+
+.cardContent strong {
+  color:
+    var(--text);
+
+  font-size:
+    clamp(
+      1.35rem,
+      2vw,
+      1.7rem
+    );
+
+  font-weight: 850;
+
+  line-height: 1.04;
+
+  letter-spacing: -0.045em;
+}
+
+
+.cardPurple .cardContent strong {
+  color: #ffffff;
+}
+
+
+/* =========================================================
+   DESCRIÇÃO DO CARD
+   ========================================================= */
+
+.cardContent small {
+  max-width: 290px;
+
+  margin-top: 0.9rem;
+
+  color:
+    var(--muted);
+
+  font-size: 0.78rem;
+
+  line-height: 1.6;
+
+  font-weight: 500;
+}
+
+
+.cardPurple .cardContent small {
+  color:
+    rgba(255, 255, 255, 0.73);
+}
+
+
+/* =========================================================
+   RODAPÉ
+   ========================================================= */
+
+.footer {
+  position: relative;
+
+  z-index: 2;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  flex-wrap: wrap;
+
+  gap: 0.65rem;
+
+  max-width: 1200px;
+
+  margin:
+    3.4rem
+    auto
+    0;
+
+  padding-top: 1.25rem;
+
+  border-top:
+    1px solid
+    rgba(52, 32, 57, 0.09);
+
+  color:
+    #9b8ba1;
+
+  font-size: 0.5rem;
+
+  font-weight: 800;
+
+  letter-spacing: 0.12em;
+
+  text-transform: uppercase;
+}
+
+
+.footer strong {
+  color:
+    var(--purple);
+}
+
+
+.footer i {
+  width: 4px;
+  height: 4px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background:
+    var(--purple-light);
+}
+
+
+/* =========================================================
+   TABLET
    ========================================================= */
 
 @media (max-width: 950px) {
+
+  .experience {
+    padding-top: 5.25rem;
+    padding-bottom: 4.75rem;
+  }
+
+
   .experienceList {
     grid-template-columns: 1fr;
-    max-width: 550px;
+
+    max-width: 650px;
+
+    gap: 0.9rem;
   }
+
+
+  .card {
+    min-height: 260px;
+  }
+
+
+  .cardContent {
+    margin-top: 2rem;
+  }
+
+
+  .footer {
+    margin-top: 3rem;
+  }
+
 }
 
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
 @media (max-width: 640px) {
+
   .experience {
-    padding: 3.25rem 1rem;
+    padding:
+      4.25rem
+      1rem
+      3.4rem;
   }
 
-  .experience h2 {
+
+  .experience::before {
+    width:
+      calc(100% - 2rem);
+  }
+
+
+  .experience::after {
+    right: -220px;
+    top: -110px;
+
+    width: 340px;
+    height: 340px;
+  }
+
+
+  .experienceList::before {
+    left: -130px;
+    bottom: 100px;
+
+    width: 240px;
+    height: 240px;
+  }
+
+
+  /* -------------------------------------------------------
+     CABEÇALHO
+     ------------------------------------------------------- */
+
+  .header {
+    margin-bottom: 2.35rem;
+  }
+
+
+  .eyebrow {
+    margin-bottom: 0.85rem;
+
+    font-size: 0.5rem;
+
+    letter-spacing: 0.13em;
+  }
+
+
+  .eyebrow span {
+    width: 18px;
+    height: 2px;
+  }
+
+
+  .header h2 {
+    font-size:
+      clamp(
+        2.5rem,
+        12vw,
+        4rem
+      );
+
+    line-height: 0.94;
+
+    letter-spacing: -0.065em;
+  }
+
+
+  .header p {
+    max-width: 390px;
+
+    margin-top: 1.05rem;
+
+    font-size: 0.84rem;
+
+    line-height: 1.6;
+  }
+
+
+  /* -------------------------------------------------------
+     LISTA
+     ------------------------------------------------------- */
+
+  .experienceList {
+    gap: 0.75rem;
+  }
+
+
+  /* -------------------------------------------------------
+     CARD
+     ------------------------------------------------------- */
+
+  .card {
+    min-height: 285px;
+
+    padding: 1.2rem;
+
+    border-radius: 18px;
+  }
+
+
+  .icon {
+    width: 42px;
+    height: 42px;
+
+    border-radius: 12px;
+  }
+
+
+  /* -------------------------------------------------------
+     CONTEÚDO
+     ------------------------------------------------------- */
+
+  .cardContent {
+    margin-top: 2.25rem;
+  }
+
+
+  .cardLabel {
+    margin-bottom: 0.6rem;
+
+    font-size: 0.46rem;
+
+    letter-spacing: 0.13em;
+  }
+
+
+  .cardContent strong {
+    font-size: 1.42rem;
+
+    line-height: 1.04;
+  }
+
+
+  .cardContent small {
+    max-width: 320px;
+
+    margin-top: 0.8rem;
+
+    font-size: 0.75rem;
+
+    line-height: 1.58;
+  }
+
+
+  /* -------------------------------------------------------
+     RODAPÉ
+     ------------------------------------------------------- */
+
+  .footer {
+    justify-content: flex-start;
+
+    margin-top: 2.75rem;
+
+    padding-top: 1.1rem;
+
+    font-size: 0.43rem;
+
+    line-height: 1.6;
+
+    letter-spacing: 0.1em;
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE PEQUENO
+   ========================================================= */
+
+@media (max-width: 380px) {
+
+  .experience {
+    padding:
+      3.9rem
+      0.8rem
+      3.2rem;
+  }
+
+
+  .header {
+    margin-bottom: 2.1rem;
+  }
+
+
+  .header h2 {
+    font-size: 2.3rem;
+  }
+
+
+  .header p {
+    font-size: 0.81rem;
+  }
+
+
+  .card {
+    min-height: 270px;
+
+    padding: 1.05rem;
+
+    border-radius: 17px;
+  }
+
+
+  .icon {
+    width: 40px;
+    height: 40px;
+  }
+
+
+  .cardContent {
+    margin-top: 2rem;
+  }
+
+
+  .cardContent strong {
+    font-size: 1.27rem;
+  }
+
+
+  .cardContent small {
+    font-size: 0.72rem;
+  }
+
+
+  .footer {
+    margin-top: 2.4rem;
+
+    font-size: 0.41rem;
+  }
+
+}
+
+
+/* =========================================================
+   TELAS BAIXAS NO MOBILE
+   ========================================================= */
+
+@media (max-height: 700px) and (max-width: 640px) {
+
+  .experience {
+    padding-top: 3.5rem;
+  }
+
+
+  .header {
     margin-bottom: 2rem;
   }
 
-  /* No Celular: A barra bronze fica levemente visível (30%) por padrão, já que não há hover */
-  .experienceList > li::before {
-    width: 35%;
+
+  .header p {
+    margin-top: 0.9rem;
   }
 
-  .experienceList > li {
-    padding: 1.35rem 1.25rem;
-    min-height: auto;
-    border-radius: 8px;
-    /* Destaque sutil no badge no mobile */
-    border-color: rgba(20, 32, 51, 0.12);
+
+  .card {
+    min-height: 265px;
   }
 
-  .experienceList b {
-    width: 34px;
-    height: 34px;
-    font-size: 0.8rem;
-    background: #142033;
-    color: #b88a45;
-    border-color: #142033;
+
+  .cardContent {
+    margin-top: 1.8rem;
   }
 
-  .experienceList strong {
-    font-size: 0.98rem;
-  }
-
-  .experienceList small {
-    font-size: 0.85rem;
-  }
 }
 
+
+/* =========================================================
+   REDUÇÃO DE MOVIMENTO
+   ========================================================= */
+
 @media (prefers-reduced-motion: reduce) {
-  .experienceList > li,
-  .experienceList > li::before,
-  .experienceList b {
-    transition: none;
+
+  .card,
+  .card::before,
+  .card::after,
+  .icon {
+    transition: none !important;
   }
+
 }
