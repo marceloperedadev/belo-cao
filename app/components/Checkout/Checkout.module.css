@@ -1,0 +1,839 @@
+/* =========================================================
+   BELO CÃO
+   CHECKOUT — 3 ETAPAS
+   ROXO + BRANCO
+   ========================================================= */
+
+.checkout {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   ETAPA
+   ========================================================= */
+
+.step {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.stepHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.stepNumber {
+  flex: 0 0 auto;
+
+  width: 34px;
+  height: 34px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: #eee5f4;
+  color: #672f96;
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.stepLabel {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: #8d55b4;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 0.14em;
+}
+
+.stepHeader h3 {
+  margin: 0;
+
+  color: #43205f;
+
+  font-size: 24px;
+  line-height: 1.12;
+  font-weight: 800;
+
+  letter-spacing: -0.04em;
+}
+
+.stepHeader p {
+  max-width: 310px;
+
+  margin: 10px 0 0;
+
+  color: #806f88;
+
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   FORMULÁRIO
+   ========================================================= */
+
+.form {
+  display: flex;
+  flex-direction: column;
+
+  margin-top: 30px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+}
+
+.field > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  margin-bottom: 8px;
+
+  color: #43205f;
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.field > span svg {
+  flex: 0 0 auto;
+
+  color: #672f96;
+}
+
+.field input {
+  width: 100%;
+  height: 48px;
+
+  box-sizing: border-box;
+
+  margin: 0 0 18px;
+  padding: 0 14px;
+
+  border: 1px solid rgba(103, 47, 150, 0.13);
+  border-radius: 11px;
+
+  outline: none;
+
+  background: #ffffff;
+  color: #342039;
+
+  font-family: inherit;
+  font-size: 12px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.field input::placeholder {
+  color: #b0a5b4;
+}
+
+.field input:focus {
+  border-color: rgba(103, 47, 150, 0.4);
+
+  box-shadow:
+    0 0 0 3px rgba(103, 47, 150, 0.06);
+}
+
+/* =========================================================
+   ERRO
+   ========================================================= */
+
+.error {
+  margin: 8px 0 0;
+  padding: 11px 13px;
+
+  border-radius: 10px;
+
+  background: #faf2fc;
+  color: #672f96;
+
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+/* =========================================================
+   AÇÕES
+   ========================================================= */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  margin-top: 24px;
+}
+
+.backButton {
+  min-height: 48px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  flex: 0 0 auto;
+
+  padding: 0 13px;
+
+  border: 0;
+
+  background: transparent;
+  color: #806f88;
+
+  font-family: inherit;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.backButton:hover {
+  color: #672f96;
+
+  transform: translateX(-1px);
+}
+
+.continuar {
+  flex: 1;
+
+  min-height: 48px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding: 0 18px;
+
+  border: 0;
+  border-radius: 11px;
+
+  background: #672f96;
+  color: #ffffff;
+
+  font-family: inherit;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  letter-spacing: 0.02em;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.continuar:hover:not(:disabled) {
+  background: #43205f;
+
+  box-shadow:
+    0 8px 20px rgba(103, 47, 150, 0.16);
+
+  transform: translateY(-1px);
+}
+
+.continuar:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.continuar:disabled {
+  background: #e3dce7;
+  color: #a89caf;
+
+  cursor: not-allowed;
+
+  box-shadow: none;
+
+  transform: none;
+}
+
+/* =========================================================
+   ENTREGA / RETIRADA
+   ========================================================= */
+
+.deliveryOptions {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  margin-top: 28px;
+}
+
+.deliveryOption,
+.deliveryOptionActive {
+  position: relative;
+
+  width: 100%;
+
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+
+  align-items: center;
+
+  gap: 12px;
+
+  box-sizing: border-box;
+
+  padding: 14px;
+
+  border: 1px solid rgba(103, 47, 150, 0.1);
+  border-radius: 14px;
+
+  background: #ffffff;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.deliveryOption:hover {
+  border-color: rgba(103, 47, 150, 0.25);
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 5px 16px rgba(103, 47, 150, 0.06);
+}
+
+.deliveryOptionActive {
+  border-color: #672f96;
+
+  background: #f4edf7;
+
+  box-shadow:
+    0 5px 16px rgba(103, 47, 150, 0.08);
+}
+
+.deliveryIcon {
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 11px;
+
+  background: #eee5f4;
+  color: #672f96;
+}
+
+.deliveryOptionActive .deliveryIcon {
+  background: #672f96;
+  color: #ffffff;
+}
+
+.deliveryOption strong,
+.deliveryOptionActive strong {
+  display: block;
+
+  margin: 0;
+
+  color: #342039;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.deliveryOption span,
+.deliveryOptionActive span {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #806f88;
+
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.deliveryCheck {
+  color: #672f96;
+}
+
+/* =========================================================
+   ENDEREÇO
+   ========================================================= */
+
+.address {
+  margin-top: 20px;
+
+  padding: 17px;
+
+  border: 1px solid rgba(103, 47, 150, 0.1);
+  border-radius: 14px;
+
+  background: #ffffff;
+}
+
+.addressTitle {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 10px;
+
+  margin-bottom: 18px;
+
+  color: #672f96;
+}
+
+.addressTitle > svg {
+  flex: 0 0 auto;
+
+  margin-top: 1px;
+}
+
+.addressTitle strong {
+  display: block;
+
+  color: #43205f;
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.addressTitle span {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #806f88;
+
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.addressGrid {
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  column-gap: 10px;
+}
+
+.addressGrid .field {
+  min-width: 0;
+}
+
+.addressGrid .cepField {
+  grid-column: span 1;
+}
+
+.addressGrid .ruaField {
+  grid-column: span 1;
+}
+
+.addressGrid .field input {
+  margin-bottom: 14px;
+}
+
+/* =========================================================
+   RETIRADA
+   ========================================================= */
+
+.pickupInfo {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 12px;
+
+  margin-top: 20px;
+  padding: 16px;
+
+  border: 1px solid rgba(103, 47, 150, 0.1);
+  border-radius: 14px;
+
+  background: #f4edf7;
+
+  color: #672f96;
+}
+
+.pickupInfo > svg {
+  flex: 0 0 auto;
+
+  margin-top: 2px;
+}
+
+.pickupInfo strong {
+  display: block;
+
+  color: #43205f;
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pickupInfo p {
+  margin: 5px 0 0;
+
+  color: #806f88;
+
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+/* =========================================================
+   REVISÃO
+   ========================================================= */
+
+.review {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  margin-top: 28px;
+}
+
+.reviewBlock {
+  padding: 15px;
+
+  border: 1px solid rgba(103, 47, 150, 0.1);
+  border-radius: 13px;
+
+  background: #ffffff;
+}
+
+.reviewBlockHeader {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  color: #672f96;
+}
+
+.reviewBlockHeader strong {
+  flex: 1;
+
+  min-width: 0;
+
+  color: #43205f;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.reviewBlockHeader button {
+  flex: 0 0 auto;
+
+  padding: 4px 0;
+
+  border: 0;
+
+  background: transparent;
+  color: #8d55b4;
+
+  font-family: inherit;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.reviewBlockHeader button:hover {
+  color: #672f96;
+}
+
+.reviewBlock > p {
+  margin: 13px 0 0;
+
+  color: #342039;
+
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.reviewBlock > span {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #806f88;
+
+  font-size: 10px;
+}
+
+.reviewAddress {
+  margin-top: 13px;
+}
+
+.reviewAddress p {
+  margin: 0;
+
+  color: #342039;
+
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+.reviewAddress span {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #806f88;
+
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   ITENS DA REVISÃO
+   ========================================================= */
+
+.reviewItems {
+  display: flex;
+  flex-direction: column;
+
+  gap: 9px;
+
+  margin-top: 14px;
+}
+
+.reviewItem {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  padding-bottom: 9px;
+
+  border-bottom: 1px solid rgba(103, 47, 150, 0.07);
+}
+
+.reviewItem:last-child {
+  padding-bottom: 0;
+
+  border-bottom: 0;
+}
+
+.reviewItem span {
+  min-width: 0;
+
+  color: #806f88;
+
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.reviewItem strong {
+  flex: 0 0 auto;
+
+  color: #672f96;
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.reviewTotal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-top: 15px;
+  padding-top: 14px;
+
+  border-top: 1px solid rgba(103, 47, 150, 0.1);
+}
+
+.reviewTotal span {
+  color: #43205f;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.reviewTotal strong {
+  color: #672f96;
+
+  font-size: 18px;
+  font-weight: 800;
+
+  letter-spacing: -0.03em;
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+  .stepHeader {
+    gap: 12px;
+  }
+
+  .stepNumber {
+    width: 32px;
+    height: 32px;
+
+    font-size: 11px;
+  }
+
+  .stepHeader h3 {
+    font-size: 22px;
+  }
+
+  .stepHeader p {
+    font-size: 11px;
+  }
+
+  .form {
+    margin-top: 26px;
+  }
+
+  .field input {
+    height: 46px;
+  }
+
+  .deliveryOptions {
+    margin-top: 24px;
+  }
+
+  .deliveryOption,
+  .deliveryOptionActive {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+
+    gap: 10px;
+
+    padding: 13px;
+  }
+
+  .deliveryIcon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .deliveryOption strong,
+  .deliveryOptionActive strong {
+    font-size: 12px;
+  }
+
+  .deliveryOption span,
+  .deliveryOptionActive span {
+    font-size: 9px;
+  }
+
+  .address {
+    padding: 14px;
+  }
+
+  .addressGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .addressGrid .cepField,
+  .addressGrid .ruaField {
+    grid-column: auto;
+  }
+
+  .actions {
+    gap: 6px;
+  }
+
+  .backButton {
+    min-height: 46px;
+
+    padding: 0 8px;
+
+    font-size: 9px;
+  }
+
+  .continuar {
+    min-height: 46px;
+
+    font-size: 10px;
+  }
+
+  .reviewBlock {
+    padding: 14px;
+  }
+}
+
+/* =========================================================
+   MOBILE PEQUENO
+   ========================================================= */
+
+@media (max-width: 390px) {
+  .stepHeader h3 {
+    font-size: 20px;
+  }
+
+  .stepHeader p {
+    max-width: 250px;
+  }
+
+  .backButton {
+    gap: 5px;
+
+    padding: 0 5px;
+  }
+
+  .continuar {
+    padding: 0 12px;
+  }
+
+  .deliveryOption,
+  .deliveryOptionActive {
+    padding: 11px;
+  }
+
+  .deliveryIcon {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* =========================================================
+   REDUÇÃO DE MOVIMENTO
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .field input,
+  .backButton,
+  .continuar,
+  .deliveryOption,
+  .deliveryOptionActive,
+  .reviewBlockHeader button {
+    transition: none;
+  }
+}
