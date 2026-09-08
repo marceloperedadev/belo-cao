@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
@@ -16,13 +15,10 @@ import {
 import styles from './Loja.module.css'
 
 import Carrinho, {
-  type ItemCarrinho,
-} from '@/app/components/Carrinho/Carrinho'
+  ItemCarrinho,
+} from '../components/Carrinho/Carrinho'
 
-import type {
-  ClienteCheckout,
-  PedidoFinalizado,
-} from '@/app/components/Checkout/Checkout'
+import Checkout from '../components/Checkout/Checkout'
 
 type Produto = {
   id: string
@@ -36,20 +32,38 @@ type Produto = {
   slug: string | null
 }
 
-const STORAGE_KEY = 'belo-cao-carrinho-v1'
+const STORAGE_KEY = 'belo-cao-carrinho'
 
-const WHATSAPP_LOJA = '5512997093459'
+function normalizarTexto(texto: string) {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
 
-export default function Loja() {
+export default function LojaPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
-  const [categoria, setCategoria] = useState('Todos')
-  const [busca, setBusca] = useState('')
-  const [carregando, setCarregando] = useState(true)
-  const [erro, setErro] = useState('')
+
+  const [categoria, setCategoria] =
+    useState('Todos')
+
+  const [busca, setBusca] =
+    useState('')
+
+  const [carregando, setCarregando] =
+    useState(true)
+
+  const [erro, setErro] =
+    useState('')
+
   const [produtoDescricao, setProdutoDescricao] =
     useState<Produto | null>(null)
 
   const [carrinhoAberto, setCarrinhoAberto] =
+    useState(false)
+
+  const [checkoutAberto, setCheckoutAberto] =
     useState(false)
 
   const [carrinho, setCarrinho] =
@@ -58,14 +72,9 @@ export default function Loja() {
   const [carrinhoCarregado, setCarrinhoCarregado] =
     useState(false)
 
-  const [cliente, setCliente] =
-    useState<ClienteCheckout | null>(null)
-
-  /*
-   * ============================================================
-   * CARREGAR PRODUTOS
-   * ============================================================
-   */
+  /* =========================================================
+     CARREGAR PRODUTOS
+     ========================================================= */
 
   useEffect(() => {
     async function carregarProdutos() {
@@ -73,35 +82,36 @@ export default function Loja() {
         setCarregando(true)
         setErro('')
 
-        const resposta = await fetch(
+        const response = await fetch(
           '/api/produtos',
           {
             cache: 'no-store',
-          }
+          },
         )
 
-        if (!resposta.ok) {
+        if (!response.ok) {
           throw new Error(
-            'Não foi possível carregar os produtos.'
+            'Erro ao carregar produtos.',
           )
         }
 
-        const dados = await resposta.json()
+        const data = await response.json()
 
-        if (!Array.isArray(dados)) {
+        if (!Array.isArray(data)) {
           throw new Error(
-            'Formato de produtos inválido.'
+            'Resposta inválida da API.',
           )
         }
 
-        setProdutos(dados)
+        setProdutos(data)
       } catch (error) {
-        console.error(error)
+        console.error(
+          'Erro ao carregar produtos:',
+          error,
+        )
 
         setErro(
-          error instanceof Error
-            ? error.message
-            : 'Erro ao carregar os produtos.'
+          'Não foi possível carregar a lojinha.',
         )
       } finally {
         setCarregando(false)
@@ -111,69 +121,68 @@ export default function Loja() {
     carregarProdutos()
   }, [])
 
-  /*
-   * ============================================================
-   * RECUPERAR CARRINHO
-   * ============================================================
-   */
+  /* =========================================================
+     RESTAURAR CARRINHO
+     ========================================================= */
 
   useEffect(() => {
     try {
       const salvo =
         window.localStorage.getItem(
-          STORAGE_KEY
+          STORAGE_KEY,
         )
 
-      if (!salvo) {
-        setCarrinho([])
-        return
+      if (salvo) {
+        const dados = JSON.parse(salvo)
+
+        if (Array.isArray(dados)) {
+          const carrinhoValido: ItemCarrinho[] =
+            dados
+              .filter(
+                (item) =>
+                  item &&
+                  typeof item.id === 'string',
+              )
+              .map((item) => {
+                const quantidade =
+                  Number(item.quantidade)
+
+                return {
+                  ...item,
+                  quantidade:
+                    Number.isFinite(
+                      quantidade,
+                    ) &&
+                    quantidade > 0
+                      ? Math.floor(
+                          quantidade,
+                        )
+                      : 1,
+                }
+              })
+
+          setCarrinho(
+            carrinhoValido,
+          )
+        }
       }
-
-      const dados = JSON.parse(salvo)
-
-      if (!Array.isArray(dados)) {
-        setCarrinho([])
-        return
-      }
-
-      const itensValidos: ItemCarrinho[] =
-        dados.filter(
-          (item): item is ItemCarrinho => {
-            return (
-              item &&
-              typeof item.id === 'string' &&
-              typeof item.name === 'string' &&
-              typeof item.price === 'number' &&
-              Number.isFinite(item.price) &&
-              (
-                item.image_url === null ||
-                typeof item.image_url === 'string'
-              ) &&
-              typeof item.quantity === 'number' &&
-              Number.isFinite(item.quantity) &&
-              item.quantity > 0
-            )
-          }
-        )
-
-      setCarrinho(itensValidos)
     } catch (error) {
       console.error(
         'Erro ao recuperar carrinho:',
-        error
+        error,
       )
 
-      setCarrinho([])
+      window.localStorage.removeItem(
+        STORAGE_KEY,
+      )
     } finally {
       setCarrinhoCarregado(true)
     }
   }, [])
 
-  /*
-   * ============================================================
-   * SALVAR CARRINHO
-   * ============================================================
-   */
+  /* =========================================================
+     SALVAR CARRINHO
+     ========================================================= */
 
   useEffect(() => {
     if (!carrinhoCarregado) {
@@ -183,164 +192,189 @@ export default function Loja() {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify(carrinho)
+        JSON.stringify(carrinho),
       )
     } catch (error) {
       console.error(
         'Erro ao salvar carrinho:',
-        error
+        error,
       )
     }
-  }, [carrinho, carrinhoCarregado])
+  }, [
+    carrinho,
+    carrinhoCarregado,
+  ])
 
-  /*
-   * ============================================================
-   * CATEGORIAS
-   * ============================================================
-   */
+  /* =========================================================
+     CATEGORIAS
+     ========================================================= */
 
   const categorias = useMemo(() => {
-    const lista = produtos
-      .map((produto) => produto.category)
-      .filter(Boolean)
+    const lista = Array.from(
+      new Set(
+        produtos
+          .map(
+            (produto) =>
+              produto.category,
+          )
+          .filter(
+            (cat): cat is string =>
+              Boolean(cat),
+          ),
+      ),
+    )
 
-    return [
-      'Todos',
-      ...Array.from(new Set(lista)),
-    ]
+    return ['Todos', ...lista]
   }, [produtos])
 
-  /*
-   * ============================================================
-   * PRODUTOS FILTRADOS
-   * ============================================================
-   */
+  /* =========================================================
+     FILTRO
+     ========================================================= */
 
   const produtosFiltrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase()
+    const termo =
+      normalizarTexto(busca)
 
-    return produtos.filter((produto) => {
-      if (!produto.active) {
-        return false
-      }
+    return produtos.filter(
+      (produto) => {
+        const categoriaProduto =
+          normalizarTexto(
+            produto.category ?? '',
+          )
 
-      const categoriaOk =
-        categoria === 'Todos' ||
-        produto.category === categoria
+        const correspondeCategoria =
+          categoria === 'Todos' ||
+          categoriaProduto ===
+            normalizarTexto(
+              categoria,
+            )
 
-      const buscaOk =
-        !termo ||
-        produto.name
-          .toLowerCase()
-          .includes(termo) ||
-        (produto.description ?? '')
-          .toLowerCase()
-          .includes(termo)
+        if (!termo) {
+          return correspondeCategoria
+        }
 
-      return categoriaOk && buscaOk
-    })
-  }, [produtos, categoria, busca])
+        const nome =
+          normalizarTexto(
+            produto.name ?? '',
+          )
 
-  /*
-   * ============================================================
-   * TOTAL DE ITENS
-   * ============================================================
-   */
+        const descricao =
+          normalizarTexto(
+            produto.description ?? '',
+          )
 
-  const quantidadeTotal = useMemo(() => {
-    return carrinho.reduce(
-      (total, item) =>
-        total + item.quantity,
-      0
-    )
-  }, [carrinho])
+        const categoriaTexto =
+          normalizarTexto(
+            produto.category ?? '',
+          )
 
-  /*
-   * ============================================================
-   * CONVERTER PREÇO
-   * ============================================================
-   */
+        const correspondeBusca =
+          nome.includes(termo) ||
+          descricao.includes(termo) ||
+          categoriaTexto.includes(
+            termo,
+          )
 
-  function converterPreco(
-    valor: string | number
-  ) {
-    if (typeof valor === 'number') {
-      return Number.isFinite(valor)
-        ? valor
-        : 0
-    }
-
-    const texto = String(valor).trim()
-
-    if (!texto) {
-      return 0
-    }
-
-    const limpo = texto
-      .replace(/\s/g, '')
-      .replace(/R\$/gi, '')
-
-    const numero = limpo.includes(',')
-      ? Number(
-          limpo
-            .replace(/\./g, '')
-            .replace(',', '.')
+        return (
+          correspondeCategoria &&
+          correspondeBusca
         )
-      : Number(limpo)
+      },
+    )
+  }, [
+    produtos,
+    categoria,
+    busca,
+  ])
 
-    return Number.isFinite(numero)
-      ? numero
-      : 0
+  /* =========================================================
+     PREÇO
+     ========================================================= */
+
+  function formatarPreco(
+    valor: string | number,
+  ) {
+    const numero = Number(valor)
+
+    if (!Number.isFinite(numero)) {
+      return 'R$ 0,00'
+    }
+
+    return numero.toLocaleString(
+      'pt-BR',
+      {
+        style: 'currency',
+        currency: 'BRL',
+      },
+    )
   }
 
-  /*
-   * ============================================================
-   * ADICIONAR
-   * ============================================================
-   */
+  /* =========================================================
+     ADICIONAR AO CARRINHO
+     ========================================================= */
 
   function adicionarAoCarrinho(
-    produto: Produto
+    produto: Produto,
   ) {
-    if (produto.stock <= 0) {
+    const estoque = Number(
+      produto.stock,
+    )
+
+    if (
+      !Number.isFinite(estoque) ||
+      estoque <= 0
+    ) {
       return
     }
 
     setCarrinho((atual) => {
-      const existente = atual.find(
-        (item) => item.id === produto.id
-      )
+      const existente =
+        atual.find(
+          (item) =>
+            item.id === produto.id,
+        )
 
       if (existente) {
+        const quantidadeAtual =
+          Number(
+            existente.quantidade,
+          )
+
+        const quantidadeSegura =
+          Number.isFinite(
+            quantidadeAtual,
+          ) &&
+          quantidadeAtual > 0
+            ? Math.floor(
+                quantidadeAtual,
+              )
+            : 1
+
         if (
-          existente.quantity >=
-          produto.stock
+          quantidadeSegura >=
+          estoque
         ) {
           return atual
         }
 
-        return atual.map((item) =>
-          item.id === produto.id
-            ? {
-                ...item,
-                quantity:
-                  item.quantity + 1,
-              }
-            : item
+        return atual.map(
+          (item) =>
+            item.id === produto.id
+              ? {
+                  ...item,
+                  quantidade:
+                    quantidadeSegura +
+                    1,
+                }
+              : item,
         )
       }
 
       return [
         ...atual,
         {
-          id: produto.id,
-          name: produto.name,
-          price: converterPreco(
-            produto.price
-          ),
-          image_url:
-            produto.image_url,
-          quantity: 1,
+          ...produto,
+          quantidade: 1,
         },
       ]
     })
@@ -348,385 +382,368 @@ export default function Loja() {
     setCarrinhoAberto(true)
   }
 
-  /*
-   * ============================================================
-   * AUMENTAR
-   * ============================================================
-   */
+  /* =========================================================
+     AUMENTAR
+     ========================================================= */
 
   function aumentarQuantidade(
-    id: string
+    id: string,
   ) {
-    const produto = produtos.find(
-      (item) => item.id === id
-    )
-
-    if (!produto) {
-      return
-    }
-
     setCarrinho((atual) =>
       atual.map((item) => {
         if (item.id !== id) {
           return item
         }
 
+        const quantidadeAtual =
+          Number(item.quantidade)
+
+        const quantidadeSegura =
+          Number.isFinite(
+            quantidadeAtual,
+          ) &&
+          quantidadeAtual > 0
+            ? Math.floor(
+                quantidadeAtual,
+              )
+            : 1
+
+        const estoque =
+          Number(item.stock)
+
         if (
-          item.quantity >=
-          produto.stock
+          !Number.isFinite(
+            estoque,
+          ) ||
+          estoque <= 0
         ) {
-          return item
+          return {
+            ...item,
+            quantidade:
+              quantidadeSegura,
+          }
+        }
+
+        if (
+          quantidadeSegura >=
+          estoque
+        ) {
+          return {
+            ...item,
+            quantidade:
+              quantidadeSegura,
+          }
         }
 
         return {
           ...item,
-          quantity:
-            item.quantity + 1,
+          quantidade:
+            quantidadeSegura + 1,
         }
-      })
+      }),
     )
   }
 
-  /*
-   * ============================================================
-   * DIMINUIR
-   * ============================================================
-   */
+  /* =========================================================
+     DIMINUIR
+     ========================================================= */
 
   function diminuirQuantidade(
-    id: string
+    id: string,
   ) {
     setCarrinho((atual) =>
       atual
-        .map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                quantity:
-                  item.quantity - 1,
-              }
-            : item
-        )
+        .map((item) => {
+          if (item.id !== id) {
+            return item
+          }
+
+          const quantidadeAtual =
+            Number(item.quantidade)
+
+          const quantidadeSegura =
+            Number.isFinite(
+              quantidadeAtual,
+            ) &&
+            quantidadeAtual > 0
+              ? Math.floor(
+                  quantidadeAtual,
+                )
+              : 1
+
+          return {
+            ...item,
+            quantidade:
+              quantidadeSegura - 1,
+          }
+        })
         .filter(
-          (item) => item.quantity > 0
-        )
+          (item) =>
+            Number(
+              item.quantidade,
+            ) > 0,
+        ),
     )
   }
 
-  /*
-   * ============================================================
-   * REMOVER
-   * ============================================================
-   */
+  /* =========================================================
+     REMOVER
+     ========================================================= */
 
   function removerDoCarrinho(
-    id: string
+    id: string,
   ) {
     setCarrinho((atual) =>
       atual.filter(
-        (item) => item.id !== id
-      )
+        (item) =>
+          item.id !== id,
+      ),
     )
   }
 
-  /*
-   * ============================================================
-   * MONTAR MENSAGEM DO WHATSAPP
-   * ============================================================
-   */
+  /* =========================================================
+     CONTINUAR COMPRANDO
+     ========================================================= */
 
-  function montarMensagemPedido(
-    pedido: PedidoFinalizado
-  ) {
-    const linhas: string[] = []
-
-    linhas.push(
-      '🐾 *NOVO PEDIDO — BELO CÃO*'
-    )
-
-    linhas.push('')
-
-    linhas.push('*CLIENTE*')
-    linhas.push(
-      `Nome: ${pedido.cliente.nome}`
-    )
-    linhas.push(
-      `WhatsApp: ${pedido.cliente.whatsapp}`
-    )
-
-    linhas.push('')
-
-    if (
-      pedido.tipoEntrega === 'entrega'
-    ) {
-      linhas.push(
-        '*FORMA DE RECEBIMENTO*'
-      )
-      linhas.push('Entrega')
-
-      linhas.push('')
-
-      linhas.push('*ENDEREÇO*')
-      linhas.push(
-        `${pedido.cliente.rua}, ${pedido.cliente.numero}`
-      )
-
-      if (
-        pedido.cliente.complemento
-      ) {
-        linhas.push(
-          `Complemento: ${pedido.cliente.complemento}`
-        )
-      }
-
-      linhas.push(
-        `Bairro: ${pedido.cliente.bairro}`
-      )
-
-      linhas.push(
-        `Cidade: ${pedido.cliente.cidade} - ${pedido.cliente.uf}`
-      )
-
-      linhas.push(
-        `CEP: ${pedido.cliente.cep}`
-      )
-    } else {
-      linhas.push(
-        '*FORMA DE RECEBIMENTO*'
-      )
-      linhas.push(
-        'Retirada na loja'
-      )
-    }
-
-    linhas.push('')
-    linhas.push('*PEDIDO*')
-
-    carrinho.forEach((item) => {
-      const subtotal =
-        item.price * item.quantity
-
-      linhas.push(
-        `${item.quantity}x ${item.name} — ${subtotal.toLocaleString(
-          'pt-BR',
-          {
-            style: 'currency',
-            currency: 'BRL',
-          }
-        )}`
-      )
-    })
-
-    const total = carrinho.reduce(
-      (soma, item) =>
-        soma +
-        item.price * item.quantity,
-      0
-    )
-
-    linhas.push('')
-    linhas.push(
-      `*TOTAL: ${total.toLocaleString(
-        'pt-BR',
-        {
-          style: 'currency',
-          currency: 'BRL',
-        }
-      )}*`
-    )
-
-    linhas.push('')
-    linhas.push(
-      'Pedido enviado pelo site Belo Cão.'
-    )
-
-    return linhas.join('\n')
+  function continuarComprando() {
+    setCarrinhoAberto(false)
   }
 
-  /*
-   * ============================================================
-   * PEDIDO FINALIZADO
-   *
-   * 1. Gera mensagem
-   * 2. Abre WhatsApp
-   * 3. Limpa carrinho
-   * 4. Fecha sacola
-   * ============================================================
-   */
+  /* =========================================================
+     ABRIR CHECKOUT
+     ========================================================= */
 
-  function finalizarPedido(
-    pedido: PedidoFinalizado
-  ) {
+  function finalizarPedido() {
     if (carrinho.length === 0) {
       return
     }
 
-    setCliente(pedido.cliente)
+    setCarrinhoAberto(false)
+    setCheckoutAberto(true)
+  }
 
-    const mensagem =
-      montarMensagemPedido(pedido)
+  /* =========================================================
+     VOLTAR DO CHECKOUT PARA O CARRINHO
+     ========================================================= */
 
-    const url =
-      `https://wa.me/${WHATSAPP_LOJA}?text=${encodeURIComponent(
-        mensagem
-      )}`
+  function voltarParaCarrinho() {
+    setCheckoutAberto(false)
+    setCarrinhoAberto(true)
+  }
 
-    /*
-     * Abre o WhatsApp com o pedido preenchido.
-     */
-    window.open(
-      url,
-      '_blank',
-      'noopener,noreferrer'
-    )
+  /* =========================================================
+     PEDIDO FINALIZADO
+     ========================================================= */
 
-    /*
-     * Depois de abrir o WhatsApp,
-     * limpa o carrinho.
-     */
+  function pedidoFinalizado() {
     setCarrinho([])
 
     try {
       window.localStorage.removeItem(
-        STORAGE_KEY
+        STORAGE_KEY,
       )
     } catch (error) {
       console.error(
-        'Erro ao limpar carrinho salvo:',
-        error
+        'Erro ao limpar carrinho:',
+        error,
       )
     }
 
-    /*
-     * Fecha a sacola.
-     */
-    setCarrinhoAberto(false)
+    setCheckoutAberto(false)
   }
 
+  /* =========================================================
+     LIMPAR BUSCA
+     ========================================================= */
+
+  function limparBusca() {
+    setBusca('')
+  }
+
+  const quantidadeTotal =
+    carrinho.reduce(
+      (total, item) => {
+        const quantidade =
+          Number(
+            item.quantidade,
+          )
+
+        return (
+          total +
+          (Number.isFinite(
+            quantidade,
+          ) &&
+          quantidade > 0
+            ? Math.floor(
+                quantidade,
+              )
+            : 1)
+        )
+      },
+      0,
+    )
+
   return (
-    <>
-      <main className={styles.loja}>
-        <div
-          className={styles.shapeLarge}
-          aria-hidden="true"
-        />
+    <main className={styles.loja}>
+      <div
+        className={styles.shapeLarge}
+        aria-hidden="true"
+      />
 
-        <div
-          className={styles.shapeMedium}
-          aria-hidden="true"
-        />
+      <div
+        className={styles.shapeMedium}
+        aria-hidden="true"
+      />
 
-        <div
-          className={styles.dotPattern}
-          aria-hidden="true"
-        />
+      <div
+        className={styles.dotPattern}
+        aria-hidden="true"
+      />
 
-        <header className={styles.header}>
-          <Link
-            href="/"
-            className={styles.back}
-            aria-label="Voltar para a página inicial"
-          >
-            <ArrowLeft size={17} />
-            Voltar
-          </Link>
+      {/* =====================================================
+          HEADER
+          ===================================================== */}
 
-          <div
-            className={styles.brand}
-            aria-label="Belo Cão"
-          >
-            <i aria-hidden="true" />
-            <span>BELO CÃO</span>
-            <i aria-hidden="true" />
-          </div>
-
-          <button
-            type="button"
-            className={styles.headerBag}
-            onClick={() =>
-              setCarrinhoAberto(true)
-            }
-            aria-label={
-              quantidadeTotal > 0
-                ? `Abrir sacola com ${quantidadeTotal} itens`
-                : 'Abrir sacola'
-            }
-          >
-            <ShoppingBag size={19} />
-
-            {quantidadeTotal > 0 && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '-3px',
-                  right: '-3px',
-                  minWidth: '18px',
-                  height: '18px',
-                  padding: '0 4px',
-                  display: 'grid',
-                  placeItems: 'center',
-                  boxSizing: 'border-box',
-                  borderRadius: '50%',
-                  background: '#672f96',
-                  color: '#ffffff',
-                  fontSize: '8px',
-                  fontWeight: 800,
-                }}
-              >
-                {quantidadeTotal}
-              </span>
-            )}
-          </button>
-        </header>
-
-        <section className={styles.intro}>
-          <div className={styles.introText}>
-            <div className={styles.eyebrow}>
-              <span
-                className={
-                  styles.eyebrowIcon
-                }
-                aria-hidden="true"
-              >
-                <Heart size={12} />
-              </span>
-
-              BELO CÃO
-            </div>
-
-            <h1>
-              <span>Nossa</span>
-              <strong>loja</strong>
-            </h1>
-
-            <p>
-              Encontre produtos selecionados
-              para cuidar do seu melhor amigo
-              com carinho.
-            </p>
-          </div>
-
-          <div className={styles.introMeta}>
-            <span>
-              {produtosFiltrados.length
-                .toString()
-                .padStart(2, '0')}
-            </span>
-
-            <i aria-hidden="true" />
-
-            <span>
-              produtos disponíveis
-            </span>
-          </div>
-        </section>
-
-        <section
-          className={styles.controls}
-          aria-label="Filtros da loja"
+      <header className={styles.header}>
+        <Link
+          href="/"
+          className={styles.back}
         >
-          <div className={styles.categories}>
-            {categorias.map((item) => (
+          <ArrowLeft
+            size={16}
+            strokeWidth={2}
+          />
+
+          <span>
+            Voltar
+          </span>
+        </Link>
+
+        <div className={styles.brand}>
+          <span>
+            BELO CÃO
+          </span>
+
+          <i />
+
+          <span>
+            LOJINHA
+          </span>
+        </div>
+
+        <button
+          type="button"
+          className={
+            styles.headerBag
+          }
+          aria-label={`Abrir carrinho${
+            quantidadeTotal > 0
+              ? ` com ${quantidadeTotal} itens`
+              : ''
+          }`}
+          onClick={() =>
+            setCarrinhoAberto(
+              true,
+            )
+          }
+        >
+          <ShoppingBag
+            size={19}
+            strokeWidth={1.9}
+          />
+
+          {quantidadeTotal > 0 && (
+            <span>
+              {quantidadeTotal}
+            </span>
+          )}
+        </button>
+      </header>
+
+      {/* =====================================================
+          INTRO
+          ===================================================== */}
+
+      <section className={styles.intro}>
+        <div
+          className={
+            styles.introText
+          }
+        >
+          <div
+            className={
+              styles.eyebrow
+            }
+          >
+            <span
+              className={
+                styles.eyebrowIcon
+              }
+            >
+              <Heart
+                size={12}
+                fill="currentColor"
+                strokeWidth={2}
+              />
+            </span>
+
+            <span>
+              Escolhas para eles
+            </span>
+          </div>
+
+          <h1>
+            TUDO QUE{' '}
+            <span>
+              ELES
+            </span>{' '}
+            <strong>
+              AMAM.
+            </strong>
+          </h1>
+
+          <p>
+            Petiscos, cuidados e
+            produtos escolhidos para
+            deixar a rotina do seu cão
+            ainda melhor.
+          </p>
+        </div>
+
+        <div
+          className={
+            styles.introMeta
+          }
+        >
+          <span>
+            01
+          </span>
+
+          <i />
+
+          <span>
+            {produtos.length}{' '}
+            produtos
+          </span>
+        </div>
+      </section>
+
+      {/* =====================================================
+          CONTROLES
+          ===================================================== */}
+
+      <section
+        className={
+          styles.controls
+        }
+      >
+        <div
+          className={
+            styles.categories
+          }
+        >
+          {categorias.map(
+            (item) => (
               <button
                 key={item}
                 type="button"
@@ -736,270 +753,356 @@ export default function Loja() {
                     : styles.category
                 }
                 onClick={() =>
-                  setCategoria(item)
+                  setCategoria(
+                    item,
+                  )
                 }
               >
                 {item}
               </button>
-            ))}
-          </div>
+            ),
+          )}
+        </div>
 
-          <div className={styles.search}>
-            <Search size={16} />
+        <label
+          className={
+            styles.search
+          }
+        >
+          <Search
+            size={17}
+            strokeWidth={2}
+          />
 
-            <input
-              type="search"
-              value={busca}
-              onChange={(event) =>
-                setBusca(
-                  event.target.value
-                )
+          <input
+            type="search"
+            placeholder="Buscar produto"
+            value={busca}
+            onChange={(event) =>
+              setBusca(
+                event.target
+                  .value,
+              )
+            }
+            aria-label="Buscar produto"
+            autoComplete="off"
+          />
+
+          {busca && (
+            <button
+              type="button"
+              onClick={
+                limparBusca
               }
-              placeholder="Buscar produto..."
-              aria-label="Buscar produto"
-            />
+              aria-label="Limpar busca"
+              className={
+                styles.searchClear
+              }
+            >
+              ×
+            </button>
+          )}
+        </label>
+      </section>
 
-            {busca && (
-              <button
-                type="button"
-                onClick={() =>
-                  setBusca('')
-                }
-                aria-label="Limpar busca"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                  border: 0,
-                  background:
-                    'transparent',
-                  color: 'inherit',
-                  cursor: 'pointer',
-                }}
-              >
-                <X size={15} />
-              </button>
-            )}
-          </div>
-        </section>
+      {/* =====================================================
+          RESULTADO BUSCA
+          ===================================================== */}
 
-        {carregando && (
-          <div className={styles.state}>
-            <span>BELO CÃO</span>
+      {!carregando &&
+        !erro &&
+        busca.trim() && (
+          <div
+            className={
+              styles.searchResult
+            }
+          >
+            <span>
+              BUSCA
+            </span>
 
             <strong>
-              Carregando produtos...
+              {
+                produtosFiltrados.length
+              }{' '}
+              {produtosFiltrados.length ===
+              1
+                ? 'produto encontrado'
+                : 'produtos encontrados'}
             </strong>
           </div>
         )}
 
-        {!carregando && erro && (
-          <div className={styles.state}>
-            <span>ERRO</span>
+      {/* =====================================================
+          PRODUTOS
+          ===================================================== */}
 
-            <strong>{erro}</strong>
+      <section
+        className={
+          styles.productsSection
+        }
+      >
+        {carregando && (
+          <div
+            className={
+              styles.state
+            }
+          >
+            <span>
+              CARREGANDO
+            </span>
+
+            <strong>
+              Preparando a lojinha...
+            </strong>
           </div>
         )}
 
         {!carregando &&
-          !erro &&
-          produtosFiltrados.length === 0 && (
-            <div className={styles.state}>
-              <span>BELO CÃO</span>
+          erro && (
+            <div
+              className={
+                styles.state
+              }
+            >
+              <span>
+                OPS
+              </span>
 
               <strong>
-                Nenhum produto encontrado.
+                {erro}
               </strong>
             </div>
           )}
 
         {!carregando &&
           !erro &&
-          produtosFiltrados.length > 0 && (
-            <section
+          produtosFiltrados.length ===
+            0 && (
+            <div
               className={
-                styles.productsSection
+                styles.state
               }
-              aria-label="Produtos"
             >
-              <div className={styles.grid}>
-                {produtosFiltrados.map(
-                  (produto, index) => {
-                    const preco =
-                      converterPreco(
-                        produto.price
-                      )
+              <span>
+                NENHUM RESULTADO
+              </span>
 
-                    const semEstoque =
-                      produto.stock <= 0
-
-                    return (
-                      <article
-                        key={produto.id}
-                        className={
-                          styles.card
-                        }
-                      >
-                        <div
-                          className={
-                            styles.cardImage
-                          }
-                        >
-                          {produto.image_url ? (
-                            <Image
-                              src={
-                                produto.image_url
-                              }
-                              alt={
-                                produto.name
-                              }
-                              fill
-                              priority={
-                                index === 0
-                              }
-                              loading={
-                                index === 0
-                                  ? 'eager'
-                                  : 'lazy'
-                              }
-                              sizes="
-                                (max-width: 700px) 50vw,
-                                (max-width: 1100px) 33vw,
-                                25vw
-                              "
-                            />
-                          ) : (
-                            <div
-                              className={
-                                styles.imagePlaceholder
-                              }
-                            >
-                              <Heart
-                                size={32}
-                              />
-
-                              <span>
-                                BELO CÃO
-                              </span>
-                            </div>
-                          )}
-
-                          <span
-                            className={
-                              styles.cardNumber
-                            }
-                          >
-                            {String(
-                              index + 1
-                            ).padStart(2, '0')}
-                          </span>
-
-                          <button
-                            type="button"
-                            className={
-                              styles.favorite
-                            }
-                            aria-label={`Favoritar ${produto.name}`}
-                          >
-                            <Heart
-                              size={15}
-                            />
-                          </button>
-                        </div>
-
-                        <div
-                          className={
-                            styles.cardContent
-                          }
-                        >
-                          <span
-                            className={
-                              styles.cardCategory
-                            }
-                          >
-                            {produto.category}
-                          </span>
-
-                          <h2>
-                            {produto.name}
-                          </h2>
-
-                          <button
-                            type="button"
-                            className={
-                              styles.descriptionButton
-                            }
-                            onClick={() =>
-                              setProdutoDescricao(
-                                produto
-                              )
-                            }
-                            aria-label={`Ver descrição de ${produto.name}`}
-                          >
-                            Ver descrição
-                            <ArrowUpRight
-                              size={12}
-                            />
-                          </button>
-
-                          <div
-                            className={
-                              styles.cardBottom
-                            }
-                          >
-                            <strong>
-                              {preco.toLocaleString(
-                                'pt-BR',
-                                {
-                                  style:
-                                    'currency',
-                                  currency:
-                                    'BRL',
-                                }
-                              )}
-                            </strong>
-
-                            <button
-                              type="button"
-                              className={
-                                styles.addButton
-                              }
-                              onClick={() =>
-                                adicionarAoCarrinho(
-                                  produto
-                                )
-                              }
-                              disabled={
-                                semEstoque
-                              }
-                            >
-                              {semEstoque
-                                ? 'Sem estoque'
-                                : 'Adicionar'}
-                            </button>
-                          </div>
-                        </div>
-                      </article>
-                    )
-                  }
-                )}
-              </div>
-            </section>
+              <strong>
+                Não encontramos esse
+                produto.
+              </strong>
+            </div>
           )}
 
-        {!carregando && !erro && (
-          <footer
-            className={styles.footer}
-          >
-            <span>BELO CÃO</span>
+        {!carregando &&
+          !erro &&
+          produtosFiltrados.length >
+            0 && (
+            <div
+              className={
+                styles.grid
+              }
+            >
+              {produtosFiltrados.map(
+                (
+                  produto,
+                  index,
+                ) => (
+                  <article
+                    key={
+                      produto.id
+                    }
+                    className={
+                      styles.card
+                    }
+                  >
+                    <div
+                      className={
+                        styles.cardImage
+                      }
+                    >
+                      <span
+                        className={
+                          styles.cardNumber
+                        }
+                      >
+                        {String(
+                          index + 1,
+                        ).padStart(
+                          2,
+                          '0',
+                        )}
+                      </span>
 
-            <span>
-              Cuidado em cada escolha
-            </span>
-          </footer>
-        )}
-      </main>
+                      {produto.image_url ? (
+                        <Image
+                          src={
+                            produto.image_url
+                          }
+                          alt={
+                            produto.name
+                          }
+                          fill
+                          sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 25vw"
+                        />
+                      ) : (
+                        <div
+                          className={
+                            styles.imagePlaceholder
+                          }
+                        >
+                          <ShoppingBag
+                            size={28}
+                            strokeWidth={
+                              1.4
+                            }
+                          />
+
+                          <span>
+                            FOTO EM BREVE
+                          </span>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        className={
+                          styles.favorite
+                        }
+                        aria-label={`Favoritar ${produto.name}`}
+                      >
+                        <Heart
+                          size={17}
+                          strokeWidth={
+                            1.8
+                          }
+                        />
+                      </button>
+                    </div>
+
+                    <div
+                      className={
+                        styles.cardContent
+                      }
+                    >
+                      <span
+                        className={
+                          styles.cardCategory
+                        }
+                      >
+                        {
+                          produto.category
+                        }
+                      </span>
+
+                      <h2>
+                        {
+                          produto.name
+                        }
+                      </h2>
+
+                      {produto.description && (
+                        <button
+                          type="button"
+                          className={
+                            styles.descriptionButton
+                          }
+                          onClick={() =>
+                            setProdutoDescricao(
+                              produto,
+                            )
+                          }
+                          aria-label={`Ver descrição de ${produto.name}`}
+                        >
+                          Descrição
+                        </button>
+                      )}
+
+                      <div
+                        className={
+                          styles.cardBottom
+                        }
+                      >
+                        <strong>
+                          {formatarPreco(
+                            produto.price,
+                          )}
+                        </strong>
+
+                        <button
+                          type="button"
+                          className={
+                            styles.addButton
+                          }
+                          disabled={
+                            Number(
+                              produto.stock,
+                            ) <= 0
+                          }
+                          title={
+                            Number(
+                              produto.stock,
+                            ) <= 0
+                              ? 'Produto sem estoque'
+                              : 'Adicionar ao carrinho'
+                          }
+                          onClick={() =>
+                            adicionarAoCarrinho(
+                              produto,
+                            )
+                          }
+                        >
+                          <span>
+                            {Number(
+                              produto.stock,
+                            ) > 0
+                              ? 'Adicionar'
+                              : 'Esgotado'}
+                          </span>
+
+                          {Number(
+                            produto.stock,
+                          ) > 0 && (
+                            <ArrowUpRight
+                              size={16}
+                              strokeWidth={
+                                2.2
+                              }
+                            />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ),
+              )}
+            </div>
+          )}
+      </section>
+
+      {/* =====================================================
+          FOOTER
+          ===================================================== */}
+
+      <footer
+        className={
+          styles.footer
+        }
+      >
+        <span>
+          BELO CÃO · ESTÉTICA ANIMAL ·
+          PET COFFEE
+        </span>
+
+        <span>
+          FEITO PARA ELES
+        </span>
+      </footer>
+
+      {/* =====================================================
+          DESCRIÇÃO DO PRODUTO
+          ===================================================== */}
 
       {produtoDescricao && (
         <div
@@ -1007,20 +1110,21 @@ export default function Loja() {
             styles.descriptionOverlay
           }
           onClick={() =>
-            setProdutoDescricao(null)
+            setProdutoDescricao(
+              null,
+            )
           }
-          role="presentation"
         >
           <div
             className={
               styles.descriptionModal
             }
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="descricao-produto"
             onClick={(event) =>
               event.stopPropagation()
             }
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="produto-descricao-titulo"
           >
             <button
               type="button"
@@ -1028,11 +1132,16 @@ export default function Loja() {
                 styles.descriptionClose
               }
               onClick={() =>
-                setProdutoDescricao(null)
+                setProdutoDescricao(
+                  null,
+                )
               }
               aria-label="Fechar descrição"
             >
-              <X size={19} />
+              <X
+                size={17}
+                strokeWidth={2}
+              />
             </button>
 
             <span
@@ -1040,27 +1149,40 @@ export default function Loja() {
                 styles.descriptionCategory
               }
             >
-              {produtoDescricao.category}
+              {
+                produtoDescricao.category
+              }
             </span>
 
-            <h2>
-              {produtoDescricao.name}
+            <h2 id="descricao-produto">
+              {
+                produtoDescricao.name
+              }
             </h2>
 
             <p>
-              {produtoDescricao.description ||
-                'Descrição não disponível para este produto.'}
+              {
+                produtoDescricao.description
+              }
             </p>
           </div>
         </div>
       )}
 
+      {/* =====================================================
+          CARRINHO
+          ===================================================== */}
+
       <Carrinho
-        aberto={carrinhoAberto}
-        onFechar={() =>
-          setCarrinhoAberto(false)
+        aberto={
+          carrinhoAberto
         }
         itens={carrinho}
+        onFechar={() =>
+          setCarrinhoAberto(
+            false,
+          )
+        }
         onAumentar={
           aumentarQuantidade
         }
@@ -1070,10 +1192,35 @@ export default function Loja() {
         onRemover={
           removerDoCarrinho
         }
+        onContinuarComprando={
+          continuarComprando
+        }
         onFinalizar={
           finalizarPedido
         }
       />
-    </>
+
+      {/* =====================================================
+          CHECKOUT
+          ===================================================== */}
+
+      <Checkout
+        aberto={
+          checkoutAberto
+        }
+        itens={carrinho}
+        onFechar={() =>
+          setCheckoutAberto(
+            false,
+          )
+        }
+        onVoltarCarrinho={
+          voltarParaCarrinho
+        }
+        onPedidoFinalizado={
+          pedidoFinalizado
+        }
+      />
+    </main>
   )
 }

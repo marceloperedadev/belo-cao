@@ -1,9 +1,8 @@
-
 'use client'
 
-import { useState } from 'react'
-
 import {
+  ArrowLeft,
+  ArrowRight,
   Minus,
   Plus,
   ShoppingBag,
@@ -13,392 +12,472 @@ import {
 
 import styles from './Carrinho.module.css'
 
-import Checkout, {
-  type PedidoFinalizado,
-} from '@/app/components/Checkout/Checkout'
-
-export type ItemCarrinho = {
+export type ProdutoCarrinho = {
   id: string
   name: string
-  price: number
+  description: string | null
+  price: string | number
+  category: string
   image_url: string | null
-  quantity: number
+  stock: number
+  active: boolean
+  slug: string | null
+}
+
+export type ItemCarrinho = ProdutoCarrinho & {
+  quantidade: number
 }
 
 type CarrinhoProps = {
   aberto: boolean
-  onFechar: () => void
   itens: ItemCarrinho[]
+  onFechar: () => void
   onAumentar: (id: string) => void
   onDiminuir: (id: string) => void
   onRemover: (id: string) => void
-  onFinalizar: (
-    pedido: PedidoFinalizado
-  ) => void
+  onContinuarComprando: () => void
+  onFinalizar: () => void
 }
 
 export default function Carrinho({
   aberto,
-  onFechar,
   itens,
+  onFechar,
   onAumentar,
   onDiminuir,
   onRemover,
+  onContinuarComprando,
   onFinalizar,
 }: CarrinhoProps) {
-  const [checkoutAberto, setCheckoutAberto] =
-    useState(false)
+  if (!aberto) return null
 
-  const totalItens = itens.reduce(
-    (total, item) =>
-      total + item.quantity,
-    0
+  const quantidadeTotal = itens.reduce(
+    (total, item) => {
+      const quantidade = Number(item.quantidade)
+
+      return (
+        total +
+        (Number.isFinite(quantidade) && quantidade > 0
+          ? Math.floor(quantidade)
+          : 1)
+      )
+    },
+    0,
   )
 
-  const total = itens.reduce(
-    (total, item) =>
-      total +
-      item.price * item.quantity,
-    0
+  const valorTotal = itens.reduce(
+    (total, item) => {
+      const preco = Number(item.price)
+      const quantidade = Number(item.quantidade)
+
+      const precoSeguro = Number.isFinite(preco)
+        ? preco
+        : 0
+
+      const quantidadeSegura =
+        Number.isFinite(quantidade) && quantidade > 0
+          ? Math.floor(quantidade)
+          : 1
+
+      return (
+        total +
+        precoSeguro * quantidadeSegura
+      )
+    },
+    0,
   )
 
-  function formatarPreco(
-    valor: number
-  ) {
-    return valor.toLocaleString(
-      'pt-BR',
-      {
-        style: 'currency',
-        currency: 'BRL',
-      }
-    )
+  function formatarPreco(valor: number) {
+    return valor.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    })
   }
 
-  /*
-   * ============================================================
-   * ABRIR CHECKOUT
-   * ============================================================
-   */
+  function quantidadeSegura(item: ItemCarrinho) {
+    const quantidade = Number(item.quantidade)
 
-  function iniciarCheckout() {
-    if (itens.length === 0) {
-      return
+    if (
+      !Number.isFinite(quantidade) ||
+      quantidade <= 0
+    ) {
+      return 1
     }
 
-    setCheckoutAberto(true)
-  }
-
-  /*
-   * ============================================================
-   * VOLTAR PARA SACOLA
-   *
-   * NÃO APAGA O CARRINHO.
-   * ============================================================
-   */
-
-  function voltarParaSacola() {
-    setCheckoutAberto(false)
-  }
-
-  /*
-   * ============================================================
-   * PEDIDO FINALIZADO
-   *
-   * A Loja faz a ação final.
-   * A Loja também é responsável por limpar o carrinho.
-   * ============================================================
-   */
-
-  function pedidoFinalizado(
-    pedido: PedidoFinalizado
-  ) {
-    onFinalizar(pedido)
-  }
-
-  /*
-   * ============================================================
-   * FECHAR
-   *
-   * Fechar NÃO apaga o carrinho.
-   * ============================================================
-   */
-
-  function fecharCarrinho() {
-    setCheckoutAberto(false)
-    onFechar()
-  }
-
-  if (!aberto) {
-    return null
+    return Math.floor(quantidade)
   }
 
   return (
-    <>
-      <div
-        className={styles.overlay}
-        onClick={fecharCarrinho}
-        aria-hidden="true"
-      />
-
+    <div
+      className={styles.overlay}
+      onClick={onFechar}
+    >
       <aside
         className={styles.carrinho}
-        aria-label="Carrinho de compras"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="titulo-carrinho"
+        onClick={(event) =>
+          event.stopPropagation()
+        }
       >
-        <header
-          className={styles.header}
-        >
-          <div>
-            <span
-              className={styles.eyebrow}
-            >
-              BELO CÃO
+        <header className={styles.header}>
+          <div className={styles.headerInfo}>
+            <span className={styles.eyebrow}>
+              SEU PEDIDO
             </span>
 
-            <h2>
-              {checkoutAberto
-                ? 'Finalizar pedido'
-                : 'Sua sacola'}
+            <div className={styles.titleRow}>
+              <ShoppingBag
+                size={21}
+                strokeWidth={1.8}
+              />
 
-              {!checkoutAberto &&
-                totalItens > 0 && (
-                  <span>
-                    {totalItens}
-                  </span>
-                )}
-            </h2>
+              <h2 id="titulo-carrinho">
+                Carrinho
+              </h2>
+
+              {quantidadeTotal > 0 && (
+                <span className={styles.badge}>
+                  {quantidadeTotal}
+                </span>
+              )}
+            </div>
           </div>
 
           <button
             type="button"
             className={styles.close}
-            onClick={fecharCarrinho}
+            onClick={onFechar}
             aria-label="Fechar carrinho"
           >
-            <X size={19} />
+            <X
+              size={20}
+              strokeWidth={1.9}
+            />
           </button>
         </header>
 
-        {checkoutAberto ? (
-          <Checkout
-            itens={itens}
-            total={total}
-            onVoltarParaSacola={
-              voltarParaSacola
-            }
-            onPedidoFinalizado={
-              pedidoFinalizado
-            }
-          />
-        ) : itens.length === 0 ? (
-          <div className={styles.vazio}>
-            <div
-              className={
-                styles.vazioIcon
-              }
-            >
-              <ShoppingBag
-                size={28}
-              />
-            </div>
+        <div className={styles.content}>
+          {itens.length === 0 ? (
+            <div className={styles.empty}>
+              <div className={styles.emptyIcon}>
+                <ShoppingBag
+                  size={31}
+                  strokeWidth={1.35}
+                />
+              </div>
 
-            <span>
-              BELO CÃO
-            </span>
+              <span className={styles.emptyEyebrow}>
+                CARRINHO VAZIO
+              </span>
 
-            <h3
-              style={{
-                margin:
-                  '10px 0 0',
-                color:
-                  '#43205f',
-                fontSize:
-                  '22px',
-                lineHeight:
-                  '1.1',
-                fontWeight:
-                  800,
-                letterSpacing:
-                  '-0.04em',
-              }}
-            >
-              Sua sacola está vazia
-            </h3>
+              <h3>
+                Seu carrinho
+                <br />
+                está esperando.
+              </h3>
 
-            <p>
-              Adicione alguns produtos
-              para continuar.
-            </p>
+              <p>
+                Escolha seus produtos favoritos
+                e eles aparecerão aqui.
+              </p>
 
-            <button
-              type="button"
-              className={styles.continuar}
-              onClick={fecharCarrinho}
-            >
-              Continuar comprando
-            </button>
-          </div>
-        ) : (
-          <>
-            <div
-              className={styles.itens}
-            >
-              {itens.map((item) => (
-                <article
-                  key={item.id}
-                  className={styles.item}
-                >
-                  <div
-                    className={
-                      styles.itemImage
-                    }
-                  >
-                    {item.image_url ? (
-                      <img
-                        src={
-                          item.image_url
-                        }
-                        alt={item.name}
-                      />
-                    ) : (
-                      <ShoppingBag
-                        size={20}
-                      />
-                    )}
-                  </div>
-
-                  <div
-                    className={
-                      styles.itemInfo
-                    }
-                  >
-                    <h3>
-                      {item.name}
-                    </h3>
-
-                    <strong>
-                      {formatarPreco(
-                        item.price
-                      )}
-                    </strong>
-
-                    <div
-                      className={
-                        styles.itemBottom
-                      }
-                    >
-                      <div
-                        className={
-                          styles.quantidade
-                        }
-                      >
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onDiminuir(
-                              item.id
-                            )
-                          }
-                          aria-label={`Diminuir quantidade de ${item.name}`}
-                        >
-                          <Minus
-                            size={14}
-                          />
-                        </button>
-
-                        <span>
-                          {item.quantity}
-                        </span>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onAumentar(
-                              item.id
-                            )
-                          }
-                          aria-label={`Aumentar quantidade de ${item.name}`}
-                        >
-                          <Plus
-                            size={14}
-                          />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className={
-                      styles.remover
-                    }
-                    onClick={() =>
-                      onRemover(
-                        item.id
-                      )
-                    }
-                    aria-label={`Remover ${item.name}`}
-                  >
-                    <Trash2
-                      size={16}
-                    />
-                  </button>
-                </article>
-              ))}
-            </div>
-
-            <div
-              className={styles.resumo}
-            >
-              <div
-                className={
-                  styles.linha
+              <button
+                type="button"
+                className={styles.emptyButton}
+                onClick={
+                  onContinuarComprando
                 }
               >
                 <span>
-                  {totalItens === 1
-                    ? '1 item'
-                    : `${totalItens} itens`}
+                  Ver produtos
                 </span>
 
-                <strong>
-                  {formatarPreco(
-                    total
-                  )}
-                </strong>
-              </div>
-
+                <ArrowRight
+                  size={16}
+                  strokeWidth={2}
+                />
+              </button>
+            </div>
+          ) : (
+            <>
               <div
-                className={styles.total}
+                className={styles.itemsHeader}
               >
                 <span>
-                  Total
+                  {quantidadeTotal === 1
+                    ? '1 item'
+                    : `${quantidadeTotal} itens`}
                 </span>
 
-                <strong>
-                  {formatarPreco(
-                    total
-                  )}
-                </strong>
+                <span>
+                  SEU PEDIDO
+                </span>
+              </div>
+
+              <div className={styles.items}>
+                {itens.map((item) => {
+                  const preco = Number(
+                    item.price,
+                  )
+
+                  const precoSeguro =
+                    Number.isFinite(preco)
+                      ? preco
+                      : 0
+
+                  const quantidade =
+                    quantidadeSegura(item)
+
+                  const subtotal =
+                    precoSeguro * quantidade
+
+                  const estoque =
+                    Number(item.stock)
+
+                  const estoqueSeguro =
+                    Number.isFinite(estoque) &&
+                    estoque > 0
+                      ? Math.floor(estoque)
+                      : 0
+
+                  const quantidadeMaxima =
+                    estoqueSeguro > 0
+                      ? estoqueSeguro
+                      : quantidade
+
+                  return (
+                    <article
+                      key={item.id}
+                      className={styles.item}
+                    >
+                      <div
+                        className={
+                          styles.itemImage
+                        }
+                      >
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.name}
+                          />
+                        ) : (
+                          <ShoppingBag
+                            size={23}
+                            strokeWidth={1.3}
+                          />
+                        )}
+                      </div>
+
+                      <div
+                        className={
+                          styles.itemInfo
+                        }
+                      >
+                        <span
+                          className={
+                            styles.itemCategory
+                          }
+                        >
+                          {item.category}
+                        </span>
+
+                        <h3>
+                          {item.name}
+                        </h3>
+
+                        <span
+                          className={
+                            styles.itemPrice
+                          }
+                        >
+                          {formatarPreco(
+                            precoSeguro,
+                          )}
+                        </span>
+
+                        <div
+                          className={
+                            styles.itemActions
+                          }
+                        >
+                          <div
+                            className={
+                              styles.quantity
+                            }
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onDiminuir(
+                                  item.id,
+                                )
+                              }
+                              disabled={
+                                quantidade <= 1
+                              }
+                              aria-label={`Diminuir quantidade de ${item.name}`}
+                            >
+                              <Minus
+                                size={14}
+                                strokeWidth={2}
+                              />
+                            </button>
+
+                            <span>
+                              {quantidade}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onAumentar(
+                                  item.id,
+                                )
+                              }
+                              disabled={
+                                quantidade >=
+                                quantidadeMaxima
+                              }
+                              aria-label={`Aumentar quantidade de ${item.name}`}
+                            >
+                              <Plus
+                                size={14}
+                                strokeWidth={2}
+                              />
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            className={
+                              styles.remove
+                            }
+                            onClick={() =>
+                              onRemover(
+                                item.id,
+                              )
+                            }
+                          >
+                            <Trash2
+                              size={14}
+                              strokeWidth={1.8}
+                            />
+
+                            <span>
+                              Remover
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <strong
+                        className={
+                          styles.itemSubtotal
+                        }
+                      >
+                        {formatarPreco(
+                          subtotal,
+                        )}
+                      </strong>
+                    </article>
+                  )
+                })}
               </div>
 
               <button
                 type="button"
                 className={
-                  styles.finalizar
+                  styles.continueButton
                 }
                 onClick={
-                  iniciarCheckout
-                }
-                disabled={
-                  itens.length === 0
+                  onContinuarComprando
                 }
               >
-                Finalizar pedido
+                <ArrowLeft
+                  size={15}
+                  strokeWidth={2}
+                />
+
+                <span>
+                  Continuar comprando
+                </span>
               </button>
+            </>
+          )}
+        </div>
+
+        {itens.length > 0 && (
+          <footer className={styles.footer}>
+            <div
+              className={styles.summary}
+            >
+              <div
+                className={
+                  styles.summaryRow
+                }
+              >
+                <span>
+                  Subtotal
+                </span>
+
+                <strong>
+                  {formatarPreco(
+                    valorTotal,
+                  )}
+                </strong>
+              </div>
+
+              <div
+                className={
+                  styles.summaryNote
+                }
+              >
+                <span
+                  className={
+                    styles.noteDot
+                  }
+                />
+
+                <span>
+                  Frete e forma de entrega
+                  definidos no checkout.
+                </span>
+              </div>
             </div>
-          </>
+
+            <button
+              type="button"
+              className={
+                styles.checkoutButton
+              }
+              onClick={onFinalizar}
+            >
+              <span>
+                Finalizar pedido
+              </span>
+
+              <div
+                className={
+                  styles.checkoutValue
+                }
+              >
+                <strong>
+                  {formatarPreco(
+                    valorTotal,
+                  )}
+                </strong>
+
+                <ArrowRight
+                  size={17}
+                  strokeWidth={2}
+                />
+              </div>
+            </button>
+          </footer>
         )}
       </aside>
-    </>
+    </div>
   )
 }
