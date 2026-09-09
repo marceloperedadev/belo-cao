@@ -1,3 +1,4 @@
+
 'use client'
 
 import {
@@ -10,6 +11,7 @@ import {
   MessageCircle,
   Package,
   RefreshCw,
+  RotateCcw,
   ShoppingBag,
   TrendingUp,
   User,
@@ -74,12 +76,17 @@ type Pedido = {
   itens: ItemPedido[]
 
   status: string
+
+  /* Controle manual do estoque */
+  estoqueDevolvido: boolean
+  estoqueDevolvidoEm: string | null
+
   criadoEm: string
   atualizadoEm: string
 }
 
 /* =========================================================
-   RESPOSTA REAL DA API
+   RESPOSTA DA API
    ========================================================= */
 
 type PedidoApi = {
@@ -107,6 +114,10 @@ type PedidoApi = {
   total: number | string
 
   status: string
+
+  /* Controle de devolução */
+  stock_restored: boolean
+  stock_restored_at: string | null
 
   created_at: string
   updated_at: string
@@ -138,6 +149,30 @@ type RespostaPedidos = {
   mensagem?: string
 }
 
+type RespostaEstoque = {
+  sucesso: boolean
+  mensagem?: string
+  erro?: string
+
+  estoqueDevolvido?: boolean
+
+  pedido?: {
+    id: string
+    order_number: number | string
+    status: string
+    stock_restored: boolean
+    stock_restored_at: string | null
+    updated_at: string
+  }
+
+  itens?: Array<{
+    productId: string
+    productName: string
+    quantity: number
+    stockAtual: number
+  }>
+}
+
 /* =========================================================
    STATUS
    ========================================================= */
@@ -158,29 +193,6 @@ type StatusAtualizavel = Exclude<
   StatusPedido,
   'todos'
 >
-
-/*
- * Fluxo permitido:
- *
- * recebido
- *   ├── confirmado
- *   └── cancelado
- *
- * confirmado
- *   ├── em_preparo
- *   └── cancelado
- *
- * em_preparo
- *   ├── saiu_para_entrega
- *   └── cancelado
- *
- * saiu_para_entrega
- *   ├── concluido
- *   └── cancelado
- *
- * concluido -> finalizado
- * cancelado -> finalizado
- */
 
 const TRANSICOES_STATUS: Record<
   StatusAtualizavel,
@@ -216,7 +228,11 @@ const TRANSICOES_STATUS: Record<
    ========================================================= */
 
 function numeroSeguro(
-  valor: number | string | null | undefined,
+  valor:
+    | number
+    | string
+    | null
+    | undefined,
 ): number {
   const numero = Number(valor)
 
@@ -250,13 +266,12 @@ function normalizarPedido(
 
   const numeroPedido =
     typeof orderNumber === 'number'
-      ? `#${String(orderNumber).padStart(
-          5,
-          '0',
-        )}`
-      : String(orderNumber).startsWith(
-          '#',
-        )
+      ? `#${String(
+          orderNumber,
+        ).padStart(5, '0')}`
+      : String(
+          orderNumber,
+        ).startsWith('#')
         ? String(orderNumber)
         : `#${String(
             orderNumber,
@@ -271,7 +286,8 @@ function normalizarPedido(
 
     cliente: {
       id:
-        pedido.customer_id ?? null,
+        pedido.customer_id ??
+        null,
 
       nome:
         textoSeguro(
@@ -300,16 +316,19 @@ function normalizarPedido(
         pedido.number ?? null,
 
       complemento:
-        pedido.complement ?? null,
+        pedido.complement ??
+        null,
 
       bairro:
-        pedido.neighborhood ?? null,
+        pedido.neighborhood ??
+        null,
 
       cidade:
         pedido.city ?? null,
 
       referencia:
-        pedido.reference_point ?? null,
+        pedido.reference_point ??
+        null,
     },
 
     pagamento: {
@@ -319,8 +338,10 @@ function normalizarPedido(
         ),
 
       trocoPara:
-        pedido.change_for === null ||
-        pedido.change_for === undefined
+        pedido.change_for ===
+          null ||
+        pedido.change_for ===
+          undefined
           ? null
           : numeroSeguro(
               pedido.change_for,
@@ -352,7 +373,8 @@ function normalizarPedido(
             id: item.id,
 
             produtoId:
-              item.product_id ?? null,
+              item.product_id ??
+              null,
 
             nome:
               textoSeguro(
@@ -381,6 +403,15 @@ function normalizarPedido(
       textoSeguro(
         pedido.status,
       ),
+
+    estoqueDevolvido:
+      Boolean(
+        pedido.stock_restored,
+      ),
+
+    estoqueDevolvidoEm:
+      pedido.stock_restored_at ??
+      null,
 
     criadoEm:
       textoSeguro(
@@ -559,12 +590,18 @@ function obterStatusDisponiveis(
   statusAtual: string,
 ): StatusAtualizavel[] {
   if (
-    statusAtual !== 'recebido' &&
-    statusAtual !== 'confirmado' &&
-    statusAtual !== 'em_preparo' &&
-    statusAtual !== 'saiu_para_entrega' &&
-    statusAtual !== 'concluido' &&
-    statusAtual !== 'cancelado'
+    statusAtual !==
+      'recebido' &&
+    statusAtual !==
+      'confirmado' &&
+    statusAtual !==
+      'em_preparo' &&
+    statusAtual !==
+      'saiu_para_entrega' &&
+    statusAtual !==
+      'concluido' &&
+    statusAtual !==
+      'cancelado'
   ) {
     return []
   }
@@ -624,6 +661,20 @@ export default function PedidosPage() {
   const [
     statusSucesso,
     setStatusSucesso,
+  ] = useState<
+    string | null
+  >(null)
+
+  const [
+    estoqueSalvando,
+    setEstoqueSalvando,
+  ] = useState<
+    string | null
+  >(null)
+
+  const [
+    estoqueSucesso,
+    setEstoqueSucesso,
   ] = useState<
     string | null
   >(null)
@@ -829,11 +880,6 @@ export default function PedidosPage() {
         )
       }
 
-      /*
-       * Atualiza imediatamente
-       * a tela.
-       */
-
       setPedidos(
         (
           pedidosAtuais,
@@ -878,11 +924,6 @@ export default function PedidosPage() {
         2000,
       )
 
-      /*
-       * Recarrega do banco
-       * para garantir sincronização.
-       */
-
       await carregarPedidos(
         false,
       )
@@ -899,6 +940,165 @@ export default function PedidosPage() {
       )
     } finally {
       setStatusSalvando(
+        null,
+      )
+    }
+  }
+
+  /* =======================================================
+     DEVOLVER PRODUTOS AO ESTOQUE
+     ======================================================= */
+
+  async function devolverEstoque(
+    pedido: Pedido,
+  ) {
+    /*
+     * Segurança 1:
+     * somente pedido cancelado.
+     */
+    if (
+      pedido.status !==
+      'cancelado'
+    ) {
+      setErro(
+        'Só é possível devolver o estoque de um pedido cancelado.',
+      )
+
+      return
+    }
+
+    /*
+     * Segurança 2:
+     * não permitir segunda devolução.
+     */
+    if (
+      pedido.estoqueDevolvido
+    ) {
+      setErro(
+        'O estoque deste pedido já foi devolvido.',
+      )
+
+      return
+    }
+
+    /*
+     * Confirmação antes de alterar
+     * o estoque.
+     */
+    const confirmou =
+      window.confirm(
+        `Deseja devolver os produtos do pedido ${pedido.numeroPedido} ao estoque?\n\nEssa ação não poderá ser repetida.`,
+      )
+
+    if (!confirmou) {
+      return
+    }
+
+    try {
+      setEstoqueSalvando(
+        pedido.id,
+      )
+
+      setEstoqueSucesso(
+        null,
+      )
+
+      setErro('')
+
+      /*
+       * Endpoint específico da devolução.
+       */
+      const response =
+        await fetch(
+          '/api/admin/pedidos/estoque',
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+
+            body: JSON.stringify({
+              pedidoId:
+                pedido.id,
+            }),
+          },
+        )
+
+      const data: RespostaEstoque =
+        await response.json()
+
+      if (
+        !response.ok ||
+        !data.sucesso
+      ) {
+        throw new Error(
+          data.mensagem ||
+            data.erro ||
+            'Não foi possível devolver os produtos ao estoque.',
+        )
+      }
+
+      /*
+       * Atualiza imediatamente a interface.
+       */
+      setPedidos(
+        (
+          pedidosAtuais,
+        ) =>
+          pedidosAtuais.map(
+            (
+              pedidoAtual,
+            ) =>
+              pedidoAtual.id ===
+              pedido.id
+                ? {
+                    ...pedidoAtual,
+
+                    estoqueDevolvido:
+                      true,
+
+                    estoqueDevolvidoEm:
+                      data.pedido
+                        ?.stock_restored_at ??
+                      new Date().toISOString(),
+
+                    atualizadoEm:
+                      data.pedido
+                        ?.updated_at ||
+                      new Date().toISOString(),
+                  }
+                : pedidoAtual,
+          ),
+      )
+
+      /*
+       * Mostra confirmação visual.
+       */
+      setEstoqueSucesso(
+        pedido.id,
+      )
+
+      /*
+       * Sincroniza com o banco.
+       */
+      await carregarPedidos(
+        false,
+      )
+    } catch (error) {
+      console.error(
+        error,
+      )
+
+      setErro(
+        error instanceof
+          Error
+          ? error.message
+          : 'Não foi possível devolver os produtos ao estoque.',
+      )
+    } finally {
+      setEstoqueSalvando(
         null,
       )
     }
@@ -1002,7 +1202,7 @@ export default function PedidosPage() {
   }
 
   /* =======================================================
-     TOGGLE PEDIDO
+     ABRIR / FECHAR PEDIDO
      ======================================================= */
 
   function alternarPedido(
@@ -1016,9 +1216,9 @@ export default function PedidosPage() {
     )
   }
 
-  /* =======================================================
+  /* =========================================================
      RENDER
-     ======================================================= */
+     ========================================================= */
 
   return (
     <main
@@ -1307,12 +1507,12 @@ export default function PedidosPage() {
                 <button
                   key={status}
                   type="button"
-                  className={`${styles.filtro} ${
+                  className={
                     filtroStatus ===
                     status
                       ? styles.filtroAtivo
-                      : ''
-                  }`}
+                      : styles.filtro
+                  }
                   onClick={() =>
                     setFiltroStatus(
                       status,
@@ -1415,6 +1615,14 @@ export default function PedidosPage() {
                   statusSucesso ===
                   pedido.id
 
+                const salvandoEstoque =
+                  estoqueSalvando ===
+                  pedido.id
+
+                const estoqueAtualizado =
+                  estoqueSucesso ===
+                  pedido.id
+
                 const statusDisponiveis =
                   obterStatusDisponiveis(
                     pedido.status,
@@ -1423,6 +1631,11 @@ export default function PedidosPage() {
                 const podeAlterarStatus =
                   statusDisponiveis.length >
                   0
+
+                const podeDevolverEstoque =
+                  pedido.status ===
+                    'cancelado' &&
+                  !pedido.estoqueDevolvido
 
                 return (
                   <article
@@ -1715,6 +1928,113 @@ export default function PedidosPage() {
                             )}
                           </div>
                         </div>
+
+                        {/* =============================
+                            ESTOQUE
+                            ============================= */}
+
+                        {pedido.status ===
+                          'cancelado' && (
+                          <div
+                            className={
+                              styles.estoqueBox
+                            }
+                          >
+                            <div
+                              className={
+                                styles.estoqueInfo
+                              }
+                            >
+                              <div
+                                className={
+                                  styles.estoqueTitulo
+                                }
+                              >
+                                <RotateCcw
+                                  size={14}
+                                />
+
+                                <span>
+                                  Estoque do pedido
+                                </span>
+                              </div>
+
+                              <span
+                                className={
+                                  styles.estoqueDescricao
+                                }
+                              >
+                                {pedido.estoqueDevolvido
+                                  ? 'Os produtos deste pedido já foram devolvidos ao estoque.'
+                                  : 'O cancelamento não altera o estoque. Faça a devolução manual quando necessário.'}
+                              </span>
+                            </div>
+
+                            {pedido.estoqueDevolvido ? (
+                              <div
+                                className={
+                                  styles.estoqueDevolvido
+                                }
+                              >
+                                <Check
+                                  size={14}
+                                />
+
+                                <span>
+                                  Estoque devolvido
+                                </span>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className={
+                                  styles.devolverEstoque
+                                }
+                                disabled={
+                                  !podeDevolverEstoque ||
+                                  salvandoEstoque
+                                }
+                                onClick={() =>
+                                  devolverEstoque(
+                                    pedido,
+                                  )
+                                }
+                              >
+                                {salvandoEstoque ? (
+                                  <>
+                                    <Loader2
+                                      size={14}
+                                      className={
+                                        styles.spinner
+                                      }
+                                    />
+
+                                    <span>
+                                      Devolvendo...
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <RotateCcw
+                                      size={14}
+                                    />
+
+                                    <span>
+                                      Devolver produtos ao estoque
+                                    </span>
+                                  </>
+                                )}
+                              </button>
+                            )}
+
+                            {estoqueAtualizado &&
+                              !pedido.estoqueDevolvido && (
+                                <span>
+                                  Produtos devolvidos ao estoque.
+                                </span>
+                              )}
+                          </div>
+                        )}
 
                         {/* =============================
                             GRID DE INFORMAÇÕES
