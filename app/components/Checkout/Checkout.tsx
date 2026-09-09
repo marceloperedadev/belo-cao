@@ -2,35 +2,45 @@
 
 import {
   ArrowLeft,
-  ArrowRight,
   Check,
-  CreditCard,
+  Loader2,
   MapPin,
   MessageCircle,
-  Minus,
   Package,
-  Phone,
   ShoppingBag,
   Store,
+  Truck,
   User,
-  Wallet,
   X,
 } from 'lucide-react'
 
-import { useEffect, useMemo, useState } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 
 import styles from './Checkout.module.css'
 
-import type {
-  ItemCarrinho,
-} from '../Carrinho/Carrinho'
+/* =========================================================
+   TIPOS
+   ========================================================= */
 
-type CheckoutProps = {
-  aberto: boolean
-  itens: ItemCarrinho[]
-  onFechar: () => void
-  onVoltarCarrinho: () => void
-  onPedidoFinalizado?: () => void
+type ProdutoCarrinho = {
+  id: string
+  name: string
+  description?: string | null
+  price: number
+  category?: string | null
+  image_url?: string | null
+  stock: number
+  active?: boolean
+  slug?: string | null
+}
+
+export type ItemCarrinho = ProdutoCarrinho & {
+  quantidade: number
 }
 
 type Cliente = {
@@ -43,6 +53,7 @@ type Cliente = {
   complemento: string
   bairro: string
   cidade: string
+  uf: string
   referencia: string
 }
 
@@ -55,286 +66,221 @@ type FormaPagamento =
   | 'dinheiro'
   | 'cartao'
 
-const INITIAL_CLIENTE: Cliente = {
-  nome: '',
-  whatsapp: '',
-
-  cep: '',
-  rua: '',
-  numero: '',
-  complemento: '',
-  bairro: '',
-  cidade: '',
-  referencia: '',
+type CheckoutProps = {
+  aberto: boolean
+  itens: ItemCarrinho[]
+  onFechar: () => void
+  onVoltarCarrinho: () => void
+  onPedidoFinalizado?: () => void
 }
 
-function somenteNumeros(
-  valor: string,
-) {
+/* =========================================================
+   RESPOSTA DA API
+   ========================================================= */
+
+type RespostaPedido = {
+  sucesso?: boolean
+  mensagem?: string
+  erro?: string
+
+  pedidoId?: string
+
+  subtotal?: number
+  frete?: number
+  total?: number
+  status?: string
+
+  pedido?: {
+    id: string
+    subtotal: number
+    frete: number
+    total: number
+    status: string
+  }
+}
+
+/* =========================================================
+   CONFIGURAÇÃO
+   ========================================================= */
+
+const WHATSAPP_LOJA = '5511997093459'
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function somenteNumeros(valor: string) {
   return valor.replace(/\D/g, '')
 }
 
-function formatarWhatsApp(
-  valor: string,
-) {
-  const numeros =
-    somenteNumeros(valor).slice(
-      0,
-      11,
-    )
+function formatarCEP(valor: string) {
+  const numeros = somenteNumeros(valor).slice(0, 8)
+
+  if (numeros.length <= 5) {
+    return numeros
+  }
+
+  return `${numeros.slice(0, 5)}-${numeros.slice(5)}`
+}
+
+function formatarWhatsApp(valor: string) {
+  const numeros = somenteNumeros(valor).slice(0, 11)
 
   if (numeros.length <= 2) {
     return numeros
   }
 
   if (numeros.length <= 7) {
-    return `(${numeros.slice(
-      0,
-      2,
-    )}) ${numeros.slice(2)}`
+    return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`
   }
 
-  return `(${numeros.slice(
-    0,
-    2,
-  )}) ${numeros.slice(
+  return `(${numeros.slice(0, 2)}) ${numeros.slice(
     2,
     7,
   )}-${numeros.slice(7)}`
 }
 
-function formatarCEP(
-  valor: string,
-) {
-  const numeros =
-    somenteNumeros(valor).slice(
-      0,
-      8,
-    )
-
-  if (numeros.length <= 5) {
-    return numeros
-  }
-
-  return `${numeros.slice(
-    0,
-    5,
-  )}-${numeros.slice(5)}`
+function formatarMoeda(valor: number) {
+  return valor.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  })
 }
 
-function formatarMoeda(
-  valor: string,
-) {
-  const numeros =
-    somenteNumeros(valor)
+/* =========================================================
+   COMPONENTE
+   ========================================================= */
 
-  if (!numeros) {
-    return ''
-  }
-
-  const numero =
-    Number(numeros) / 100
-
-  if (!Number.isFinite(numero)) {
-    return ''
-  }
-
-  return numero.toLocaleString(
-    'pt-BR',
-    {
-      style: 'currency',
-      currency: 'BRL',
-    },
-  )
-}
-
-function obterValorMoeda(
-  valor: string,
-) {
-  const numeros =
-    somenteNumeros(valor)
-
-  if (!numeros) {
-    return 0
-  }
-
-  const numero =
-    Number(numeros) / 100
-
-  return Number.isFinite(
-    numero,
-  )
-    ? numero
-    : 0
-}
-
-function formatarPreco(
-  valor: number,
-) {
-  return valor.toLocaleString(
-    'pt-BR',
-    {
-      style: 'currency',
-      currency: 'BRL',
-    },
-  )
-}
-
-export default function Checkout({
+export function Checkout({
   aberto,
   itens,
   onFechar,
   onVoltarCarrinho,
   onPedidoFinalizado,
 }: CheckoutProps) {
-  const [etapa, setEtapa] =
-    useState(1)
+  /* =======================================================
+     ESTADOS
+     ======================================================= */
+
+  const [etapa, setEtapa] = useState(1)
 
   const [cliente, setCliente] =
-    useState<Cliente>(
-      INITIAL_CLIENTE,
-    )
+    useState<Cliente>({
+      nome: '',
+      whatsapp: '',
 
-  const [
-    formaEntrega,
-    setFormaEntrega,
-  ] = useState<FormaEntrega>(
-    'entrega',
-  )
+      cep: '',
+      rua: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      uf: '',
+      referencia: '',
+    })
 
-  const [
-    formaPagamento,
-    setFormaPagamento,
-  ] =
-    useState<FormaPagamento>(
-      'pix',
-    )
+  const [formaEntrega, setFormaEntrega] =
+    useState<FormaEntrega>('entrega')
+
+  const [formaPagamento, setFormaPagamento] =
+    useState<FormaPagamento>('pix')
 
   const [trocoPara, setTrocoPara] =
     useState('')
 
-  const [erro, setErro] =
-    useState('')
+  const [buscandoCEP, setBuscandoCEP] =
+    useState(false)
 
   const [enviando, setEnviando] =
     useState(false)
 
-  /* =========================================================
-     CONFIGURAÇÕES
-     ========================================================= */
-
-  const whatsappNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(
-      /\D/g,
-      '',
-    ) ?? ''
-
-  const enderecoLoja =
-    process.env
-      .NEXT_PUBLIC_STORE_ADDRESS?.trim() ??
-    ''
-
-  /* =========================================================
-     VALORES
-     ========================================================= */
-
-  const quantidadeTotal =
-    useMemo(() => {
-      return itens.reduce(
-        (total, item) => {
-          const quantidade =
-            Number(
-              item.quantidade,
-            )
-
-          return (
-            total +
-            (Number.isFinite(
-              quantidade,
-            ) &&
-            quantidade > 0
-              ? Math.floor(
-                  quantidade,
-                )
-              : 1)
-          )
-        },
-        0,
-      )
-    }, [itens])
-
-  const subtotal =
-    useMemo(() => {
-      return itens.reduce(
-        (total, item) => {
-          const preco =
-            Number(item.price)
-
-          const quantidade =
-            Number(
-              item.quantidade,
-            )
-
-          const precoSeguro =
-            Number.isFinite(
-              preco,
-            )
-              ? preco
-              : 0
-
-          const quantidadeSegura =
-            Number.isFinite(
-              quantidade,
-            ) &&
-            quantidade > 0
-              ? Math.floor(
-                  quantidade,
-                )
-              : 1
-
-          return (
-            total +
-            precoSeguro *
-              quantidadeSegura
-          )
-        },
-        0,
-      )
-    }, [itens])
+  const [erro, setErro] =
+    useState('')
 
   /*
-    O frete ainda não é calculado automaticamente.
-    Ele será confirmado no WhatsApp.
-  */
-  const frete = 0
+   * Impede que o mesmo pedido seja enviado
+   * duas vezes por cliques consecutivos.
+   */
+  const pedidoFinalizadoRef =
+    useRef(false)
+
+  /* =======================================================
+     CÁLCULOS
+     ======================================================= */
+
+  const subtotal = useMemo(() => {
+    return itens.reduce(
+      (total, item) => {
+        const quantidade =
+          Number(item.quantidade) || 0
+
+        const preco =
+          Number(item.price) || 0
+
+        return (
+          total +
+          preco * quantidade
+        )
+      },
+      0,
+    )
+  }, [itens])
+
+  /*
+   * Atualmente o frete está zerado.
+   *
+   * Se futuramente você implementar cálculo
+   * de frete, basta alterar este valor.
+   */
+  const frete =
+    formaEntrega === 'entrega'
+      ? 0
+      : 0
 
   const total = subtotal + frete
 
-  /* =========================================================
-     BLOQUEAR SCROLL
-     ========================================================= */
+  /* =======================================================
+     RESET AO ABRIR
+     ======================================================= */
 
   useEffect(() => {
     if (!aberto) {
       return
     }
 
-    const overflowAnterior =
-      document.body.style
-        .overflow
+    setEtapa(1)
 
-    document.body.style.overflow =
-      'hidden'
+    setErro('')
 
-    return () => {
-      document.body.style.overflow =
-        overflowAnterior
-    }
+    setEnviando(false)
+
+    setFormaEntrega('entrega')
+
+    setFormaPagamento('pix')
+
+    setTrocoPara('')
+
+    setCliente({
+      nome: '',
+      whatsapp: '',
+
+      cep: '',
+      rua: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      uf: '',
+      referencia: '',
+    })
+
+    pedidoFinalizadoRef.current =
+      false
   }, [aberto])
 
-  /* =========================================================
-     ESC PARA FECHAR
-     ========================================================= */
+  /* =======================================================
+     ESC
+     ======================================================= */
 
   useEffect(() => {
     if (!aberto) {
@@ -344,11 +290,10 @@ export default function Checkout({
     function handleKeyDown(
       event: KeyboardEvent,
     ) {
-      if (
-        event.key === 'Escape' &&
-        !enviando
-      ) {
-        onFechar()
+      if (event.key === 'Escape') {
+        if (!enviando) {
+          onFechar()
+        }
       }
     }
 
@@ -369,74 +314,140 @@ export default function Checkout({
     onFechar,
   ])
 
-  /* =========================================================
+  /* =======================================================
      ATUALIZAR CLIENTE
-     ========================================================= */
+     ======================================================= */
 
   function atualizarCliente(
     campo: keyof Cliente,
     valor: string,
   ) {
-    setCliente((atual) => ({
-      ...atual,
+    setCliente((anterior) => ({
+      ...anterior,
       [campo]: valor,
     }))
-
-    setErro('')
   }
 
-  /* =========================================================
-     VALIDAÇÃO ETAPA 1
-     ========================================================= */
+  /* =======================================================
+     BUSCAR CEP
+     ======================================================= */
 
-  function validarCliente() {
-    const nome =
-      cliente.nome.trim()
+  async function buscarCEP() {
+    const cep = somenteNumeros(
+      cliente.cep,
+    )
+
+    if (cep.length !== 8) {
+      return
+    }
+
+    try {
+      setBuscandoCEP(true)
+      setErro('')
+
+      const resposta =
+        await fetch(
+          `https://viacep.com.br/ws/${cep}/json/`,
+        )
+
+      if (!resposta.ok) {
+        throw new Error(
+          'Não foi possível consultar o CEP.',
+        )
+      }
+
+      const dados =
+        await resposta.json()
+
+      if (dados.erro) {
+        throw new Error(
+          'CEP não encontrado.',
+        )
+      }
+
+      setCliente((anterior) => ({
+        ...anterior,
+
+        cep: formatarCEP(cep),
+
+        rua:
+          dados.logradouro ||
+          anterior.rua,
+
+        bairro:
+          dados.bairro ||
+          anterior.bairro,
+
+        cidade:
+          dados.localidade ||
+          anterior.cidade,
+
+        uf:
+          dados.uf ||
+          anterior.uf,
+      }))
+    } catch (error) {
+      console.error(
+        'Erro ao buscar CEP:',
+        error,
+      )
+
+      setErro(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível buscar o CEP.',
+      )
+    } finally {
+      setBuscandoCEP(false)
+    }
+  }
+
+  /* =======================================================
+     VALIDAR ETAPA 1
+     ======================================================= */
+
+  function validarEtapa1() {
+    if (!cliente.nome.trim()) {
+      setErro(
+        'Informe seu nome.',
+      )
+
+      return false
+    }
 
     const whatsapp =
       somenteNumeros(
         cliente.whatsapp,
       )
 
-    if (nome.length < 2) {
+    if (whatsapp.length < 10) {
       setErro(
-        'Informe seu nome para continuar.',
+        'Informe um WhatsApp válido.',
       )
 
       return false
     }
 
-    if (
-      whatsapp.length < 10
-    ) {
-      setErro(
-        'Informe um WhatsApp válido para continuar.',
-      )
-
-      return false
-    }
+    setErro('')
 
     return true
   }
 
-  /* =========================================================
-     VALIDAÇÃO ETAPA 2
-     ========================================================= */
+  /* =======================================================
+     VALIDAR ETAPA 2
+     ======================================================= */
 
-  function validarEntrega() {
-    if (
-      formaEntrega ===
-      'retirada'
-    ) {
+  function validarEtapa2() {
+    if (formaEntrega === 'retirada') {
+      setErro('')
+
       return true
     }
 
-    const cep =
-      somenteNumeros(
-        cliente.cep,
-      )
-
-    if (cep.length !== 8) {
+    if (
+      somenteNumeros(cliente.cep)
+        .length !== 8
+    ) {
       setErro(
         'Informe um CEP válido.',
       )
@@ -444,32 +455,23 @@ export default function Checkout({
       return false
     }
 
-    if (
-      cliente.rua.trim()
-        .length < 2
-    ) {
+    if (!cliente.rua.trim()) {
       setErro(
-        'Informe a rua ou avenida.',
+        'Informe sua rua.',
       )
 
       return false
     }
 
-    if (
-      cliente.numero.trim()
-        .length === 0
-    ) {
+    if (!cliente.numero.trim()) {
       setErro(
-        'Informe o número do endereço.',
+        'Informe o número.',
       )
 
       return false
     }
 
-    if (
-      cliente.bairro.trim()
-        .length < 2
-    ) {
+    if (!cliente.bairro.trim()) {
       setErro(
         'Informe o bairro.',
       )
@@ -477,10 +479,7 @@ export default function Checkout({
       return false
     }
 
-    if (
-      cliente.cidade.trim()
-        .length < 2
-    ) {
+    if (!cliente.cidade.trim()) {
       setErro(
         'Informe a cidade.',
       )
@@ -488,363 +487,176 @@ export default function Checkout({
       return false
     }
 
-    return true
-  }
-
-  /* =========================================================
-     VALIDAÇÃO ETAPA 3
-     ========================================================= */
-
-  function validarPagamento() {
-    if (
-      formaPagamento !==
-      'dinheiro'
-    ) {
-      return true
-    }
-
-    const valorTroco =
-      obterValorMoeda(
-        trocoPara,
-      )
-
-    if (
-      !trocoPara ||
-      valorTroco <= 0
-    ) {
-      setErro(
-        'Informe o valor para o qual precisa de troco.',
-      )
-
-      return false
-    }
-
-    if (
-      valorTroco < total
-    ) {
-      setErro(
-        'O valor para troco precisa ser igual ou maior que o total do pedido.',
-      )
-
-      return false
-    }
+    setErro('')
 
     return true
   }
 
-  /* =========================================================
+  /* =======================================================
      AVANÇAR
-     ========================================================= */
+     ======================================================= */
 
-  function continuar() {
+  function avancar() {
     setErro('')
 
     if (etapa === 1) {
-      if (!validarCliente()) {
+      if (!validarEtapa1()) {
         return
       }
 
       setEtapa(2)
+
       return
     }
 
     if (etapa === 2) {
-      if (!validarEntrega()) {
+      if (!validarEtapa2()) {
         return
       }
 
       setEtapa(3)
+
       return
-    }
-
-    if (etapa === 3) {
-      if (!validarPagamento()) {
-        return
-      }
-
-      enviarPedidoWhatsApp()
     }
   }
 
-  /* =========================================================
+  /* =======================================================
      VOLTAR
-     ========================================================= */
+     ======================================================= */
 
   function voltar() {
     setErro('')
 
     if (etapa === 1) {
       onVoltarCarrinho()
+
       return
     }
 
     setEtapa(
-      (atual) =>
-        Math.max(
-          1,
-          atual - 1,
-        ),
+      (anterior) =>
+        anterior - 1,
     )
   }
 
-  /* =========================================================
-     TEXTO DA ENTREGA
-     ========================================================= */
+  /* =======================================================
+     MENSAGEM WHATSAPP
+     ======================================================= */
 
-  function obterTextoEntrega() {
-    if (
-      formaEntrega ===
-      'retirada'
-    ) {
-      return 'Retirada na loja'
-    }
+  function criarMensagemWhatsApp(
+    pedidoId: string,
+    subtotalConfirmado: number,
+    freteConfirmado: number,
+    totalConfirmado: number,
+  ) {
+    const linhasProdutos =
+      itens.map((item) => {
+        const quantidade =
+          Number(item.quantidade) || 0
 
-    const partes = [
-      cliente.rua.trim(),
-      cliente.numero.trim(),
-    ].filter(Boolean)
+        const preco =
+          Number(item.price) || 0
 
-    const linhaPrincipal =
-      partes.join(', ')
+        const valor =
+          preco * quantidade
 
-    const linhaSecundaria = [
-      cliente.bairro.trim(),
-      cliente.cidade.trim(),
-    ].filter(Boolean)
+        return (
+          `• ${item.name} x${quantidade} — ` +
+          `${formatarMoeda(valor)}`
+        )
+      })
 
     const endereco =
-      [
-        linhaPrincipal,
-        linhaSecundaria.join(
-          ' — ',
-        ),
-      ]
-        .filter(Boolean)
-        .join(' · ')
+      formaEntrega === 'entrega'
+        ? [
+            cliente.rua,
+            `Nº ${cliente.numero}`,
+            cliente.complemento
+              ? `Compl.: ${cliente.complemento}`
+              : '',
+            cliente.bairro,
+            `${cliente.cidade} - ${cliente.uf}`,
+            `CEP: ${cliente.cep}`,
+            cliente.referencia
+              ? `Referência: ${cliente.referencia}`
+              : '',
+          ]
+            .filter(Boolean)
+            .join(', ')
+        : 'Retirada na loja'
 
-    return endereco ||
-      'Entrega'
-  }
+    const pagamento =
+      formaPagamento === 'pix'
+        ? 'Pix'
+        : formaPagamento === 'dinheiro'
+          ? `Dinheiro${
+              trocoPara
+                ? ` — troco para ${formatarMoeda(
+                    Number(
+                      trocoPara.replace(
+                        ',',
+                        '.',
+                      ),
+                    ) || 0,
+                  )}`
+                : ''
+            }`
+          : 'Cartão'
 
-  /* =========================================================
-     TEXTO PAGAMENTO
-     ========================================================= */
-
-  function obterTextoPagamento() {
-    if (
-      formaPagamento ===
-      'pix'
-    ) {
-      return 'Pix'
-    }
-
-    if (
-      formaPagamento ===
-      'dinheiro'
-    ) {
-      const valor =
-        obterValorMoeda(
-          trocoPara,
-        )
-
-      if (valor > 0) {
-        return `Dinheiro — troco para ${formatarPreco(
-          valor,
-        )}`
-      }
-
-      return 'Dinheiro'
-    }
-
-    return 'Cartão'
-  }
-
-  /* =========================================================
-     MONTAR PEDIDO
-     ========================================================= */
-
-  function montarMensagemWhatsApp() {
-    const linhas: string[] =
-      []
-
-    linhas.push(
-      '*NOVO PEDIDO — BELO CÃO*',
-    )
-
-    linhas.push('')
-
-    linhas.push(
-      '*DADOS DO CLIENTE*',
-    )
-
-    linhas.push(
-      `Nome: ${cliente.nome.trim()}`,
-    )
-
-    linhas.push(
-      `WhatsApp: ${cliente.whatsapp.trim()}`,
-    )
-
-    linhas.push('')
-
-    linhas.push(
-      '*ITENS DO PEDIDO*',
-    )
-
-    itens.forEach((item) => {
-      const preco =
-        Number(item.price)
-
-      const precoSeguro =
-        Number.isFinite(
-          preco,
-        )
-          ? preco
-          : 0
-
-      const quantidade =
-        Number(
-          item.quantidade,
-        )
-
-      const quantidadeSegura =
-        Number.isFinite(
-          quantidade,
-        ) &&
-        quantidade > 0
-          ? Math.floor(
-              quantidade,
-            )
-          : 1
-
-      const subtotalItem =
-        precoSeguro *
-        quantidadeSegura
-
-      linhas.push(
-        `${quantidadeSegura}x ${item.name}`,
-      )
-
-      linhas.push(
-        `   ${formatarPreco(
-          precoSeguro,
-        )} un. — ${formatarPreco(
-          subtotalItem,
-        )}`,
-      )
-    })
-
-    linhas.push('')
-
-    linhas.push(
-      `*Subtotal: ${formatarPreco(
-        subtotal,
+    return [
+      `🐶 *BELO CÃO — NOVO PEDIDO*`,
+      ``,
+      `📋 *Pedido:* ${pedidoId}`,
+      ``,
+      `👤 *Cliente:* ${cliente.nome}`,
+      `📱 *WhatsApp:* ${cliente.whatsapp}`,
+      ``,
+      `🛍️ *ITENS DO PEDIDO*`,
+      ...linhasProdutos,
+      ``,
+      `🚚 *ENTREGA:* ${formaEntrega === 'entrega' ? 'Entrega' : 'Retirada na loja'}`,
+      `📍 *Endereço:* ${endereco}`,
+      ``,
+      `💳 *Pagamento:* ${pagamento}`,
+      ``,
+      `Subtotal: ${formatarMoeda(
+        subtotalConfirmado,
+      )}`,
+      `Frete: ${formatarMoeda(
+        freteConfirmado,
+      )}`,
+      `*TOTAL: ${formatarMoeda(
+        totalConfirmado,
       )}*`,
-    )
-
-    linhas.push('')
-
-    linhas.push(
-      '*FORMA DE RECEBIMENTO*',
-    )
-
-    if (
-      formaEntrega ===
-      'entrega'
-    ) {
-      linhas.push(
-        'Entrega',
-      )
-
-      linhas.push(
-        `CEP: ${cliente.cep.trim()}`,
-      )
-
-      linhas.push(
-        `Endereço: ${cliente.rua.trim()}, ${cliente.numero.trim()}`,
-      )
-
-      if (
-        cliente.complemento.trim()
-      ) {
-        linhas.push(
-          `Complemento: ${cliente.complemento.trim()}`,
-        )
-      }
-
-      linhas.push(
-        `Bairro: ${cliente.bairro.trim()}`,
-      )
-
-      linhas.push(
-        `Cidade: ${cliente.cidade.trim()}`,
-      )
-
-      if (
-        cliente.referencia.trim()
-      ) {
-        linhas.push(
-          `Referência: ${cliente.referencia.trim()}`,
-        )
-      }
-
-      linhas.push(
-        'Frete: a confirmar',
-      )
-    } else {
-      linhas.push(
-        'Retirada na loja',
-      )
-
-      if (enderecoLoja) {
-        linhas.push(
-          `Local: ${enderecoLoja}`,
-        )
-      }
-    }
-
-    linhas.push('')
-
-    linhas.push(
-      '*FORMA DE PAGAMENTO*',
-    )
-
-    linhas.push(
-      obterTextoPagamento(),
-    )
-
-    linhas.push('')
-
-    linhas.push(
-      `*TOTAL DOS PRODUTOS: ${formatarPreco(
-        total,
-      )}*`,
-    )
-
-    if (
-      formaEntrega ===
-      'entrega'
-    ) {
-      linhas.push(
-        'Frete será confirmado no atendimento.',
-      )
-    }
-
-    linhas.push('')
-
-    linhas.push(
-      'Pedido enviado pelo site Belo Cão.',
-    )
-
-    return linhas.join('\n')
+      ``,
+      `Obrigado por comprar na Belo Cão! 🐾`,
+    ].join('\n')
   }
 
-  /* =========================================================
-     ENVIAR WHATSAPP
-     ========================================================= */
+  /* =======================================================
+     ENVIAR PEDIDO
+     ======================================================= */
 
-  function enviarPedidoWhatsApp() {
-    if (itens.length === 0) {
+  async function enviarPedido() {
+    /*
+     * Segurança contra duplo clique.
+     */
+    if (enviando) {
+      return
+    }
+
+    /*
+     * Segurança adicional:
+     * se o pedido já foi confirmado,
+     * não envia novamente.
+     */
+    if (
+      pedidoFinalizadoRef.current
+    ) {
+      return
+    }
+
+    if (!itens.length) {
       setErro(
         'Seu carrinho está vazio.',
       )
@@ -852,25 +664,231 @@ export default function Checkout({
       return
     }
 
-    if (!whatsappNumber) {
-      setErro(
-        'O WhatsApp da loja ainda não foi configurado.',
-      )
+    if (!validarEtapa1()) {
+      setEtapa(1)
 
       return
     }
 
-    setEnviando(true)
-    setErro('')
+    if (!validarEtapa2()) {
+      setEtapa(2)
+
+      return
+    }
+
+    const whatsapp =
+      somenteNumeros(
+        cliente.whatsapp,
+      )
+
+    if (whatsapp.length < 10) {
+      setErro(
+        'Informe um WhatsApp válido.',
+      )
+
+      setEtapa(1)
+
+      return
+    }
 
     try {
+      setEnviando(true)
+      setErro('')
+
+      /* =================================================
+         PREPARAR ITENS
+         ================================================= */
+
+      const itensPedido =
+        itens.map((item) => ({
+          productId: item.id,
+          quantidade:
+            Number(item.quantidade) || 0,
+        }))
+
+      /* =================================================
+         DADOS DO PEDIDO
+         ================================================= */
+
+      const payload = {
+        cliente: {
+          nome:
+            cliente.nome.trim(),
+
+          whatsapp,
+
+          cep:
+            cliente.cep.trim(),
+
+          rua:
+            cliente.rua.trim(),
+
+          numero:
+            cliente.numero.trim(),
+
+          complemento:
+            cliente.complemento.trim(),
+
+          bairro:
+            cliente.bairro.trim(),
+
+          cidade:
+            cliente.cidade.trim(),
+
+          uf:
+            cliente.uf.trim(),
+
+          referencia:
+            cliente.referencia.trim(),
+        },
+
+        formaEntrega,
+
+        formaPagamento,
+
+        trocoPara:
+          formaPagamento ===
+          'dinheiro'
+            ? Number(
+                trocoPara
+                  .replace(',', '.'),
+              ) || null
+            : null,
+
+        itens: itensPedido,
+
+        subtotal,
+
+        frete,
+
+        total,
+      }
+
+      /* =================================================
+         CRIAR PEDIDO NO BANCO
+         ================================================= */
+
+      const resposta =
+        await fetch(
+          '/api/pedidos',
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+
+            body: JSON.stringify(
+              payload,
+            ),
+          },
+        )
+
+      let dados: RespostaPedido =
+        {}
+
+      try {
+        dados =
+          await resposta.json()
+      } catch {
+        dados = {}
+      }
+
+      /* =================================================
+         ERRO DE ESTOQUE
+         ================================================= */
+
+      if (
+        resposta.status === 409
+      ) {
+        setErro(
+          dados.erro ||
+            dados.mensagem ||
+            'Um ou mais produtos ficaram sem estoque. Atualize o carrinho e tente novamente.',
+        )
+
+        setEnviando(false)
+
+        return
+      }
+
+      /* =================================================
+         OUTROS ERROS DA API
+         ================================================= */
+
+      if (
+        !resposta.ok ||
+        !dados.sucesso
+      ) {
+        throw new Error(
+          dados.erro ||
+            dados.mensagem ||
+            'Não foi possível finalizar o pedido.',
+        )
+      }
+
+      /* =================================================
+         ID DO PEDIDO
+         ================================================= */
+
+      const pedidoId =
+        dados.pedidoId ||
+        dados.pedido?.id
+
+      if (!pedidoId) {
+        throw new Error(
+          'O pedido foi criado, mas a API não retornou o número do pedido.',
+        )
+      }
+
+      /* =================================================
+         VALORES CONFIRMADOS PELA API
+         ================================================= */
+
+      const subtotalConfirmado =
+        Number(
+          dados.pedido?.subtotal ??
+            dados.subtotal ??
+            subtotal,
+        )
+
+      const freteConfirmado =
+        Number(
+          dados.pedido?.frete ??
+            dados.frete ??
+            0,
+        )
+
+      const totalConfirmado =
+        Number(
+          dados.pedido?.total ??
+            dados.total ??
+            subtotalConfirmado +
+              freteConfirmado,
+        )
+
+      /* =================================================
+         MONTAR WHATSAPP
+         ================================================= */
+
       const mensagem =
-        montarMensagemWhatsApp()
+        criarMensagemWhatsApp(
+          pedidoId,
+          subtotalConfirmado,
+          freteConfirmado,
+          totalConfirmado,
+        )
 
       const url =
-        `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+        `https://wa.me/${WHATSAPP_LOJA}` +
+        `?text=${encodeURIComponent(
           mensagem,
         )}`
+
+      /* =================================================
+         ABRIR WHATSAPP
+         ================================================= */
 
       const janela =
         window.open(
@@ -879,281 +897,316 @@ export default function Checkout({
           'noopener,noreferrer',
         )
 
+      /*
+       * IMPORTANTE:
+       *
+       * Neste ponto o pedido JÁ foi:
+       *
+       * 1. criado no banco;
+       * 2. registrado em order_items;
+       * 3. retirado do estoque;
+       *
+       * Portanto, o pedido está FINALIZADO,
+       * independentemente de o WhatsApp abrir
+       * ou ser bloqueado pelo navegador.
+       */
+
+      pedidoFinalizadoRef.current =
+        true
+
+      /*
+       * Isso chama o pedidoFinalizado()
+       * do LojaPage.
+       *
+       * O LojaPage então:
+       *
+       * - limpa setCarrinho([]);
+       * - remove belo-cao-carrinho do localStorage;
+       * - fecha o Checkout;
+       * - fecha o Carrinho;
+       * - atualiza os produtos/estoque.
+       */
+      onPedidoFinalizado?.()
+
+      /*
+       * Se o navegador bloqueou o popup,
+       * não devemos considerar isso como
+       * erro do pedido.
+       *
+       * O pedido já foi salvo.
+       */
       if (!janela) {
-        setErro(
-          'O navegador bloqueou a abertura do WhatsApp. Permita pop-ups e tente novamente.',
+        console.warn(
+          'O navegador bloqueou a abertura do WhatsApp.',
         )
-
-        setEnviando(false)
-
-        return
       }
 
-      if (
-        onPedidoFinalizado
-      ) {
-        onPedidoFinalizado()
-      }
+      /*
+       * Não voltar a setEnviando(false)
+       * aqui porque o componente pode ser
+       * desmontado imediatamente pelo
+       * onPedidoFinalizado().
+       */
+      return
     } catch (error) {
       console.error(
-        'Erro ao enviar pedido:',
+        'Erro ao finalizar pedido:',
         error,
       )
 
-      setErro(
-        'Não foi possível abrir o WhatsApp. Tente novamente.',
-      )
+      /*
+       * Só mostramos erro se o pedido
+       * realmente NÃO tiver sido finalizado.
+       */
+      if (
+        !pedidoFinalizadoRef.current
+      ) {
+        setErro(
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível finalizar o pedido. Tente novamente.',
+        )
 
-      setEnviando(false)
+        setEnviando(false)
+      }
     }
   }
 
-  /* =========================================================
-     FECHADO
-     ========================================================= */
+  /* =======================================================
+     NÃO RENDERIZAR
+     ======================================================= */
 
   if (!aberto) {
     return null
   }
 
-  /* =========================================================
+  /* =======================================================
      RENDER
-     ========================================================= */
+     ======================================================= */
 
   return (
     <div
-      className={
-        styles.overlay
-      }
-      onClick={() => {
-        if (!enviando) {
-          onFechar()
-        }
-      }}
+      className={styles.overlay}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Finalizar pedido"
     >
-      <section
-        className={
-          styles.checkout
-        }
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="checkout-title"
-        onClick={(event) =>
-          event.stopPropagation()
-        }
+      <div
+        className={styles.container}
       >
-        {/* ===================================================
+        {/* =================================================
             HEADER
-            =================================================== */}
+            ================================================= */}
 
         <header
-          className={
-            styles.header
-          }
+          className={styles.header}
         >
-          <div
+          <button
+            type="button"
             className={
-              styles.headerTop
+              styles.closeButton
             }
+            onClick={() => {
+              if (!enviando) {
+                onFechar()
+              }
+            }}
+            disabled={enviando}
+            aria-label="Fechar"
           >
-            <button
-              type="button"
-              className={
-                styles.backButton
-              }
-              onClick={voltar}
-              disabled={enviando}
-              aria-label={
-                etapa === 1
-                  ? 'Voltar para o carrinho'
-                  : 'Voltar etapa'
-              }
-            >
-              <ArrowLeft
-                size={17}
-                strokeWidth={2}
-              />
-
-              <span>
-                {etapa === 1
-                  ? 'Carrinho'
-                  : 'Voltar'}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              className={
-                styles.closeButton
-              }
-              onClick={onFechar}
-              disabled={enviando}
-              aria-label="Fechar checkout"
-            >
-              <X
-                size={19}
-                strokeWidth={1.9}
-              />
-            </button>
-          </div>
+            <X size={22} />
+          </button>
 
           <div
-            className={
-              styles.headerContent
-            }
+            className={styles.headerInfo}
           >
             <span
-              className={
-                styles.eyebrow
-              }
+              className={styles.headerEyebrow}
             >
-              FINALIZAR PEDIDO
+              BELO CÃO
             </span>
 
-            <h1 id="checkout-title">
-              {etapa === 1 &&
-                'Seus dados.'}
-
-              {etapa === 2 &&
-                'Como você recebe?'}
-
-              {etapa === 3 &&
-                'Como você paga?'}
-            </h1>
-
-            <p>
-              {etapa === 1 &&
-                'Precisamos de alguns dados para preparar seu pedido.'}
-
-              {etapa === 2 &&
-                'Escolha entre receber seu pedido ou retirar na loja.'}
-
-              {etapa === 3 &&
-                'Escolha a forma de pagamento que prefere.'}
-            </p>
-          </div>
-
-          {/* ================================================
-              PROGRESSO
-              ================================================ */}
-
-          <div
-            className={
-              styles.progress
-            }
-          >
-            {[1, 2, 3].map(
-              (numero) => {
-                const concluida =
-                  numero <
-                  etapa
-
-                const atual =
-                  numero ===
-                  etapa
-
-                return (
-                  <div
-                    key={numero}
-                    className={`${styles.progressItem} ${
-                      concluida
-                        ? styles.progressDone
-                        : ''
-                    } ${
-                      atual
-                        ? styles.progressActive
-                        : ''
-                    }`}
-                  >
-                    <div
-                      className={
-                        styles.progressCircle
-                      }
-                    >
-                      {concluida ? (
-                        <Check
-                          size={13}
-                          strokeWidth={
-                            2.5
-                          }
-                        />
-                      ) : (
-                        numero
-                      )}
-                    </div>
-
-                    <span>
-                      {numero ===
-                        1 &&
-                        'Dados'}
-
-                      {numero ===
-                        2 &&
-                        'Entrega'}
-
-                      {numero ===
-                        3 &&
-                        'Pagamento'}
-                    </span>
-                  </div>
-                )
-              },
-            )}
-
-            <div
-              className={
-                styles.progressLine
-              }
+            <h1
+              className={styles.title}
             >
-              <span
-                style={{
-                  width: `${
-                    ((etapa - 1) /
-                      2) *
-                    100
-                  }%`,
-                }}
-              />
-            </div>
+              Finalizar pedido
+            </h1>
           </div>
         </header>
 
-        {/* ===================================================
-            CONTEÚDO
-            =================================================== */}
+        {/* =================================================
+            PROGRESSO
+            ================================================= */}
 
         <div
           className={
-            styles.body
+            styles.progressWrapper
           }
         >
-          {/* =================================================
+          <div
+            className={styles.progress}
+          >
+            <div
+              className={`${styles.progressStep} ${
+                etapa >= 1
+                  ? styles.active
+                  : ''
+              } ${
+                etapa > 1
+                  ? styles.completed
+                  : ''
+              }`}
+            >
+              <span
+                className={
+                  styles.progressNumber
+                }
+              >
+                {etapa > 1 ? (
+                  <Check size={14} />
+                ) : (
+                  '1'
+                )}
+              </span>
+
+              <span
+                className={
+                  styles.progressLabel
+                }
+              >
+                Seus dados
+              </span>
+            </div>
+
+            <div
+              className={`${styles.progressLine} ${
+                etapa > 1
+                  ? styles.completedLine
+                  : ''
+              }`}
+            />
+
+            <div
+              className={`${styles.progressStep} ${
+                etapa >= 2
+                  ? styles.active
+                  : ''
+              } ${
+                etapa > 2
+                  ? styles.completed
+                  : ''
+              }`}
+            >
+              <span
+                className={
+                  styles.progressNumber
+                }
+              >
+                {etapa > 2 ? (
+                  <Check size={14} />
+                ) : (
+                  '2'
+                )}
+              </span>
+
+              <span
+                className={
+                  styles.progressLabel
+                }
+              >
+                Entrega
+              </span>
+            </div>
+
+            <div
+              className={`${styles.progressLine} ${
+                etapa > 2
+                  ? styles.completedLine
+                  : ''
+              }`}
+            />
+
+            <div
+              className={`${styles.progressStep} ${
+                etapa >= 3
+                  ? styles.active
+                  : ''
+              }`}
+            >
+              <span
+                className={
+                  styles.progressNumber
+                }
+              >
+                3
+              </span>
+
+              <span
+                className={
+                  styles.progressLabel
+                }
+              >
+                Pagamento
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* =================================================
+            CONTEÚDO
+            ================================================= */}
+
+        <main
+          className={styles.content}
+        >
+          {/* ===============================================
               ETAPA 1
-              ================================================= */}
+              =============================================== */}
 
           {etapa === 1 && (
-            <div
+            <section
               className={
                 styles.step
               }
             >
               <div
                 className={
-                  styles.sectionHeader
+                  styles.stepHeader
                 }
               >
-                <span>
-                  01
-                </span>
+                <div
+                  className={
+                    styles.stepIcon
+                  }
+                >
+                  <User size={20} />
+                </div>
 
                 <div>
-                  <strong>
-                    Seus dados
-                  </strong>
+                  <span
+                    className={
+                      styles.stepCounter
+                    }
+                  >
+                    PASSO 1 DE 3
+                  </span>
 
-                  <p>
-                    Usaremos essas informações
-                    para confirmar seu pedido.
+                  <h2
+                    className={
+                      styles.stepTitle
+                    }
+                  >
+                    Seus dados
+                  </h2>
+
+                  <p
+                    className={
+                      styles.stepDescription
+                    }
+                  >
+                    Informe seus dados
+                    para identificarmos
+                    seu pedido.
                   </p>
                 </div>
               </div>
@@ -1163,73 +1216,60 @@ export default function Checkout({
                   styles.form
                 }
               >
-                <label
+                <div
                   className={
                     styles.field
                   }
                 >
-                  <span>
-                    Nome completo
-                  </span>
-
-                  <div
-                    className={
-                      styles.inputWrap
-                    }
+                  <label
+                    htmlFor="nome"
                   >
-                    <User
-                      size={17}
-                      strokeWidth={
-                        1.8
-                      }
-                    />
+                    Nome
+                  </label>
 
-                    <input
-                      type="text"
-                      value={
-                        cliente.nome
-                      }
-                      onChange={(
-                        event,
-                      ) =>
-                        atualizarCliente(
-                          'nome',
-                          event
-                            .target
-                            .value,
-                        )
-                      }
-                      placeholder="Como podemos chamar você?"
-                      autoComplete="name"
-                      autoFocus
-                    />
-                  </div>
-                </label>
+                  <input
+                    id="nome"
+                    type="text"
+                    value={
+                      cliente.nome
+                    }
+                    onChange={(
+                      event,
+                    ) =>
+                      atualizarCliente(
+                        'nome',
+                        event.target
+                          .value,
+                      )
+                    }
+                    placeholder="Como podemos te chamar?"
+                    autoComplete="name"
+                  />
+                </div>
 
-                <label
+                <div
                   className={
                     styles.field
                   }
                 >
-                  <span>
+                  <label
+                    htmlFor="whatsapp"
+                  >
                     WhatsApp
-                  </span>
+                  </label>
 
                   <div
                     className={
-                      styles.inputWrap
+                      styles.inputWithIcon
                     }
                   >
-                    <Phone
-                      size={17}
-                      strokeWidth={
-                        1.8
-                      }
+                    <MessageCircle
+                      size={18}
                     />
 
                     <input
+                      id="whatsapp"
                       type="tel"
-                      inputMode="tel"
                       value={
                         cliente.whatsapp
                       }
@@ -1249,62 +1289,66 @@ export default function Checkout({
                       autoComplete="tel"
                     />
                   </div>
-                </label>
-              </div>
 
-              <div
-                className={
-                  styles.infoBox
-                }
-              >
-                <MessageCircle
-                  size={17}
-                  strokeWidth={
-                    1.7
-                  }
-                />
-
-                <div>
-                  <strong>
-                    Seu pedido será confirmado pelo WhatsApp
-                  </strong>
-
-                  <span>
-                    Depois de enviar, a loja
-                    poderá confirmar disponibilidade,
-                    entrega e demais detalhes.
-                  </span>
+                  <small>
+                    Usaremos este número
+                    para confirmar seu
+                    pedido.
+                  </small>
                 </div>
               </div>
-            </div>
+            </section>
           )}
 
-          {/* =================================================
+          {/* ===============================================
               ETAPA 2
-              ================================================= */}
+              =============================================== */}
 
           {etapa === 2 && (
-            <div
+            <section
               className={
                 styles.step
               }
             >
               <div
                 className={
-                  styles.sectionHeader
+                  styles.stepHeader
                 }
               >
-                <span>
-                  02
-                </span>
+                <div
+                  className={
+                    styles.stepIcon
+                  }
+                >
+                  <Truck size={20} />
+                </div>
 
                 <div>
-                  <strong>
-                    Como você quer receber?
-                  </strong>
+                  <span
+                    className={
+                      styles.stepCounter
+                    }
+                  >
+                    PASSO 2 DE 3
+                  </span>
 
-                  <p>
-                    Escolha entre entrega ou retirada na loja.
+                  <h2
+                    className={
+                      styles.stepTitle
+                    }
+                  >
+                    Como você quer
+                    receber?
+                  </h2>
+
+                  <p
+                    className={
+                      styles.stepDescription
+                    }
+                  >
+                    Escolha entre receber
+                    seu pedido ou retirar
+                    na loja.
                   </p>
                 </div>
               </div>
@@ -1316,35 +1360,31 @@ export default function Checkout({
               >
                 <button
                   type="button"
-                  className={`${styles.optionCard} ${
+                  className={`${styles.deliveryOption} ${
                     formaEntrega ===
                     'entrega'
-                      ? styles.optionCardActive
+                      ? styles.selected
                       : ''
                   }`}
-                  onClick={() => {
+                  onClick={() =>
                     setFormaEntrega(
                       'entrega',
                     )
-                    setErro('')
-                  }}
+                  }
                 >
                   <div
                     className={
-                      styles.optionIcon
+                      styles.deliveryIcon
                     }
                   >
-                    <Package
-                      size={21}
-                      strokeWidth={
-                        1.7
-                      }
+                    <Truck
+                      size={22}
                     />
                   </div>
 
                   <div
                     className={
-                      styles.optionContent
+                      styles.deliveryText
                     }
                   >
                     <strong>
@@ -1353,7 +1393,8 @@ export default function Checkout({
 
                     <span>
                       Receba seu pedido
-                      no endereço informado.
+                      no endereço
+                      informado.
                     </span>
                   </div>
 
@@ -1364,42 +1405,38 @@ export default function Checkout({
                   >
                     {formaEntrega ===
                       'entrega' && (
-                      <i />
+                      <span />
                     )}
                   </span>
                 </button>
 
                 <button
                   type="button"
-                  className={`${styles.optionCard} ${
+                  className={`${styles.deliveryOption} ${
                     formaEntrega ===
                     'retirada'
-                      ? styles.optionCardActive
+                      ? styles.selected
                       : ''
                   }`}
-                  onClick={() => {
+                  onClick={() =>
                     setFormaEntrega(
                       'retirada',
                     )
-                    setErro('')
-                  }}
+                  }
                 >
                   <div
                     className={
-                      styles.optionIcon
+                      styles.deliveryIcon
                     }
                   >
                     <Store
-                      size={21}
-                      strokeWidth={
-                        1.7
-                      }
+                      size={22}
                     />
                   </div>
 
                   <div
                     className={
-                      styles.optionContent
+                      styles.deliveryText
                     }
                   >
                     <strong>
@@ -1408,7 +1445,8 @@ export default function Checkout({
 
                     <span>
                       Retire seu pedido
-                      diretamente na loja.
+                      diretamente na
+                      loja.
                     </span>
                   </div>
 
@@ -1419,7 +1457,7 @@ export default function Checkout({
                   >
                     {formaEntrega ===
                       'retirada' && (
-                      <i />
+                      <span />
                     )}
                   </span>
                 </button>
@@ -1438,21 +1476,13 @@ export default function Checkout({
                     }
                   >
                     <MapPin
-                      size={17}
-                      strokeWidth={
-                        1.8
-                      }
+                      size={18}
                     />
 
-                    <div>
-                      <strong>
-                        Endereço de entrega
-                      </strong>
-
-                      <span>
-                        Informe onde devemos entregar seu pedido.
-                      </span>
-                    </div>
+                    <span>
+                      Endereço de
+                      entrega
+                    </span>
                   </div>
 
                   <div
@@ -1462,275 +1492,304 @@ export default function Checkout({
                   >
                     <div
                       className={
-                        styles.formRow
+                        styles.field
                       }
                     >
                       <label
-                        className={`${styles.field} ${styles.fieldSmall}`}
+                        htmlFor="cep"
                       >
-                        <span>
-                          CEP
-                        </span>
-
-                        <div
-                          className={
-                            styles.inputWrap
-                          }
-                        >
-                          <MapPin
-                            size={16}
-                            strokeWidth={
-                              1.8
-                            }
-                          />
-
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={
-                              cliente.cep
-                            }
-                            onChange={(
-                              event,
-                            ) =>
-                              atualizarCliente(
-                                'cep',
-                                formatarCEP(
-                                  event
-                                    .target
-                                    .value,
-                                ),
-                              )
-                            }
-                            placeholder="00000-000"
-                            autoComplete="postal-code"
-                          />
-                        </div>
+                        CEP
                       </label>
 
-                      <label
+                      <div
                         className={
-                          styles.field
+                          styles.cepRow
                         }
                       >
-                        <span>
-                          Rua / Avenida
-                        </span>
-
-                        <div
-                          className={
-                            styles.inputWrap
+                        <input
+                          id="cep"
+                          type="text"
+                          inputMode="numeric"
+                          value={
+                            cliente.cep
                           }
-                        >
-                          <MapPin
-                            size={16}
-                            strokeWidth={
-                              1.8
-                            }
-                          />
-
-                          <input
-                            type="text"
-                            value={
-                              cliente.rua
-                            }
-                            onChange={(
-                              event,
-                            ) =>
-                              atualizarCliente(
-                                'rua',
+                          onChange={(
+                            event,
+                          ) =>
+                            atualizarCliente(
+                              'cep',
+                              formatarCEP(
                                 event
                                   .target
                                   .value,
-                              )
-                            }
-                            placeholder="Nome da rua"
-                            autoComplete="street-address"
-                          />
-                        </div>
-                      </label>
+                              ),
+                            )
+                          }
+                          onBlur={
+                            buscarCEP
+                          }
+                          placeholder="00000-000"
+                          autoComplete="postal-code"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={
+                            buscarCEP
+                          }
+                          disabled={
+                            buscandoCEP
+                          }
+                        >
+                          {buscandoCEP ? (
+                            <Loader2
+                              size={16}
+                              className={
+                                styles.spin
+                              }
+                            />
+                          ) : (
+                            'Buscar'
+                          )}
+                        </button>
+                      </div>
                     </div>
 
                     <div
-                      className={
-                        styles.formRow
-                      }
-                    >
-                      <label
-                        className={`${styles.field} ${styles.fieldSmall}`}
-                      >
-                        <span>
-                          Número
-                        </span>
-
-                        <div
-                          className={
-                            styles.inputWrap
-                          }
-                        >
-                          <span
-                            className={
-                              styles.inputMiniIcon
-                            }
-                          >
-                            #
-                          </span>
-
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={
-                              cliente.numero
-                            }
-                            onChange={(
-                              event,
-                            ) =>
-                              atualizarCliente(
-                                'numero',
-                                event
-                                  .target
-                                  .value,
-                              )
-                            }
-                            placeholder="123"
-                            autoComplete="address-line2"
-                          />
-                        </div>
-                      </label>
-
-                      <label
-                        className={
-                          styles.field
-                        }
-                      >
-                        <span>
-                          Complemento
-                          <em>
-                            opcional
-                          </em>
-                        </span>
-
-                        <div
-                          className={
-                            styles.inputWrap
-                          }
-                        >
-                          <input
-                            type="text"
-                            value={
-                              cliente.complemento
-                            }
-                            onChange={(
-                              event,
-                            ) =>
-                              atualizarCliente(
-                                'complemento',
-                                event
-                                  .target
-                                  .value,
-                              )
-                            }
-                            placeholder="Apto, casa, bloco..."
-                            autoComplete="address-line2"
-                          />
-                        </div>
-                      </label>
-                    </div>
-
-                    <div
-                      className={
-                        styles.formRow
-                      }
-                    >
-                      <label
-                        className={
-                          styles.field
-                        }
-                      >
-                        <span>
-                          Bairro
-                        </span>
-
-                        <div
-                          className={
-                            styles.inputWrap
-                          }
-                        >
-                          <input
-                            type="text"
-                            value={
-                              cliente.bairro
-                            }
-                            onChange={(
-                              event,
-                            ) =>
-                              atualizarCliente(
-                                'bairro',
-                                event
-                                  .target
-                                  .value,
-                              )
-                            }
-                            placeholder="Seu bairro"
-                            autoComplete="address-level3"
-                          />
-                        </div>
-                      </label>
-
-                      <label
-                        className={
-                          styles.field
-                        }
-                      >
-                        <span>
-                          Cidade
-                        </span>
-
-                        <div
-                          className={
-                            styles.inputWrap
-                          }
-                        >
-                          <input
-                            type="text"
-                            value={
-                              cliente.cidade
-                            }
-                            onChange={(
-                              event,
-                            ) =>
-                              atualizarCliente(
-                                'cidade',
-                                event
-                                  .target
-                                  .value,
-                              )
-                            }
-                            placeholder="Sua cidade"
-                            autoComplete="address-level2"
-                          />
-                        </div>
-                      </label>
-                    </div>
-
-                    <label
                       className={
                         styles.field
                       }
                     >
-                      <span>
-                        Referência
-                        <em>
-                          opcional
-                        </em>
-                      </span>
+                      <label
+                        htmlFor="rua"
+                      >
+                        Rua
+                      </label>
+
+                      <input
+                        id="rua"
+                        type="text"
+                        value={
+                          cliente.rua
+                        }
+                        onChange={(
+                          event,
+                        ) =>
+                          atualizarCliente(
+                            'rua',
+                            event
+                              .target
+                              .value,
+                          )
+                        }
+                        placeholder="Nome da rua"
+                        autoComplete="street-address"
+                      />
+                    </div>
+
+                    <div
+                      className={
+                        styles.formRow
+                      }
+                    >
+                      <div
+                        className={
+                          styles.field
+                        }
+                      >
+                        <label
+                          htmlFor="numero"
+                        >
+                          Número
+                        </label>
+
+                        <input
+                          id="numero"
+                          type="text"
+                          value={
+                            cliente.numero
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            atualizarCliente(
+                              'numero',
+                              event
+                                .target
+                                .value,
+                            )
+                          }
+                          placeholder="123"
+                          autoComplete="address-line2"
+                        />
+                      </div>
 
                       <div
                         className={
-                          styles.inputWrap
+                          styles.field
                         }
                       >
+                        <label
+                          htmlFor="complemento"
+                        >
+                          Complemento
+                          <span>
+                            {' '}
+                            (opcional)
+                          </span>
+                        </label>
+
                         <input
+                          id="complemento"
+                          type="text"
+                          value={
+                            cliente.complemento
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            atualizarCliente(
+                              'complemento',
+                              event
+                                .target
+                                .value,
+                            )
+                          }
+                          placeholder="Apto, casa..."
+                        />
+                      </div>
+                    </div>
+
+                    <div
+                      className={
+                        styles.formRow
+                      }
+                    >
+                      <div
+                        className={
+                          styles.field
+                        }
+                      >
+                        <label
+                          htmlFor="bairro"
+                        >
+                          Bairro
+                        </label>
+
+                        <input
+                          id="bairro"
+                          type="text"
+                          value={
+                            cliente.bairro
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            atualizarCliente(
+                              'bairro',
+                              event
+                                .target
+                                .value,
+                            )
+                          }
+                          placeholder="Seu bairro"
+                          autoComplete="address-level3"
+                        />
+                      </div>
+
+                      <div
+                        className={
+                          styles.field
+                        }
+                      >
+                        <label
+                          htmlFor="cidade"
+                        >
+                          Cidade
+                        </label>
+
+                        <input
+                          id="cidade"
+                          type="text"
+                          value={
+                            cliente.cidade
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            atualizarCliente(
+                              'cidade',
+                              event
+                                .target
+                                .value,
+                            )
+                          }
+                          placeholder="Sua cidade"
+                          autoComplete="address-level2"
+                        />
+                      </div>
+                    </div>
+
+                    <div
+                      className={
+                        styles.formRow
+                      }
+                    >
+                      <div
+                        className={
+                          styles.field
+                        }
+                      >
+                        <label
+                          htmlFor="uf"
+                        >
+                          Estado
+                        </label>
+
+                        <input
+                          id="uf"
+                          type="text"
+                          value={
+                            cliente.uf
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            atualizarCliente(
+                              'uf',
+                              event
+                                .target
+                                .value
+                                .toUpperCase()
+                                .slice(
+                                  0,
+                                  2,
+                                ),
+                            )
+                          }
+                          placeholder="SP"
+                          maxLength={2}
+                          autoComplete="address-level1"
+                        />
+                      </div>
+
+                      <div
+                        className={
+                          styles.field
+                        }
+                      >
+                        <label
+                          htmlFor="referencia"
+                        >
+                          Referência
+                          <span>
+                            {' '}
+                            (opcional)
+                          </span>
+                        </label>
+
+                        <input
+                          id="referencia"
                           type="text"
                           value={
                             cliente.referencia
@@ -1745,10 +1804,10 @@ export default function Checkout({
                                 .value,
                             )
                           }
-                          placeholder="Ex.: perto da praça..."
+                          placeholder="Perto de..."
                         />
                       </div>
-                    </label>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1760,65 +1819,76 @@ export default function Checkout({
                     styles.pickupBox
                   }
                 >
-                  <div
-                    className={
-                      styles.pickupIcon
-                    }
-                  >
-                    <Store
-                      size={22}
-                      strokeWidth={
-                        1.7
-                      }
-                    />
-                  </div>
+                  <Store
+                    size={22}
+                  />
 
                   <div>
-                    <span>
-                      RETIRADA NA LOJA
-                    </span>
-
                     <strong>
-                      Seu pedido ficará
-                      disponível para retirada.
+                      Retirada na loja
                     </strong>
 
                     <p>
-                      {enderecoLoja ||
-                        'Endereço da loja será informado na confirmação do pedido pelo WhatsApp.'}
+                      Seu pedido ficará
+                      disponível para
+                      retirada diretamente
+                      na loja.
                     </p>
                   </div>
                 </div>
               )}
-            </div>
+            </section>
           )}
 
-          {/* =================================================
+          {/* ===============================================
               ETAPA 3
-              ================================================= */}
+              =============================================== */}
 
           {etapa === 3 && (
-            <div
+            <section
               className={
                 styles.step
               }
             >
               <div
                 className={
-                  styles.sectionHeader
+                  styles.stepHeader
                 }
               >
-                <span>
-                  03
-                </span>
+                <div
+                  className={
+                    styles.stepIcon
+                  }
+                >
+                  <ShoppingBag
+                    size={20}
+                  />
+                </div>
 
                 <div>
-                  <strong>
-                    Forma de pagamento
-                  </strong>
+                  <span
+                    className={
+                      styles.stepCounter
+                    }
+                  >
+                    PASSO 3 DE 3
+                  </span>
 
-                  <p>
-                    Escolha como deseja pagar seu pedido.
+                  <h2
+                    className={
+                      styles.stepTitle
+                    }
+                  >
+                    Pagamento
+                  </h2>
+
+                  <p
+                    className={
+                      styles.stepDescription
+                    }
+                  >
+                    Escolha como deseja
+                    pagar seu pedido.
                   </p>
                 </div>
               </div>
@@ -1830,18 +1900,17 @@ export default function Checkout({
               >
                 <button
                   type="button"
-                  className={`${styles.paymentCard} ${
+                  className={`${styles.paymentOption} ${
                     formaPagamento ===
                     'pix'
-                      ? styles.paymentCardActive
+                      ? styles.selected
                       : ''
                   }`}
-                  onClick={() => {
+                  onClick={() =>
                     setFormaPagamento(
                       'pix',
                     )
-                    setErro('')
-                  }}
+                  }
                 >
                   <div
                     className={
@@ -1855,7 +1924,7 @@ export default function Checkout({
 
                   <div
                     className={
-                      styles.optionContent
+                      styles.paymentText
                     }
                   >
                     <strong>
@@ -1863,7 +1932,8 @@ export default function Checkout({
                     </strong>
 
                     <span>
-                      Pague pelo Pix após a confirmação do pedido.
+                      Pagamento rápido
+                      e seguro.
                     </span>
                   </div>
 
@@ -1874,42 +1944,38 @@ export default function Checkout({
                   >
                     {formaPagamento ===
                       'pix' && (
-                      <i />
+                      <span />
                     )}
                   </span>
                 </button>
 
                 <button
                   type="button"
-                  className={`${styles.paymentCard} ${
+                  className={`${styles.paymentOption} ${
                     formaPagamento ===
                     'dinheiro'
-                      ? styles.paymentCardActive
+                      ? styles.selected
                       : ''
                   }`}
-                  onClick={() => {
+                  onClick={() =>
                     setFormaPagamento(
                       'dinheiro',
                     )
-                    setErro('')
-                  }}
+                  }
                 >
                   <div
                     className={
                       styles.paymentIcon
                     }
                   >
-                    <Wallet
-                      size={20}
-                      strokeWidth={
-                        1.7
-                      }
-                    />
+                    <span>
+                      R$
+                    </span>
                   </div>
 
                   <div
                     className={
-                      styles.optionContent
+                      styles.paymentText
                     }
                   >
                     <strong>
@@ -1917,7 +1983,8 @@ export default function Checkout({
                     </strong>
 
                     <span>
-                      Pague em dinheiro no recebimento.
+                      Pague na entrega
+                      ou retirada.
                     </span>
                   </div>
 
@@ -1928,42 +1995,38 @@ export default function Checkout({
                   >
                     {formaPagamento ===
                       'dinheiro' && (
-                      <i />
+                      <span />
                     )}
                   </span>
                 </button>
 
                 <button
                   type="button"
-                  className={`${styles.paymentCard} ${
+                  className={`${styles.paymentOption} ${
                     formaPagamento ===
                     'cartao'
-                      ? styles.paymentCardActive
+                      ? styles.selected
                       : ''
                   }`}
-                  onClick={() => {
+                  onClick={() =>
                     setFormaPagamento(
                       'cartao',
                     )
-                    setErro('')
-                  }}
+                  }
                 >
                   <div
                     className={
                       styles.paymentIcon
                     }
                   >
-                    <CreditCard
-                      size={20}
-                      strokeWidth={
-                        1.7
-                      }
-                    />
+                    <span>
+                      CARD
+                    </span>
                   </div>
 
                   <div
                     className={
-                      styles.optionContent
+                      styles.paymentText
                     }
                   >
                     <strong>
@@ -1971,7 +2034,7 @@ export default function Checkout({
                     </strong>
 
                     <span>
-                      Débito ou crédito, conforme disponibilidade.
+                      Débito ou crédito.
                     </span>
                   </div>
 
@@ -1982,7 +2045,7 @@ export default function Checkout({
                   >
                     {formaPagamento ===
                       'cartao' && (
-                      <i />
+                      <span />
                     )}
                   </span>
                 </button>
@@ -1992,129 +2055,65 @@ export default function Checkout({
                 'dinheiro' && (
                 <div
                   className={
-                    styles.changeBox
+                    styles.field
                   }
                 >
-                  <div
-                    className={
-                      styles.changeHeader
-                    }
-                  >
-                    <Wallet
-                      size={17}
-                      strokeWidth={
-                        1.8
-                      }
-                    />
-
-                    <div>
-                      <strong>
-                        Troco para quanto?
-                      </strong>
-
-                      <span>
-                        Informe o valor em dinheiro que você entregará.
-                      </span>
-                    </div>
-                  </div>
-
                   <label
-                    className={
-                      styles.field
-                    }
+                    htmlFor="troco"
                   >
+                    Troco para
                     <span>
-                      Valor para troco
+                      {' '}
+                      (opcional)
                     </span>
-
-                    <div
-                      className={
-                        styles.inputWrap
-                      }
-                    >
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={
-                          trocoPara
-                        }
-                        onChange={(
-                          event,
-                        ) => {
-                          setTrocoPara(
-                            formatarMoeda(
-                              event
-                                .target
-                                .value,
-                            ),
-                          )
-
-                          setErro('')
-                        }}
-                        placeholder="R$ 0,00"
-                      />
-                    </div>
                   </label>
 
-                  {obterValorMoeda(
-                    trocoPara,
-                  ) >= total &&
-                    obterValorMoeda(
-                      trocoPara,
-                    ) > 0 && (
-                      <span
-                        className={
-                          styles.changeResult
-                        }
-                      >
-                        Troco aproximado:{' '}
-                        <strong>
-                          {formatarPreco(
-                            obterValorMoeda(
-                              trocoPara,
-                            ) -
-                              total,
-                          )}
-                        </strong>
-                      </span>
-                    )}
+                  <input
+                    id="troco"
+                    type="text"
+                    inputMode="decimal"
+                    value={
+                      trocoPara
+                    }
+                    onChange={(
+                      event,
+                    ) =>
+                      setTrocoPara(
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Ex.: 100,00"
+                  />
+
+                  <small>
+                    Informe quanto você
+                    entregará para que
+                    possamos preparar o
+                    troco.
+                  </small>
                 </div>
               )}
 
-              {/* =============================================
-                  RESUMO FINAL
-                  ============================================= */}
+              {/* =========================================
+                  RESUMO
+                  ========================================= */}
 
               <div
                 className={
-                  styles.orderSummary
+                  styles.summary
                 }
               >
                 <div
                   className={
-                    styles.orderSummaryHeader
+                    styles.summaryHeader
                   }
                 >
-                  <div>
-                    <span>
-                      RESUMO
-                    </span>
+                  <Package
+                    size={18}
+                  />
 
-                    <strong>
-                      Seu pedido
-                    </strong>
-                  </div>
-
-                  <span
-                    className={
-                      styles.itemCount
-                    }
-                  >
-                    {quantidadeTotal}{' '}
-                    {quantidadeTotal ===
-                    1
-                      ? 'item'
-                      : 'itens'}
+                  <span>
+                    Resumo do pedido
                   </span>
                 </div>
 
@@ -2125,39 +2124,23 @@ export default function Checkout({
                 >
                   {itens.map(
                     (item) => {
-                      const preco =
-                        Number(
-                          item.price,
-                        )
-
-                      const precoSeguro =
-                        Number.isFinite(
-                          preco,
-                        )
-                          ? preco
-                          : 0
-
                       const quantidade =
                         Number(
                           item.quantidade,
-                        )
+                        ) || 0
 
-                      const quantidadeSegura =
-                        Number.isFinite(
-                          quantidade,
-                        ) &&
-                        quantidade >
-                          0
-                          ? Math.floor(
-                              quantidade,
-                            )
-                          : 1
+                      const preco =
+                        Number(
+                          item.price,
+                        ) || 0
+
+                      const valor =
+                        preco *
+                        quantidade
 
                       return (
                         <div
-                          key={
-                            item.id
-                          }
+                          key={item.id}
                           className={
                             styles.summaryItem
                           }
@@ -2165,22 +2148,22 @@ export default function Checkout({
                           <div>
                             <strong>
                               {
-                                quantidadeSegura
+                                item.name
                               }
-                              x
                             </strong>
 
                             <span>
-                              {
-                                item.name
-                              }
+                              {quantidade}{' '}
+                              x{' '}
+                              {formatarMoeda(
+                                preco,
+                              )}
                             </span>
                           </div>
 
                           <strong>
-                            {formatarPreco(
-                              precoSeguro *
-                                quantidadeSegura,
+                            {formatarMoeda(
+                              valor,
                             )}
                           </strong>
                         </div>
@@ -2200,7 +2183,7 @@ export default function Checkout({
                     </span>
 
                     <strong>
-                      {formatarPreco(
+                      {formatarMoeda(
                         subtotal,
                       )}
                     </strong>
@@ -2212,16 +2195,17 @@ export default function Checkout({
                     </span>
 
                     <strong>
-                      {formaEntrega ===
-                      'entrega'
-                        ? 'A confirmar'
-                        : '—'}
+                      {frete === 0
+                        ? 'Grátis'
+                        : formatarMoeda(
+                            frete,
+                          )}
                     </strong>
                   </div>
 
                   <div
                     className={
-                      styles.totalRow
+                      styles.summaryTotal
                     }
                   >
                     <span>
@@ -2229,14 +2213,14 @@ export default function Checkout({
                     </span>
 
                     <strong>
-                      {formatarPreco(
+                      {formatarMoeda(
                         total,
                       )}
                     </strong>
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
           )}
 
           {/* =================================================
@@ -2251,104 +2235,110 @@ export default function Checkout({
               role="alert"
             >
               <span>
-                !
+                {erro}
               </span>
 
-              <p>
-                {erro}
-              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  setErro('')
+                }
+                aria-label="Fechar mensagem"
+              >
+                <X size={16} />
+              </button>
             </div>
           )}
-        </div>
+        </main>
 
-        {/* ===================================================
+        {/* =================================================
             FOOTER
-            =================================================== */}
+            ================================================= */}
 
         <footer
-          className={
-            styles.footer
-          }
+          className={styles.footer}
         >
-          <div
-            className={
-              styles.footerTotal
-            }
-          >
-            <span>
-              TOTAL
-            </span>
-
-            <strong>
-              {formatarPreco(
-                total,
-              )}
-            </strong>
-          </div>
-
           <button
             type="button"
             className={
-              styles.continueButton
+              styles.backButton
             }
-            onClick={
-              continuar
-            }
-            disabled={
-              enviando ||
-              itens.length ===
-                0
-            }
+            onClick={voltar}
+            disabled={enviando}
           >
-            {enviando ? (
-              <>
-                <span
-                  className={
-                    styles.spinner
-                  }
-                />
+            <ArrowLeft
+              size={18}
+            />
 
-                <span>
-                  Abrindo WhatsApp...
-                </span>
-              </>
-            ) : etapa === 3 ? (
-              <>
-                <MessageCircle
-                  size={17}
-                  strokeWidth={
-                    2
-                  }
-                />
-
-                <span>
-                  Enviar pedido
-                </span>
-
-                <ArrowRight
-                  size={17}
-                  strokeWidth={
-                    2
-                  }
-                />
-              </>
-            ) : (
-              <>
-                <span>
-                  Continuar
-                </span>
-
-                <ArrowRight
-                  size={17}
-                  strokeWidth={
-                    2
-                  }
-                />
-              </>
-            )}
+            <span>
+              {etapa === 1
+                ? 'Voltar ao carrinho'
+                : 'Voltar'}
+            </span>
           </button>
+
+          {etapa < 3 ? (
+            <button
+              type="button"
+              className={
+                styles.continueButton
+              }
+              onClick={avancar}
+              disabled={enviando}
+            >
+              <span>
+                Continuar
+              </span>
+
+              <ArrowLeft
+                size={18}
+                className={
+                  styles.arrowRight
+                }
+              />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={
+                styles.continueButton
+              }
+              onClick={
+                enviarPedido
+              }
+              disabled={
+                enviando ||
+                pedidoFinalizadoRef.current
+              }
+            >
+              {enviando ? (
+                <>
+                  <Loader2
+                    size={18}
+                    className={
+                      styles.spin
+                    }
+                  />
+
+                  <span>
+                    Finalizando...
+                  </span>
+                </>
+              ) : (
+                <>
+                  <MessageCircle
+                    size={18}
+                  />
+
+                  <span>
+                    Finalizar pedido
+                  </span>
+                </>
+              )}
+            </button>
+          )}
         </footer>
-      </section>
+      </div>
     </div>
   )
 }

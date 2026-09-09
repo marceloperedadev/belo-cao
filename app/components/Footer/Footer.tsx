@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { ArrowUp } from 'lucide-react'
 import { Config } from '@/app/constants/config'
 import styles from './Footer.module.css'
@@ -9,7 +10,6 @@ export function Footer() {
 
   return (
     <footer className={styles.footer}>
-      {/* Formas decorativas */}
       <div
         className={styles.shapeOne}
         aria-hidden="true"
@@ -20,27 +20,22 @@ export function Footer() {
         aria-hidden="true"
       />
 
-      {/* =====================================================
-          ÁREA PRINCIPAL
-          ===================================================== */}
-
       <div className={styles.footerMain}>
         {/* Marca */}
-
         <div className={styles.brand}>
           <a
             href="#inicio"
             className={styles.brandLink}
             aria-label="Voltar ao início"
           >
-            <span
-              className={styles.brandMark}
-              aria-hidden="true"
-            >
-              <span className={styles.eyeLeft} />
-              <span className={styles.eyeRight} />
-              <span className={styles.nose} />
-            </span>
+            <Image
+              src="/images/logo-belo-cao.jpg"
+              alt="Belo Cão"
+              width={52}
+              height={52}
+              className={styles.brandLogo}
+              priority
+            />
 
             <span className={styles.brandText}>
               <strong>BELO CÃO</strong>
@@ -53,7 +48,6 @@ export function Footer() {
         </div>
 
         {/* Mensagem central */}
-
         <div className={styles.message}>
           <span>feito para eles.</span>
 
@@ -65,7 +59,6 @@ export function Footer() {
         </div>
 
         {/* Instagram */}
-
         <div className={styles.social}>
           <a
             href={Config.INSTAGRAM_URL}
@@ -122,24 +115,14 @@ export function Footer() {
         </div>
       </div>
 
-      {/* =====================================================
-          BARRA INFERIOR
-          ===================================================== */}
-
       <div className={styles.footerBottom}>
-        {/* Copyright */}
-
         <span className={styles.copyright}>
           © {currentYear} Belo Cão. Todos os direitos reservados.
         </span>
 
-        {/* Assinatura central no desktop */}
-
         <span className={styles.bottomCenter}>
           ESTÉTICA ANIMAL · PET COFFEE · LOJINHA
         </span>
-
-        {/* Voltar ao topo */}
 
         <a
           href="#inicio"
@@ -158,8 +141,6 @@ export function Footer() {
             />
           </span>
         </a>
-
-        {/* Assinatura do desenvolvedor */}
 
         <a
           href="https://marcelopereda.dev"

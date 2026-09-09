@@ -1,7 +1,9 @@
 /* =========================================================
    BELO CÃO — FOOTER
    VIVID PURPLE / WHITE
+
    PREMIUM · EDITORIAL · DISCRETO
+   LOGO REAL
    ========================================================= */
 
 .footer {
@@ -12,8 +14,10 @@
   position: relative;
   width: 100%;
   padding: 4rem 0 0;
+
   background: var(--purple);
   color: #ffffff;
+
   overflow: hidden;
   isolation: isolate;
   box-sizing: border-box;
@@ -28,6 +32,7 @@
   position: absolute;
   pointer-events: none;
   z-index: -1;
+
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 50%;
 }
@@ -35,8 +40,10 @@
 .shapeOne {
   top: -180px;
   right: -120px;
+
   width: 360px;
   height: 360px;
+
   box-shadow:
     0 0 0 35px rgba(255, 255, 255, 0.035),
     0 0 0 70px rgba(255, 255, 255, 0.02);
@@ -45,8 +52,10 @@
 .shapeTwo {
   bottom: -190px;
   left: -140px;
+
   width: 390px;
   height: 390px;
+
   box-shadow:
     0 0 0 38px rgba(255, 255, 255, 0.035),
     0 0 0 76px rgba(255, 255, 255, 0.02);
@@ -58,16 +67,19 @@
 
 .footerMain {
   position: relative;
+
   width: min(calc(100% - 48px), 1320px);
   margin: 0 auto;
 
   display: grid;
+
   grid-template-columns:
     1fr
     minmax(260px, 0.8fr)
     1fr;
 
   align-items: center;
+
   gap: 3rem;
 
   padding-bottom: 3.5rem;
@@ -87,7 +99,9 @@
 .brandLink {
   display: inline-flex;
   align-items: center;
+
   gap: 0.9rem;
+
   width: fit-content;
 
   color: #ffffff;
@@ -104,98 +118,27 @@
 }
 
 /* =========================================================
-   ÍCONE DO BELO CÃO
+   LOGO REAL DO BELO CÃO
    ========================================================= */
 
-.brandMark {
-  position: relative;
+.brandLogo {
   display: block;
 
-  width: 44px;
-  height: 36px;
+  width: 52px;
+  height: 52px;
 
   flex-shrink: 0;
 
-  background: #ffffff;
-  border-radius: 45% 45% 42% 42%;
+  object-fit: contain;
+  object-position: center;
+
+  transition:
+    transform 0.3s ease,
+    filter 0.3s ease;
 }
 
-/* Orelha esquerda */
-
-.brandMark::before {
-  content: '';
-
-  position: absolute;
-  top: -7px;
-  left: 3px;
-
-  width: 15px;
-  height: 15px;
-
-  background: #ffffff;
-  border-radius: 3px 10px 3px 10px;
-
-  transform: rotate(-20deg);
-}
-
-/* Orelha direita */
-
-.brandMark::after {
-  content: '';
-
-  position: absolute;
-  top: -7px;
-  right: 3px;
-
-  width: 15px;
-  height: 15px;
-
-  background: #ffffff;
-  border-radius: 10px 3px 10px 3px;
-
-  transform: rotate(20deg);
-}
-
-/* Olhos */
-
-.eyeLeft,
-.eyeRight {
-  position: absolute;
-  top: 12px;
-
-  width: 5px;
-  height: 5px;
-
-  border-radius: 50%;
-  background: var(--purple);
-
-  z-index: 2;
-}
-
-.eyeLeft {
-  left: 11px;
-}
-
-.eyeRight {
-  right: 11px;
-}
-
-/* Nariz */
-
-.nose {
-  position: absolute;
-  left: 50%;
-  top: 20px;
-
-  width: 7px;
-  height: 5px;
-
-  transform: translateX(-50%);
-
-  background: var(--purple);
-  border-radius: 50%;
-
-  z-index: 2;
+.brandLink:hover .brandLogo {
+  transform: translateY(-2px) scale(1.04);
 }
 
 /* =========================================================
@@ -205,21 +148,27 @@
 .brandText {
   display: flex;
   flex-direction: column;
+
   gap: 0.16rem;
 }
 
 .brandText strong {
   font-size: 1rem;
   font-weight: 900;
+
   line-height: 1;
   letter-spacing: -0.035em;
+
+  color: #ffffff;
 }
 
 .brandText small {
   font-size: 0.58rem;
   font-weight: 600;
+
   line-height: 1.2;
   letter-spacing: 0.08em;
+
   color: rgba(255, 255, 255, 0.68);
 }
 
@@ -230,6 +179,7 @@
 .message {
   display: flex;
   flex-direction: column;
+
   gap: 0.42rem;
 
   text-align: center;
@@ -238,6 +188,7 @@
 .message span {
   font-size: 0.6rem;
   font-weight: 700;
+
   letter-spacing: 0.16em;
   line-height: 1.2;
 
@@ -247,8 +198,10 @@
 .message strong {
   font-size: clamp(1.45rem, 2.3vw, 2.15rem);
   font-weight: 900;
+
   line-height: 0.98;
   letter-spacing: -0.055em;
+
   color: #ffffff;
 }
 
@@ -264,9 +217,11 @@
 .instagram {
   display: inline-flex;
   align-items: center;
+
   gap: 0.7rem;
 
   min-height: 48px;
+
   padding: 0.35rem 0.45rem 0.35rem 1rem;
 
   border: 1px solid rgba(255, 255, 255, 0.28);
@@ -290,7 +245,9 @@
 
 .instagram:hover {
   background: #ffffff;
+
   border-color: #ffffff;
+
   color: var(--purple);
 
   transform: translateY(-3px);
@@ -313,6 +270,7 @@
   flex-shrink: 0;
 
   border-radius: 50%;
+
   background: rgba(255, 255, 255, 0.14);
 
   transition:
@@ -327,6 +285,7 @@
 
 .instagram:hover .instagramIcon {
   background: var(--purple);
+
   color: #ffffff;
 
   transform: rotate(-8deg);
@@ -352,17 +311,20 @@
   position: relative;
 
   width: min(calc(100% - 48px), 1320px);
+
   min-height: 62px;
 
   margin: 0 auto;
 
   display: grid;
+
   grid-template-columns:
     1fr
     auto
     auto;
 
   align-items: center;
+
   gap: 1.5rem;
 
   border-top: 1px solid rgba(255, 255, 255, 0.15);
@@ -381,6 +343,7 @@
 
   font-size: 0.57rem;
   font-weight: 600;
+
   letter-spacing: 0.02em;
 
   white-space: nowrap;
@@ -395,6 +358,7 @@
 
   font-size: 0.47rem;
   font-weight: 700;
+
   letter-spacing: 0.11em;
 
   white-space: nowrap;
@@ -408,6 +372,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
+
   gap: 0.55rem;
 
   color: rgba(255, 255, 255, 0.6);
@@ -416,6 +381,7 @@
 
   font-size: 0.57rem;
   font-weight: 700;
+
   letter-spacing: 0.02em;
 
   white-space: nowrap;
@@ -427,6 +393,7 @@
 
 .backTop:hover {
   color: #ffffff;
+
   transform: translateY(-2px);
 }
 
@@ -442,6 +409,7 @@
   height: 28px;
 
   border: 1px solid rgba(255, 255, 255, 0.24);
+
   border-radius: 50%;
 
   transition:
@@ -452,7 +420,9 @@
 
 .backTop:hover .backTopIcon {
   background: #ffffff;
+
   border-color: #ffffff;
+
   color: var(--purple);
 
   transform: translateY(-2px);
@@ -476,6 +446,7 @@
 
   font-size: 0.54rem;
   font-weight: 600;
+
   letter-spacing: 0.025em;
   line-height: 1;
 
@@ -489,8 +460,10 @@
   content: '';
 
   position: absolute;
+
   left: 0;
   right: 0;
+
   bottom: -0.28rem;
 
   height: 1px;
@@ -498,6 +471,7 @@
   background: rgba(255, 255, 255, 0.25);
 
   transform: scaleX(0);
+
   transform-origin: right;
 
   transition: transform 0.3s ease;
@@ -505,11 +479,13 @@
 
 .developerSignature:hover {
   color: rgba(255, 255, 255, 0.82);
+
   transform: translateY(-1px);
 }
 
 .developerSignature:hover::after {
   transform: scaleX(1);
+
   transform-origin: left;
 }
 
@@ -525,20 +501,28 @@
   .footerMain {
     width: min(calc(100% - 40px), 760px);
 
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns:
+      1fr
+      1fr;
 
     gap: 2.25rem 2rem;
   }
+
+  /* Mensagem fica no topo */
 
   .message {
     grid-column: 1 / -1;
     grid-row: 1;
   }
 
+  /* Marca */
+
   .brand {
     grid-column: 1;
     grid-row: 2;
   }
+
+  /* Instagram */
 
   .social {
     grid-column: 2;
@@ -546,6 +530,8 @@
 
     justify-content: flex-end;
   }
+
+  /* Barra inferior */
 
   .footerBottom {
     width: min(calc(100% - 40px), 760px);
@@ -566,9 +552,12 @@
     font-size: 0.52rem;
   }
 
+  /* Formas */
+
   .shapeOne {
     top: -170px;
     right: -140px;
+
     width: 320px;
     height: 320px;
   }
@@ -576,6 +565,7 @@
   .shapeTwo {
     bottom: -170px;
     left: -140px;
+
     width: 340px;
     height: 340px;
   }
@@ -595,6 +585,7 @@
 
     display: flex;
     flex-direction: column;
+
     align-items: center;
 
     gap: 1.75rem;
@@ -603,6 +594,8 @@
 
     text-align: center;
   }
+
+  /* Ordem mobile */
 
   .message {
     order: 1;
@@ -618,6 +611,8 @@
     justify-content: center;
   }
 
+  /* Mensagem */
+
   .message span {
     font-size: 0.56rem;
   }
@@ -625,6 +620,19 @@
   .message strong {
     font-size: clamp(1.45rem, 7vw, 1.8rem);
   }
+
+  /* =====================================================
+     LOGO MOBILE
+     ===================================================== */
+
+  .brandLogo {
+    width: 48px;
+    height: 48px;
+  }
+
+  /* =====================================================
+     BARRA INFERIOR
+     ===================================================== */
 
   .footerBottom {
     width: calc(100% - 32px);
@@ -641,14 +649,19 @@
     text-align: center;
   }
 
+  /* Voltar ao topo */
+
   .backTop {
     order: 1;
 
     justify-content: center;
 
     min-height: 38px;
+
     padding: 0.25rem 0.5rem;
   }
+
+  /* Copyright */
 
   .copyright {
     order: 2;
@@ -658,6 +671,8 @@
     line-height: 1.45;
   }
 
+  /* Assinatura */
+
   .developerSignature {
     order: 3;
 
@@ -665,6 +680,8 @@
 
     font-size: 0.5rem;
   }
+
+  /* Formas */
 
   .shapeOne {
     top: -170px;
@@ -701,9 +718,9 @@
     gap: 0.75rem;
   }
 
-  .brandMark {
-    width: 40px;
-    height: 33px;
+  .brandLogo {
+    width: 42px;
+    height: 42px;
   }
 
   .brandText strong {
@@ -716,6 +733,7 @@
 
   .instagram {
     min-height: 46px;
+
     font-size: 0.72rem;
   }
 
@@ -733,6 +751,7 @@
 .backTop:focus-visible,
 .developerSignature:focus-visible {
   outline: 3px solid rgba(255, 255, 255, 0.42);
+
   outline-offset: 4px;
 }
 
@@ -748,7 +767,8 @@
   .instagramArrow,
   .backTopIcon,
   .developerSignature,
-  .developerSignature::after {
+  .developerSignature::after,
+  .brandLogo {
     transition: none;
   }
 }

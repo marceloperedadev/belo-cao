@@ -1,9 +1,28 @@
 export class Config {
-  static readonly DOCTOR_NAME = process.env.NEXT_PUBLIC_DOCTOR_NAME || 'Dra. Bárbara Glayris'
-  static readonly CRO_CODE = process.env.NEXT_PUBLIC_CRO_CODE || 'CRO-SP 123.456'
-  static readonly INSTAGRAM_URL = process.env.NEXT_PUBLIC_INSTAGRAM_URL || 'https://instagram.com/dra.barbaraglayris'
-  
-  // WhatsApp oficial com o número 12 99709-3459 e mensagem padrão pré-formatada
-  static readonly WHATSAPP_URL = process.env.NEXT_PUBLIC_WHATSAPP_URL || 
-    'https://wa.me/5512997093459?text=Ol%C3%A1%2C%20Dra.%20B%C3%A1rbara%20Glayris!%20Gostaria%20de%20agendar%20uma%20consulta%20em%20Taubat%C3%A9.'
+  /**
+   * Nome da loja
+   */
+  static readonly STORE_NAME =
+    process.env.NEXT_PUBLIC_STORE_NAME || 'Belo Cão'
+
+  /**
+   * Número oficial do WhatsApp
+   *
+   * Formato esperado:
+   * 5512997093459
+   */
+  static readonly WHATSAPP_NUMBER =
+    process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, '') || ''
+
+  /**
+   * Endereço da loja para retirada
+   */
+  static readonly STORE_ADDRESS =
+    process.env.NEXT_PUBLIC_STORE_ADDRESS || ''
+
+  /**
+   * Instagram da loja
+   */
+  static readonly INSTAGRAM_URL =
+    process.env.NEXT_PUBLIC_INSTAGRAM_URL || ''
 }

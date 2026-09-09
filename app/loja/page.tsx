@@ -18,7 +18,7 @@ import Carrinho, {
   ItemCarrinho,
 } from '../components/Carrinho/Carrinho'
 
-import Checkout from '../components/Checkout/Checkout'
+import { Checkout } from '../components/Checkout/Checkout'
 
 type Produto = {
   id: string
@@ -42,20 +42,36 @@ function normalizarTexto(texto: string) {
     .trim()
 }
 
+function obterEstoque(valor: unknown) {
+  const estoque = Number(valor)
+
+  if (!Number.isFinite(estoque)) {
+    return 0
+  }
+
+  return Math.max(0, Math.floor(estoque))
+}
+
+function obterQuantidade(valor: unknown) {
+  const quantidade = Number(valor)
+
+  if (!Number.isFinite(quantidade) || quantidade <= 0) {
+    return 1
+  }
+
+  return Math.max(1, Math.floor(quantidade))
+}
+
 export default function LojaPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
 
-  const [categoria, setCategoria] =
-    useState('Todos')
+  const [categoria, setCategoria] = useState('Todos')
 
-  const [busca, setBusca] =
-    useState('')
+  const [busca, setBusca] = useState('')
 
-  const [carregando, setCarregando] =
-    useState(true)
+  const [carregando, setCarregando] = useState(true)
 
-  const [erro, setErro] =
-    useState('')
+  const [erro, setErro] = useState('')
 
   const [produtoDescricao, setProdutoDescricao] =
     useState<Produto | null>(null)
@@ -76,49 +92,91 @@ export default function LojaPage() {
      CARREGAR PRODUTOS
      ========================================================= */
 
-  useEffect(() => {
-    async function carregarProdutos() {
-      try {
+  async function carregarProdutos(
+    mostrarCarregamento = true,
+  ) {
+    try {
+      if (mostrarCarregamento) {
         setCarregando(true)
-        setErro('')
+      }
 
-        const response = await fetch(
-          '/api/produtos',
-          {
-            cache: 'no-store',
-          },
+      setErro('')
+
+      const response = await fetch('/api/produtos', {
+        cache: 'no-store',
+      })
+
+      if (!response.ok) {
+        throw new Error(
+          'Erro ao carregar produtos.',
         )
+      }
 
-        if (!response.ok) {
-          throw new Error(
-            'Erro ao carregar produtos.',
-          )
-        }
+      const data = await response.json()
 
-        const data = await response.json()
-
-        if (!Array.isArray(data)) {
-          throw new Error(
-            'Resposta inválida da API.',
-          )
-        }
-
-        setProdutos(data)
-      } catch (error) {
-        console.error(
-          'Erro ao carregar produtos:',
-          error,
+      if (!Array.isArray(data)) {
+        throw new Error(
+          'Resposta inválida da API.',
         )
+      }
 
+      const produtosNormalizados: Produto[] =
+        data
+          .filter(
+            (produto): produto is Produto =>
+              Boolean(
+                produto &&
+                  typeof produto.id === 'string',
+              ),
+          )
+          .map((produto) => ({
+            ...produto,
+            stock: obterEstoque(
+              produto.stock,
+            ),
+            active: Boolean(
+              produto.active,
+            ),
+          }))
+
+      setProdutos(
+        produtosNormalizados,
+      )
+    } catch (error) {
+      console.error(
+        'Erro ao carregar produtos:',
+        error,
+      )
+
+      if (mostrarCarregamento) {
         setErro(
           'Não foi possível carregar a lojinha.',
         )
-      } finally {
+      }
+    } finally {
+      if (mostrarCarregamento) {
         setCarregando(false)
       }
     }
+  }
 
-    carregarProdutos()
+  useEffect(() => {
+    carregarProdutos(true)
+  }, [])
+
+  /* =========================================================
+     ATUALIZAR ESTOQUE PERIODICAMENTE
+     ========================================================= */
+
+  useEffect(() => {
+    const intervalo =
+      window.setInterval(() => {
+        carregarProdutos(false)
+      }, 30000)
+
+    return () => {
+      window.clearInterval(intervalo)
+    }
   }, [])
 
   /* =========================================================
@@ -143,23 +201,17 @@ export default function LojaPage() {
                   item &&
                   typeof item.id === 'string',
               )
-              .map((item) => {
-                const quantidade =
-                  Number(item.quantidade)
-
-                return {
-                  ...item,
-                  quantidade:
-                    Number.isFinite(
-                      quantidade,
-                    ) &&
-                    quantidade > 0
-                      ? Math.floor(
-                          quantidade,
-                        )
-                      : 1,
-                }
-              })
+              .map((item) => ({
+                ...item,
+                quantidade:
+                  obterQuantidade(
+                    item.quantidade,
+                  ),
+                stock:
+                  obterEstoque(
+                    item.stock,
+                  ),
+              }))
 
           setCarrinho(
             carrinhoValido,
@@ -181,6 +233,103 @@ export default function LojaPage() {
   }, [])
 
   /* =========================================================
+     SINCRONIZAR CARRINHO COM ESTOQUE ATUAL
+     ========================================================= */
+
+  useEffect(() => {
+    if (
+      !carrinhoCarregado ||
+      produtos.length === 0
+    ) {
+      return
+    }
+
+    setCarrinho((atual) => {
+      let alterado = false
+
+      const novoCarrinho = atual
+        .map((item) => {
+          const produtoAtual =
+            produtos.find(
+              (produto) =>
+                produto.id === item.id,
+            )
+
+          /*
+           * Produto não existe mais ou
+           * está inativo.
+           */
+          if (
+            !produtoAtual ||
+            !produtoAtual.active
+          ) {
+            alterado = true
+            return null
+          }
+
+          const estoqueAtual =
+            obterEstoque(
+              produtoAtual.stock,
+            )
+
+          /*
+           * Produto ficou sem estoque.
+           */
+          if (estoqueAtual <= 0) {
+            alterado = true
+            return null
+          }
+
+          const quantidadeAtual =
+            obterQuantidade(
+              item.quantidade,
+            )
+
+          /*
+           * Não permite que o carrinho
+           * ultrapasse o estoque atual.
+           */
+          const quantidadeAjustada =
+            Math.min(
+              quantidadeAtual,
+              estoqueAtual,
+            )
+
+          if (
+            quantidadeAjustada !==
+              quantidadeAtual ||
+            obterEstoque(
+              item.stock,
+            ) !== estoqueAtual
+          ) {
+            alterado = true
+          }
+
+          return {
+            ...item,
+            ...produtoAtual,
+            quantidade:
+              quantidadeAjustada,
+            stock: estoqueAtual,
+          }
+        })
+        .filter(
+          (
+            item,
+          ): item is ItemCarrinho =>
+            item !== null,
+        )
+
+      return alterado
+        ? novoCarrinho
+        : atual
+    })
+  }, [
+    produtos,
+    carrinhoCarregado,
+  ])
+
+  /* =========================================================
      SALVAR CARRINHO
      ========================================================= */
 
@@ -190,6 +339,13 @@ export default function LojaPage() {
     }
 
     try {
+      if (carrinho.length === 0) {
+        window.localStorage.removeItem(
+          STORAGE_KEY,
+        )
+        return
+      }
+
       window.localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify(carrinho),
@@ -213,6 +369,10 @@ export default function LojaPage() {
     const lista = Array.from(
       new Set(
         produtos
+          .filter(
+            (produto) =>
+              produto.active,
+          )
           .map(
             (produto) =>
               produto.category,
@@ -231,61 +391,66 @@ export default function LojaPage() {
      FILTRO
      ========================================================= */
 
-  const produtosFiltrados = useMemo(() => {
-    const termo =
-      normalizarTexto(busca)
+  const produtosFiltrados =
+    useMemo(() => {
+      const termo =
+        normalizarTexto(busca)
 
-    return produtos.filter(
-      (produto) => {
-        const categoriaProduto =
-          normalizarTexto(
-            produto.category ?? '',
-          )
+      return produtos.filter(
+        (produto) => {
+          if (!produto.active) {
+            return false
+          }
 
-        const correspondeCategoria =
-          categoria === 'Todos' ||
-          categoriaProduto ===
+          const categoriaProduto =
             normalizarTexto(
-              categoria,
+              produto.category ?? '',
             )
 
-        if (!termo) {
-          return correspondeCategoria
-        }
+          const correspondeCategoria =
+            categoria === 'Todos' ||
+            categoriaProduto ===
+              normalizarTexto(
+                categoria,
+              )
 
-        const nome =
-          normalizarTexto(
-            produto.name ?? '',
+          if (!termo) {
+            return correspondeCategoria
+          }
+
+          const nome =
+            normalizarTexto(
+              produto.name ?? '',
+            )
+
+          const descricao =
+            normalizarTexto(
+              produto.description ?? '',
+            )
+
+          const categoriaTexto =
+            normalizarTexto(
+              produto.category ?? '',
+            )
+
+          const correspondeBusca =
+            nome.includes(termo) ||
+            descricao.includes(termo) ||
+            categoriaTexto.includes(
+              termo,
+            )
+
+          return (
+            correspondeCategoria &&
+            correspondeBusca
           )
-
-        const descricao =
-          normalizarTexto(
-            produto.description ?? '',
-          )
-
-        const categoriaTexto =
-          normalizarTexto(
-            produto.category ?? '',
-          )
-
-        const correspondeBusca =
-          nome.includes(termo) ||
-          descricao.includes(termo) ||
-          categoriaTexto.includes(
-            termo,
-          )
-
-        return (
-          correspondeCategoria &&
-          correspondeBusca
-        )
-      },
-    )
-  }, [
-    produtos,
-    categoria,
-    busca,
-  ])
+        },
+      )
+    }, [
+      produtos,
+      categoria,
+      busca,
+    ])
 
   /* =========================================================
      PREÇO
@@ -316,14 +481,16 @@ export default function LojaPage() {
   function adicionarAoCarrinho(
     produto: Produto,
   ) {
-    const estoque = Number(
-      produto.stock,
-    )
+    if (!produto.active) {
+      return
+    }
 
-    if (
-      !Number.isFinite(estoque) ||
-      estoque <= 0
-    ) {
+    const estoque =
+      obterEstoque(
+        produto.stock,
+      )
+
+    if (estoque <= 0) {
       return
     }
 
@@ -336,22 +503,12 @@ export default function LojaPage() {
 
       if (existente) {
         const quantidadeAtual =
-          Number(
+          obterQuantidade(
             existente.quantidade,
           )
 
-        const quantidadeSegura =
-          Number.isFinite(
-            quantidadeAtual,
-          ) &&
-          quantidadeAtual > 0
-            ? Math.floor(
-                quantidadeAtual,
-              )
-            : 1
-
         if (
-          quantidadeSegura >=
+          quantidadeAtual >=
           estoque
         ) {
           return atual
@@ -362,8 +519,10 @@ export default function LojaPage() {
             item.id === produto.id
               ? {
                   ...item,
+                  ...produto,
+                  stock: estoque,
                   quantidade:
-                    quantidadeSegura +
+                    quantidadeAtual +
                     1,
                 }
               : item,
@@ -374,6 +533,7 @@ export default function LojaPage() {
         ...atual,
         {
           ...produto,
+          stock: estoque,
           quantidade: 1,
         },
       ]
@@ -390,57 +550,68 @@ export default function LojaPage() {
     id: string,
   ) {
     setCarrinho((atual) =>
-      atual.map((item) => {
-        if (item.id !== id) {
-          return item
-        }
+      atual
+        .map((item) => {
+          if (item.id !== id) {
+            return item
+          }
 
-        const quantidadeAtual =
-          Number(item.quantidade)
+          const quantidadeAtual =
+            obterQuantidade(
+              item.quantidade,
+            )
 
-        const quantidadeSegura =
-          Number.isFinite(
-            quantidadeAtual,
-          ) &&
-          quantidadeAtual > 0
-            ? Math.floor(
-                quantidadeAtual,
-              )
-            : 1
+          const produtoAtual =
+            produtos.find(
+              (produto) =>
+                produto.id === id,
+            )
 
-        const estoque =
-          Number(item.stock)
+          const estoque =
+            produtoAtual
+              ? obterEstoque(
+                  produtoAtual.stock,
+                )
+              : obterEstoque(
+                  item.stock,
+                )
 
-        if (
-          !Number.isFinite(
-            estoque,
-          ) ||
-          estoque <= 0
-        ) {
+          if (estoque <= 0) {
+            return {
+              ...item,
+              stock: 0,
+              quantidade: 0,
+            }
+          }
+
+          if (
+            quantidadeAtual >=
+            estoque
+          ) {
+            return {
+              ...item,
+              stock: estoque,
+              quantidade:
+                Math.min(
+                  quantidadeAtual,
+                  estoque,
+                ),
+            }
+          }
+
           return {
             ...item,
+            stock: estoque,
             quantidade:
-              quantidadeSegura,
+              quantidadeAtual + 1,
           }
-        }
-
-        if (
-          quantidadeSegura >=
-          estoque
-        ) {
-          return {
-            ...item,
-            quantidade:
-              quantidadeSegura,
-          }
-        }
-
-        return {
-          ...item,
-          quantidade:
-            quantidadeSegura + 1,
-        }
-      }),
+        })
+        .filter(
+          (item) =>
+            obterQuantidade(
+              item.quantidade,
+            ) > 0,
+        ),
     )
   }
 
@@ -459,22 +630,14 @@ export default function LojaPage() {
           }
 
           const quantidadeAtual =
-            Number(item.quantidade)
-
-          const quantidadeSegura =
-            Number.isFinite(
-              quantidadeAtual,
-            ) &&
-            quantidadeAtual > 0
-              ? Math.floor(
-                  quantidadeAtual,
-                )
-              : 1
+            obterQuantidade(
+              item.quantidade,
+            )
 
           return {
             ...item,
             quantidade:
-              quantidadeSegura - 1,
+              quantidadeAtual - 1,
           }
         })
         .filter(
@@ -507,6 +670,8 @@ export default function LojaPage() {
 
   function continuarComprando() {
     setCarrinhoAberto(false)
+
+    carregarProdutos(false)
   }
 
   /* =========================================================
@@ -518,17 +683,58 @@ export default function LojaPage() {
       return
     }
 
+    const existeProdutoSemEstoque =
+      carrinho.some((item) => {
+        const produto =
+          produtos.find(
+            (p) =>
+              p.id === item.id,
+          )
+
+        if (!produto) {
+          return true
+        }
+
+        const estoque =
+          obterEstoque(
+            produto.stock,
+          )
+
+        const quantidade =
+          obterQuantidade(
+            item.quantidade,
+          )
+
+        return (
+          !produto.active ||
+          estoque <= 0 ||
+          quantidade > estoque
+        )
+      })
+
+    if (
+      existeProdutoSemEstoque
+    ) {
+      carregarProdutos(false)
+
+      setCarrinhoAberto(true)
+
+      return
+    }
+
     setCarrinhoAberto(false)
     setCheckoutAberto(true)
   }
 
   /* =========================================================
-     VOLTAR DO CHECKOUT PARA O CARRINHO
+     VOLTAR DO CHECKOUT
      ========================================================= */
 
   function voltarParaCarrinho() {
     setCheckoutAberto(false)
     setCarrinhoAberto(true)
+
+    carregarProdutos(false)
   }
 
   /* =========================================================
@@ -550,6 +756,9 @@ export default function LojaPage() {
     }
 
     setCheckoutAberto(false)
+    setCarrinhoAberto(false)
+
+    carregarProdutos(false)
   }
 
   /* =========================================================
@@ -560,43 +769,53 @@ export default function LojaPage() {
     setBusca('')
   }
 
+  /* =========================================================
+     QUANTIDADE TOTAL
+     ========================================================= */
+
   const quantidadeTotal =
     carrinho.reduce(
       (total, item) => {
         const quantidade =
-          Number(
+          obterQuantidade(
             item.quantidade,
           )
 
-        return (
-          total +
-          (Number.isFinite(
-            quantidade,
-          ) &&
-          quantidade > 0
-            ? Math.floor(
-                quantidade,
-              )
-            : 1)
-        )
+        return total + quantidade
       },
       0,
     )
 
+  /* =========================================================
+     PRODUTOS ATIVOS
+     ========================================================= */
+
+  const quantidadeProdutosAtivos =
+    produtos.filter(
+      (produto) =>
+        produto.active,
+    ).length
+
   return (
     <main className={styles.loja}>
       <div
-        className={styles.shapeLarge}
+        className={
+          styles.shapeLarge
+        }
         aria-hidden="true"
       />
 
       <div
-        className={styles.shapeMedium}
+        className={
+          styles.shapeMedium
+        }
         aria-hidden="true"
       />
 
       <div
-        className={styles.dotPattern}
+        className={
+          styles.dotPattern
+        }
         aria-hidden="true"
       />
 
@@ -604,7 +823,9 @@ export default function LojaPage() {
           HEADER
           ===================================================== */}
 
-      <header className={styles.header}>
+      <header
+        className={styles.header}
+      >
         <Link
           href="/"
           className={styles.back}
@@ -619,7 +840,9 @@ export default function LojaPage() {
           </span>
         </Link>
 
-        <div className={styles.brand}>
+        <div
+          className={styles.brand}
+        >
           <span>
             BELO CÃO
           </span>
@@ -641,11 +864,11 @@ export default function LojaPage() {
               ? ` com ${quantidadeTotal} itens`
               : ''
           }`}
-          onClick={() =>
-            setCarrinhoAberto(
-              true,
-            )
-          }
+          onClick={() => {
+            carregarProdutos(false)
+
+            setCarrinhoAberto(true)
+          }}
         >
           <ShoppingBag
             size={19}
@@ -664,7 +887,9 @@ export default function LojaPage() {
           INTRO
           ===================================================== */}
 
-      <section className={styles.intro}>
+      <section
+        className={styles.intro}
+      >
         <div
           className={
             styles.introText
@@ -722,8 +947,11 @@ export default function LojaPage() {
           <i />
 
           <span>
-            {produtos.length}{' '}
-            produtos
+            {quantidadeProdutosAtivos}{' '}
+            {quantidadeProdutosAtivos ===
+            1
+              ? 'produto'
+              : 'produtos'}
           </span>
         </div>
       </section>
@@ -780,8 +1008,7 @@ export default function LojaPage() {
             value={busca}
             onChange={(event) =>
               setBusca(
-                event.target
-                  .value,
+                event.target.value,
               )
             }
             aria-label="Buscar produto"
@@ -806,7 +1033,7 @@ export default function LojaPage() {
       </section>
 
       {/* =====================================================
-          RESULTADO BUSCA
+          RESULTADO DA BUSCA
           ===================================================== */}
 
       {!carregando &&
@@ -908,174 +1135,243 @@ export default function LojaPage() {
                 (
                   produto,
                   index,
-                ) => (
-                  <article
-                    key={
-                      produto.id
-                    }
-                    className={
-                      styles.card
-                    }
-                  >
-                    <div
-                      className={
-                        styles.cardImage
+                ) => {
+                  const estoque =
+                    obterEstoque(
+                      produto.stock,
+                    )
+
+                  const semEstoque =
+                    estoque <= 0
+
+                  const estoqueBaixo =
+                    estoque > 0 &&
+                    estoque <= 3
+
+                  const estoqueTexto =
+                    semEstoque
+                      ? 'ESGOTADO'
+                      : estoque === 1
+                        ? 'ÚLTIMA UNIDADE'
+                        : estoque <= 3
+                          ? 'ÚLTIMAS UNIDADES'
+                          : 'DISPONÍVEL'
+
+                  return (
+                    <article
+                      key={
+                        produto.id
                       }
+                      className={`${styles.card} ${
+                        semEstoque
+                          ? styles.cardOutOfStock
+                          : ''
+                      }`}
                     >
-                      <span
+                      <div
                         className={
-                          styles.cardNumber
+                          styles.cardImage
                         }
                       >
-                        {String(
-                          index + 1,
-                        ).padStart(
-                          2,
-                          '0',
-                        )}
-                      </span>
-
-                      {produto.image_url ? (
-                        <Image
-                          src={
-                            produto.image_url
-                          }
-                          alt={
-                            produto.name
-                          }
-                          fill
-                          sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 25vw"
-                        />
-                      ) : (
-                        <div
+                        <span
                           className={
-                            styles.imagePlaceholder
+                            styles.cardNumber
                           }
                         >
-                          <ShoppingBag
-                            size={28}
-                            strokeWidth={
-                              1.4
+                          {String(
+                            index + 1,
+                          ).padStart(
+                            2,
+                            '0',
+                          )}
+                        </span>
+
+                        {produto.image_url ? (
+                          <Image
+                            src={
+                              produto.image_url
                             }
+                            alt={
+                              produto.name
+                            }
+                            fill
+                            sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 25vw"
                           />
+                        ) : (
+                          <div
+                            className={
+                              styles.imagePlaceholder
+                            }
+                          >
+                            <ShoppingBag
+                              size={28}
+                              strokeWidth={
+                                1.4
+                              }
+                            />
 
-                          <span>
-                            FOTO EM BREVE
-                          </span>
-                        </div>
-                      )}
+                            <span>
+                              FOTO EM BREVE
+                            </span>
+                          </div>
+                        )}
 
-                      <button
-                        type="button"
-                        className={
-                          styles.favorite
-                        }
-                        aria-label={`Favoritar ${produto.name}`}
-                      >
-                        <Heart
-                          size={17}
-                          strokeWidth={
-                            1.8
-                          }
-                        />
-                      </button>
-                    </div>
+                        {semEstoque && (
+                          <div
+                            className={
+                              styles.stockBadge
+                            }
+                          >
+                            ESGOTADO
+                          </div>
+                        )}
 
-                    <div
-                      className={
-                        styles.cardContent
-                      }
-                    >
-                      <span
-                        className={
-                          styles.cardCategory
-                        }
-                      >
-                        {
-                          produto.category
-                        }
-                      </span>
-
-                      <h2>
-                        {
-                          produto.name
-                        }
-                      </h2>
-
-                      {produto.description && (
                         <button
                           type="button"
                           className={
-                            styles.descriptionButton
+                            styles.favorite
                           }
-                          onClick={() =>
-                            setProdutoDescricao(
-                              produto,
-                            )
-                          }
-                          aria-label={`Ver descrição de ${produto.name}`}
+                          aria-label={`Favoritar ${produto.name}`}
                         >
-                          Descrição
+                          <Heart
+                            size={17}
+                            strokeWidth={
+                              1.8
+                            }
+                          />
                         </button>
-                      )}
+                      </div>
 
                       <div
                         className={
-                          styles.cardBottom
+                          styles.cardContent
                         }
                       >
-                        <strong>
-                          {formatarPreco(
-                            produto.price,
-                          )}
-                        </strong>
-
-                        <button
-                          type="button"
+                        <span
                           className={
-                            styles.addButton
-                          }
-                          disabled={
-                            Number(
-                              produto.stock,
-                            ) <= 0
-                          }
-                          title={
-                            Number(
-                              produto.stock,
-                            ) <= 0
-                              ? 'Produto sem estoque'
-                              : 'Adicionar ao carrinho'
-                          }
-                          onClick={() =>
-                            adicionarAoCarrinho(
-                              produto,
-                            )
+                            styles.cardCategory
                           }
                         >
-                          <span>
-                            {Number(
-                              produto.stock,
-                            ) > 0
-                              ? 'Adicionar'
-                              : 'Esgotado'}
+                          {
+                            produto.category
+                          }
+                        </span>
+
+                        <h2>
+                          {
+                            produto.name
+                          }
+                        </h2>
+
+                        {/* =================================================
+                            ESTOQUE
+                            ================================================= */}
+
+                        <div
+                          className={`${styles.stockStatus} ${
+                            semEstoque
+                              ? styles.stockStatusOut
+                              : estoqueBaixo
+                                ? styles.stockStatusLow
+                                : styles.stockStatusAvailable
+                          }`}
+                          aria-label={`Estoque de ${produto.name}: ${estoque} unidades`}
+                        >
+                          <span
+                            className={
+                              styles.stockIndicator
+                            }
+                          />
+
+                          <span
+                            className={
+                              styles.stockLabel
+                            }
+                          >
+                            ESTOQUE
                           </span>
 
-                          {Number(
-                            produto.stock,
-                          ) > 0 && (
-                            <ArrowUpRight
-                              size={16}
-                              strokeWidth={
-                                2.2
-                              }
-                            />
-                          )}
-                        </button>
+                          <strong>
+                            {estoque}
+                          </strong>
+
+                          <small>
+                            {
+                              estoqueTexto
+                            }
+                          </small>
+                        </div>
+
+                        {produto.description && (
+                          <button
+                            type="button"
+                            className={
+                              styles.descriptionButton
+                            }
+                            onClick={() =>
+                              setProdutoDescricao(
+                                produto,
+                              )
+                            }
+                            aria-label={`Ver descrição de ${produto.name}`}
+                          >
+                            Descrição
+                          </button>
+                        )}
+
+                        <div
+                          className={
+                            styles.cardBottom
+                          }
+                        >
+                          <strong>
+                            {formatarPreco(
+                              produto.price,
+                            )}
+                          </strong>
+
+                          <button
+                            type="button"
+                            className={
+                              styles.addButton
+                            }
+                            disabled={
+                              semEstoque
+                            }
+                            title={
+                              semEstoque
+                                ? 'Produto sem estoque'
+                                : estoque ===
+                                    1
+                                  ? 'Última unidade disponível'
+                                  : 'Adicionar ao carrinho'
+                            }
+                            onClick={() =>
+                              adicionarAoCarrinho(
+                                produto,
+                              )
+                            }
+                          >
+                            <span>
+                              {semEstoque
+                                ? 'Esgotado'
+                                : 'Adicionar'}
+                            </span>
+
+                            {!semEstoque && (
+                              <ArrowUpRight
+                                size={16}
+                                strokeWidth={
+                                  2.2
+                                }
+                              />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                ),
+                    </article>
+                  )
+                },
               )}
             </div>
           )}
