@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
@@ -13,15 +12,16 @@ const inter = Inter({
 // URL DO SITE
 // =========================================================
 //
-// Em produção, configure:
+// Em produção:
+//
 // NEXT_PUBLIC_SITE_URL=https://seu-endereco-do-belo-cao.vercel.app
 //
-// Enquanto a variável não existir, usamos localhost
-// para não manter a antiga URL do projeto de dentista.
+// Enquanto a variável não existir, usamos localhost.
 //
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'http://localhost:3000'
 
 // =========================================================
 // METADATA
@@ -31,8 +31,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
 
   title: {
-    default: 'Belo Cão | Estética Animal, Pet Coffee e Lojinha',
-    template: '%s | Belo Cão',
+    default:
+      'Belo Cão | Estética Animal, Pet Coffee e Lojinha',
+
+    template:
+      '%s | Belo Cão',
   },
 
   description:
@@ -80,7 +83,8 @@ export const metadata: Metadata = {
   // =======================================================
 
   openGraph: {
-    title: 'Belo Cão | Estética Animal, Pet Coffee e Lojinha',
+    title:
+      'Belo Cão | Estética Animal, Pet Coffee e Lojinha',
 
     description:
       'Estética animal, pet coffee e lojinha em Taubaté. Um espaço pensado para cuidar dos pets com carinho.',
@@ -101,7 +105,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary',
 
-    title: 'Belo Cão | Estética Animal, Pet Coffee e Lojinha',
+    title:
+      'Belo Cão | Estética Animal, Pet Coffee e Lojinha',
 
     description:
       'Estética animal, pet coffee e lojinha em Taubaté.',
@@ -113,13 +118,18 @@ export const metadata: Metadata = {
 
   robots: {
     index: true,
+
     follow: true,
 
     googleBot: {
       index: true,
+
       follow: true,
+
       'max-video-preview': -1,
+
       'max-image-preview': 'large',
+
       'max-snippet': -1,
     },
   },
@@ -139,65 +149,93 @@ export default function RootLayout({
   // =======================================================
 
   const jsonLd = {
-    '@context': 'https://schema.org',
+    '@context':
+      'https://schema.org',
 
-    '@type': 'LocalBusiness',
+    '@type':
+      'LocalBusiness',
 
-    '@id': `${SITE_URL}/#belo-cao`,
+    '@id':
+      `${SITE_URL}/#belo-cao`,
 
-    name: 'Belo Cão',
+    name:
+      'Belo Cão',
 
-    alternateName: 'Belo Cão Estética Animal',
+    alternateName:
+      'Belo Cão Estética Animal',
 
     description:
       'Estética animal, pet coffee e lojinha para pets.',
 
-    url: SITE_URL,
+    url:
+      SITE_URL,
 
     sameAs: [
       'https://www.instagram.com/belocaoestetica_animal/',
     ],
 
     address: {
-      '@type': 'PostalAddress',
+      '@type':
+        'PostalAddress',
 
-      addressLocality: 'Taubaté',
+      addressLocality:
+        'Taubaté',
 
-      addressRegion: 'SP',
+      addressRegion:
+        'SP',
 
-      addressCountry: 'BR',
+      addressCountry:
+        'BR',
     },
 
     areaServed: {
-      '@type': 'City',
+      '@type':
+        'City',
 
-      name: 'Taubaté',
+      name:
+        'Taubaté',
 
       containedInPlace: {
-        '@type': 'State',
+        '@type':
+          'State',
 
-        name: 'São Paulo',
+        name:
+          'São Paulo',
       },
     },
 
-    priceRange: '$$',
+    priceRange:
+      '$$',
   }
 
+  // =======================================================
+  // RENDER
+  // =======================================================
+
   return (
-    <html lang="pt-BR">
+    <html
+      lang="pt-BR"
+      data-scroll-behavior="smooth"
+    >
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(jsonLd),
+            __html:
+              JSON.stringify(
+                jsonLd,
+              ),
           }}
         />
       </head>
 
-      <body className={inter.className}>
+      <body
+        className={
+          inter.className
+        }
+      >
         {children}
       </body>
     </html>
   )
 }
-
