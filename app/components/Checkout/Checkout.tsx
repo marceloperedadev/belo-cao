@@ -1,3 +1,4 @@
+
 'use client'
 
 import {
@@ -103,7 +104,7 @@ type RespostaPedido = {
    CONFIGURAÇÃO
    ========================================================= */
 
-const WHATSAPP_LOJA = '5511997093459'
+const WHATSAPP_LOJA = '5512997093459'
 
 /* =========================================================
    HELPERS
@@ -134,7 +135,10 @@ function formatarWhatsApp(valor: string) {
     return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`
   }
 
-  return `(${numeros.slice(0, 2)}) ${numeros.slice(
+  return `(${numeros.slice(
+    0,
+    2,
+  )}) ${numeros.slice(
     2,
     7,
   )}-${numeros.slice(7)}`
@@ -198,8 +202,7 @@ export function Checkout({
     useState('')
 
   /*
-   * Impede que o mesmo pedido seja enviado
-   * duas vezes por cliques consecutivos.
+   * Impede envio duplicado.
    */
   const pedidoFinalizadoRef =
     useRef(false)
@@ -227,17 +230,15 @@ export function Checkout({
   }, [itens])
 
   /*
-   * Atualmente o frete está zerado.
-   *
-   * Se futuramente você implementar cálculo
-   * de frete, basta alterar este valor.
+   * Frete atualmente gratuito.
    */
   const frete =
     formaEntrega === 'entrega'
       ? 0
       : 0
 
-  const total = subtotal + frete
+  const total =
+    subtotal + frete
 
   /* =======================================================
      RESET AO ABRIR
@@ -249,15 +250,11 @@ export function Checkout({
     }
 
     setEtapa(1)
-
     setErro('')
-
     setEnviando(false)
 
     setFormaEntrega('entrega')
-
     setFormaPagamento('pix')
-
     setTrocoPara('')
 
     setCliente({
@@ -290,10 +287,11 @@ export function Checkout({
     function handleKeyDown(
       event: KeyboardEvent,
     ) {
-      if (event.key === 'Escape') {
-        if (!enviando) {
-          onFechar()
-        }
+      if (
+        event.key === 'Escape' &&
+        !enviando
+      ) {
+        onFechar()
       }
     }
 
@@ -438,15 +436,19 @@ export function Checkout({
      ======================================================= */
 
   function validarEtapa2() {
-    if (formaEntrega === 'retirada') {
+    if (
+      formaEntrega ===
+      'retirada'
+    ) {
       setErro('')
 
       return true
     }
 
     if (
-      somenteNumeros(cliente.cep)
-        .length !== 8
+      somenteNumeros(
+        cliente.cep,
+      ).length !== 8
     ) {
       setErro(
         'Informe um CEP válido.',
@@ -515,8 +517,6 @@ export function Checkout({
       }
 
       setEtapa(3)
-
-      return
     }
   }
 
@@ -614,7 +614,12 @@ export function Checkout({
       `🛍️ *ITENS DO PEDIDO*`,
       ...linhasProdutos,
       ``,
-      `🚚 *ENTREGA:* ${formaEntrega === 'entrega' ? 'Entrega' : 'Retirada na loja'}`,
+      `🚚 *ENTREGA:* ${
+        formaEntrega ===
+        'entrega'
+          ? 'Entrega'
+          : 'Retirada na loja'
+      }`,
       `📍 *Endereço:* ${endereco}`,
       ``,
       `💳 *Pagamento:* ${pagamento}`,
@@ -639,22 +644,25 @@ export function Checkout({
 
   async function enviarPedido() {
     /*
-     * Segurança contra duplo clique.
+     * Impede duplo clique.
      */
     if (enviando) {
       return
     }
 
     /*
-     * Segurança adicional:
-     * se o pedido já foi confirmado,
-     * não envia novamente.
+     * Impede segundo envio depois
+     * de um pedido confirmado.
      */
     if (
       pedidoFinalizadoRef.current
     ) {
       return
     }
+
+    /* =====================================================
+       VALIDAR CARRINHO
+       ===================================================== */
 
     if (!itens.length) {
       setErro(
@@ -664,11 +672,19 @@ export function Checkout({
       return
     }
 
+    /* =====================================================
+       VALIDAR CLIENTE
+       ===================================================== */
+
     if (!validarEtapa1()) {
       setEtapa(1)
 
       return
     }
+
+    /* =====================================================
+       VALIDAR ENTREGA
+       ===================================================== */
 
     if (!validarEtapa2()) {
       setEtapa(2)
@@ -697,14 +713,42 @@ export function Checkout({
 
       /* =================================================
          PREPARAR ITENS
+
+         IMPORTANTE:
+         A API /api/pedidos espera:
+
+         {
+           id: UUID_DO_PRODUTO,
+           quantidade: number
+         }
+
+         NÃO usar "productId" aqui.
          ================================================= */
 
       const itensPedido =
         itens.map((item) => ({
-          productId: item.id,
+          id: item.id,
           quantidade:
             Number(item.quantidade) || 0,
         }))
+
+      /*
+       * Segurança adicional:
+       * não permite enviar item com
+       * quantidade inválida.
+       */
+      const itemInvalido =
+        itensPedido.some(
+          (item) =>
+            !item.id ||
+            item.quantidade <= 0,
+        )
+
+      if (itemInvalido) {
+        throw new Error(
+          'Existe um produto inválido no carrinho. Atualize a página e tente novamente.',
+        )
+      }
 
       /* =================================================
          DADOS DO PEDIDO
@@ -750,17 +794,22 @@ export function Checkout({
           formaPagamento ===
           'dinheiro'
             ? Number(
-                trocoPara
-                  .replace(',', '.'),
+                trocoPara.replace(
+                  ',',
+                  '.',
+                ),
               ) || null
             : null,
 
+        /*
+         * IMPORTANTE:
+         * itens agora possui "id",
+         * exatamente como a API espera.
+         */
         itens: itensPedido,
 
         subtotal,
-
         frete,
-
         total,
       }
 
@@ -796,7 +845,7 @@ export function Checkout({
       }
 
       /* =================================================
-         ERRO DE ESTOQUE
+         ERRO DE ESTOQUE / CONFLITO
          ================================================= */
 
       if (
@@ -869,7 +918,7 @@ export function Checkout({
         )
 
       /* =================================================
-         MONTAR WHATSAPP
+         MONTAR MENSAGEM WHATSAPP
          ================================================= */
 
       const mensagem =
@@ -898,43 +947,39 @@ export function Checkout({
         )
 
       /*
-       * IMPORTANTE:
+       * Neste momento o pedido já foi:
        *
-       * Neste ponto o pedido JÁ foi:
-       *
-       * 1. criado no banco;
+       * 1. criado em orders;
        * 2. registrado em order_items;
-       * 3. retirado do estoque;
+       * 3. estoque baixado;
+       * 4. transação confirmada.
        *
-       * Portanto, o pedido está FINALIZADO,
-       * independentemente de o WhatsApp abrir
-       * ou ser bloqueado pelo navegador.
+       * Portanto, o pedido está finalizado
+       * mesmo que o navegador bloqueie o WhatsApp.
        */
 
       pedidoFinalizadoRef.current =
         true
 
+      /* =================================================
+         FINALIZAR NO LOJAPAGE
+         ================================================= */
+
       /*
-       * Isso chama o pedidoFinalizado()
-       * do LojaPage.
+       * O LojaPage irá:
        *
-       * O LojaPage então:
-       *
-       * - limpa setCarrinho([]);
-       * - remove belo-cao-carrinho do localStorage;
-       * - fecha o Checkout;
-       * - fecha o Carrinho;
-       * - atualiza os produtos/estoque.
+       * - setCarrinho([]);
+       * - limpar localStorage;
+       * - fechar checkout;
+       * - fechar carrinho;
+       * - atualizar produtos/estoque.
        */
       onPedidoFinalizado?.()
 
-      /*
-       * Se o navegador bloqueou o popup,
-       * não devemos considerar isso como
-       * erro do pedido.
-       *
-       * O pedido já foi salvo.
-       */
+      /* =================================================
+         WHATSAPP BLOQUEADO
+         ================================================= */
+
       if (!janela) {
         console.warn(
           'O navegador bloqueou a abertura do WhatsApp.',
@@ -942,10 +987,9 @@ export function Checkout({
       }
 
       /*
-       * Não voltar a setEnviando(false)
-       * aqui porque o componente pode ser
-       * desmontado imediatamente pelo
-       * onPedidoFinalizado().
+       * Não fazemos setEnviando(false)
+       * porque o Checkout pode ser desmontado
+       * imediatamente pelo LojaPage.
        */
       return
     } catch (error) {
@@ -955,8 +999,8 @@ export function Checkout({
       )
 
       /*
-       * Só mostramos erro se o pedido
-       * realmente NÃO tiver sido finalizado.
+       * Só mostra erro se o pedido
+       * realmente não foi finalizado.
        */
       if (
         !pedidoFinalizadoRef.current
@@ -1021,7 +1065,9 @@ export function Checkout({
             className={styles.headerInfo}
           >
             <span
-              className={styles.headerEyebrow}
+              className={
+                styles.headerEyebrow
+              }
             >
               BELO CÃO
             </span>
@@ -1577,8 +1623,7 @@ export function Checkout({
                         ) =>
                           atualizarCliente(
                             'rua',
-                            event
-                              .target
+                            event.target
                               .value,
                           )
                         }
@@ -2079,7 +2124,8 @@ export function Checkout({
                       event,
                     ) =>
                       setTrocoPara(
-                        event.target.value,
+                        event.target
+                          .value,
                       )
                     }
                     placeholder="Ex.: 100,00"
@@ -2140,7 +2186,9 @@ export function Checkout({
 
                       return (
                         <div
-                          key={item.id}
+                          key={
+                            item.id
+                          }
                           className={
                             styles.summaryItem
                           }
@@ -2153,7 +2201,9 @@ export function Checkout({
                             </strong>
 
                             <span>
-                              {quantidade}{' '}
+                              {
+                                quantidade
+                              }{' '}
                               x{' '}
                               {formatarMoeda(
                                 preco,

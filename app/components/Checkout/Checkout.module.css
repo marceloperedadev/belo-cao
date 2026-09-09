@@ -29,7 +29,7 @@
    CONTAINER
    ========================================================= */
 
-.checkout {
+.container {
   position: relative;
 
   width: min(900px, 100%);
@@ -74,71 +74,66 @@
   background: #ffffff;
 }
 
-.headerTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  margin-bottom: 20px;
+.headerInfo {
+  max-width: 650px;
 }
 
-.backButton,
+.headerEyebrow {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #806f88;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  line-height: 1;
+
+  letter-spacing: 0.18em;
+
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+
+  color: #342039;
+
+  font-size: clamp(29px, 4vw, 40px);
+  font-weight: 700;
+
+  line-height: 1.03;
+
+  letter-spacing: -0.045em;
+}
+
+/* =========================================================
+   BOTÃO FECHAR
+   ========================================================= */
+
 .closeButton {
+  position: absolute;
+
+  top: 22px;
+  right: 25px;
+
+  width: 37px;
+  height: 37px;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
-  border: 0;
-
-  font: inherit;
-
-  cursor: pointer;
-}
-
-.backButton {
-  gap: 7px;
-
-  padding: 7px 0;
-
-  background: transparent;
-  color: #806f88;
-
-  font-size: 11px;
-  font-weight: 700;
-
-  transition:
-    color 0.18s ease,
-    transform 0.18s ease;
-}
-
-.backButton:hover:not(:disabled) {
-  color: #672f96;
-
-  transform: translateX(-2px);
-}
-
-.backButton:disabled {
-  opacity: 0.5;
-
-  cursor: not-allowed;
-}
-
-.backButton:focus-visible {
-  outline: 2px solid #672f96;
-  outline-offset: 4px;
-
-  border-radius: 4px;
-}
-
-.closeButton {
-  width: 37px;
-  height: 37px;
 
   border: 1px solid rgba(103, 47, 150, 0.1);
   border-radius: 50%;
 
   background: #ffffff;
   color: #806f88;
+
+  font: inherit;
+
+  cursor: pointer;
 
   transition:
     color 0.18s ease,
@@ -168,70 +163,36 @@
   outline-offset: 3px;
 }
 
-.headerContent {
-  max-width: 650px;
-}
-
-.eyebrow {
-  display: block;
-
-  margin-bottom: 7px;
-
-  color: #806f88;
-
-  font-size: 9px;
-  font-weight: 800;
-
-  line-height: 1;
-  letter-spacing: 0.18em;
-
-  text-transform: uppercase;
-}
-
-.headerContent h1 {
-  margin: 0;
-
-  color: #342039;
-
-  font-size: clamp(29px, 4vw, 40px);
-  font-weight: 700;
-
-  line-height: 1.03;
-  letter-spacing: -0.045em;
-}
-
-.headerContent p {
-  max-width: 560px;
-
-  margin: 9px 0 0;
-
-  color: #806f88;
-
-  font-size: 12px;
-  line-height: 1.55;
-}
-
 /* =========================================================
    PROGRESSO
    ========================================================= */
+
+.progressWrapper {
+  flex: 0 0 auto;
+
+  padding: 0 30px;
+}
 
 .progress {
   position: relative;
 
   display: grid;
 
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns:
+    repeat(3, 1fr);
 
   gap: 10px;
 
   margin-top: 25px;
 }
 
-.progressItem {
+.progressStep {
   position: relative;
+
   z-index: 2;
 
   display: flex;
+
   align-items: center;
 
   gap: 8px;
@@ -245,31 +206,41 @@
 
   letter-spacing: 0.03em;
 
-  transition: color 0.2s ease;
+  transition:
+    color 0.2s ease;
 }
 
-.progressItem:nth-child(2) {
+.progressStep:nth-child(1) {
+  justify-content: flex-start;
+}
+
+.progressStep:nth-child(3) {
   justify-content: center;
 }
 
-.progressItem:nth-child(3) {
+.progressStep:nth-child(5) {
   justify-content: flex-end;
 }
 
-.progressCircle {
+.progressNumber {
   width: 24px;
   height: 24px;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
   flex: 0 0 auto;
 
+  box-sizing: border-box;
+
   border: 1px solid rgba(103, 47, 150, 0.12);
+
   border-radius: 50%;
 
   background: #ffffff;
+
   color: #b2a5b6;
 
   font-size: 9px;
@@ -281,11 +252,11 @@
     border-color 0.2s ease;
 }
 
-.progressActive {
+.progressStep.active {
   color: #672f96;
 }
 
-.progressActive .progressCircle {
+.progressStep.active .progressNumber {
   border-color: #672f96;
 
   background: #672f96;
@@ -293,11 +264,11 @@
   color: #ffffff;
 }
 
-.progressDone {
+.progressStep.completed {
   color: #672f96;
 }
 
-.progressDone .progressCircle {
+.progressStep.completed .progressNumber {
   border-color: #672f96;
 
   background: #eee5f4;
@@ -305,13 +276,17 @@
   color: #672f96;
 }
 
+.progressLabel {
+  white-space: nowrap;
+}
+
 .progressLine {
   position: absolute;
 
+  top: 12px;
+
   left: 12px;
   right: 12px;
-
-  top: 12px;
 
   height: 1px;
 
@@ -320,23 +295,15 @@
   background: rgba(103, 47, 150, 0.1);
 }
 
-.progressLine span {
-  display: block;
-
-  height: 100%;
-
+.progressLine.completedLine {
   background: #672f96;
-
-  transition:
-    width 0.3s
-    cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* =========================================================
-   BODY
+   CONTEÚDO
    ========================================================= */
 
-.body {
+.content {
   flex: 1 1 auto;
 
   min-height: 0;
@@ -353,15 +320,15 @@
     transparent;
 }
 
-.body::-webkit-scrollbar {
+.content::-webkit-scrollbar {
   width: 5px;
 }
 
-.body::-webkit-scrollbar-track {
+.content::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.body::-webkit-scrollbar-thumb {
+.content::-webkit-scrollbar-thumb {
   background: rgba(103, 47, 150, 0.2);
 
   border-radius: 999px;
@@ -378,8 +345,13 @@
   margin: 0 auto;
 }
 
-.sectionHeader {
+/* =========================================================
+   CABEÇALHO DA ETAPA
+   ========================================================= */
+
+.stepHeader {
   display: flex;
+
   align-items: flex-start;
 
   gap: 15px;
@@ -387,10 +359,28 @@
   margin-bottom: 24px;
 }
 
-.sectionHeader > span {
+.stepIcon {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
   flex: 0 0 auto;
 
-  padding-top: 2px;
+  border-radius: 12px;
+
+  background: #eee5f4;
+
+  color: #672f96;
+}
+
+.stepCounter {
+  display: block;
+
+  margin-bottom: 5px;
 
   color: #8d55b4;
 
@@ -400,8 +390,8 @@
   letter-spacing: 0.15em;
 }
 
-.sectionHeader strong {
-  display: block;
+.stepTitle {
+  margin: 0;
 
   color: #342039;
 
@@ -409,15 +399,19 @@
   font-weight: 700;
 
   line-height: 1.25;
+
   letter-spacing: -0.02em;
 }
 
-.sectionHeader p {
+.stepDescription {
+  max-width: 560px;
+
   margin: 4px 0 0;
 
   color: #806f88;
 
   font-size: 11px;
+
   line-height: 1.5;
 }
 
@@ -453,7 +447,7 @@
   gap: 7px;
 }
 
-.field > span {
+.field label {
   display: flex;
 
   align-items: center;
@@ -466,18 +460,79 @@
   font-weight: 700;
 }
 
-.field > span em {
+.field label span {
   color: #a99aaa;
 
   font-size: 8px;
-  font-style: normal;
+
   font-weight: 600;
 }
 
-.inputWrap {
+.field input {
+  width: 100%;
+
+  min-height: 48px;
+
+  box-sizing: border-box;
+
+  padding: 0 13px;
+
+  border: 1px solid rgba(103, 47, 150, 0.13);
+
+  border-radius: 11px;
+
+  outline: 0;
+
+  background: #ffffff;
+
+  color: #342039;
+
+  font: inherit;
+
+  font-size: 12px;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.field input::placeholder {
+  color: #b7aab9;
+}
+
+.field input:focus {
+  border-color: rgba(103, 47, 150, 0.55);
+
+  background: #ffffff;
+
+  box-shadow:
+    0 0 0 3px rgba(103, 47, 150, 0.08);
+}
+
+.field input:disabled {
+  opacity: 0.65;
+
+  cursor: wait;
+}
+
+.field small {
+  color: #806f88;
+
+  font-size: 8px;
+
+  line-height: 1.35;
+}
+
+/* =========================================================
+   INPUT COM ÍCONE
+   ========================================================= */
+
+.inputWithIcon {
   min-height: 48px;
 
   display: flex;
+
   align-items: center;
 
   gap: 9px;
@@ -500,7 +555,7 @@
     background 0.18s ease;
 }
 
-.inputWrap:focus-within {
+.inputWithIcon:focus-within {
   border-color: rgba(103, 47, 150, 0.55);
 
   background: #ffffff;
@@ -509,13 +564,17 @@
     0 0 0 3px rgba(103, 47, 150, 0.08);
 }
 
-.inputWrap input {
+.inputWithIcon input {
   width: 100%;
+
   min-width: 0;
+
+  min-height: auto;
 
   padding: 0;
 
   border: 0;
+
   outline: 0;
 
   background: transparent;
@@ -527,126 +586,72 @@
   font-size: 12px;
 
   line-height: 1.2;
+
+  box-shadow: none;
 }
 
-.inputWrap input::placeholder {
-  color: #b7aab9;
-}
-
-.inputWrap input:focus {
-  outline: 0;
-}
-
-.inputWrap input:disabled {
-  opacity: 0.65;
-
-  cursor: wait;
-}
-
-.inputMiniIcon {
-  width: 17px;
-  height: 17px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  flex: 0 0 auto;
-
-  border: 1px solid rgba(103, 47, 150, 0.25);
-
-  border-radius: 4px;
-
-  color: #8d55b4;
-
-  font-size: 9px;
-  font-weight: 800;
+.inputWithIcon input:focus {
+  box-shadow: none;
 }
 
 /* =========================================================
    CEP
    ========================================================= */
 
-.cepLoader {
-  flex: 0 0 auto;
+.cepRow {
+  display: grid;
 
-  color: #672f96;
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto;
 
-  animation:
-    cepSpin 0.8s linear infinite;
+  gap: 8px;
 }
 
-.cepStatus {
-  display: block;
+.cepRow button {
+  min-width: 78px;
 
-  margin-top: 1px;
+  padding: 0 14px;
 
-  color: #806f88;
+  border: 1px solid #672f96;
 
-  font-size: 8px;
-  font-weight: 600;
+  border-radius: 11px;
 
-  line-height: 1.35;
-}
+  background: #672f96;
 
-@keyframes cepSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+  color: #ffffff;
 
-/* =========================================================
-   INFO BOX
-   ========================================================= */
-
-.infoBox {
-  display: flex;
-  align-items: flex-start;
-
-  gap: 11px;
-
-  margin-top: 22px;
-
-  padding: 15px 16px;
-
-  border: 1px solid rgba(103, 47, 150, 0.1);
-
-  border-radius: 13px;
-
-  background: #eee5f4;
-
-  color: #672f96;
-}
-
-.infoBox > svg {
-  flex: 0 0 auto;
-
-  margin-top: 1px;
-}
-
-.infoBox div {
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 3px;
-}
-
-.infoBox strong {
-  color: #43205f;
+  font: inherit;
 
   font-size: 10px;
   font-weight: 800;
 
-  line-height: 1.35;
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
-.infoBox span {
-  color: #806f88;
+.cepRow button:hover:not(:disabled) {
+  background: #43205f;
 
-  font-size: 9px;
+  transform: translateY(-1px);
+}
 
-  line-height: 1.5;
+.cepRow button:disabled {
+  opacity: 0.6;
+
+  cursor: wait;
+}
+
+/* =========================================================
+   SPINNER
+   ========================================================= */
+
+.spin {
+  animation:
+    spinner 0.7s linear infinite;
 }
 
 /* =========================================================
@@ -664,11 +669,12 @@
   margin-bottom: 23px;
 }
 
-.optionCard,
-.paymentCard {
+.deliveryOption,
+.paymentOption {
   position: relative;
 
   display: flex;
+
   align-items: flex-start;
 
   width: 100%;
@@ -698,15 +704,15 @@
     transform 0.2s ease;
 }
 
-.optionCard:hover,
-.paymentCard:hover {
+.deliveryOption:hover,
+.paymentOption:hover {
   border-color: rgba(103, 47, 150, 0.28);
 
   transform: translateY(-1px);
 }
 
-.optionCardActive,
-.paymentCardActive {
+.deliveryOption.selected,
+.paymentOption.selected {
   border-color: #672f96;
 
   background: #eee5f4;
@@ -715,19 +721,20 @@
     0 7px 20px rgba(103, 47, 150, 0.08);
 }
 
-.optionCard:focus-visible,
-.paymentCard:focus-visible {
+.deliveryOption:focus-visible,
+.paymentOption:focus-visible {
   outline: 2px solid #672f96;
 
   outline-offset: 3px;
 }
 
-.optionIcon,
+.deliveryIcon,
 .paymentIcon {
   width: 40px;
   height: 40px;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
@@ -742,12 +749,13 @@
   color: #672f96;
 }
 
-.optionCardActive .optionIcon,
-.paymentCardActive .paymentIcon {
+.deliveryOption.selected .deliveryIcon,
+.paymentOption.selected .paymentIcon {
   background: #ffffff;
 }
 
-.optionContent {
+.deliveryText,
+.paymentText {
   min-width: 0;
 
   flex: 1;
@@ -759,7 +767,8 @@
   padding-right: 22px;
 }
 
-.optionContent strong {
+.deliveryText strong,
+.paymentText strong {
   margin-bottom: 4px;
 
   color: #342039;
@@ -770,7 +779,8 @@
   line-height: 1.25;
 }
 
-.optionContent span {
+.deliveryText span,
+.paymentText span {
   color: #806f88;
 
   font-size: 9px;
@@ -788,6 +798,7 @@
   height: 16px;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
@@ -798,7 +809,7 @@
   background: #ffffff;
 }
 
-.radio i {
+.radio span {
   width: 8px;
   height: 8px;
 
@@ -819,42 +830,19 @@
   border-top: 1px solid rgba(103, 47, 150, 0.08);
 }
 
-.addressHeader,
-.changeHeader {
+.addressHeader {
   display: flex;
-  align-items: flex-start;
+
+  align-items: center;
 
   gap: 10px;
 
   margin-bottom: 18px;
 
   color: #672f96;
-}
-
-.addressHeader div,
-.changeHeader div {
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 3px;
-}
-
-.addressHeader strong,
-.changeHeader strong {
-  color: #342039;
 
   font-size: 11px;
   font-weight: 800;
-}
-
-.addressHeader span,
-.changeHeader span {
-  color: #806f88;
-
-  font-size: 9px;
-
-  line-height: 1.45;
 }
 
 /* =========================================================
@@ -863,6 +851,7 @@
 
 .pickupBox {
   display: flex;
+
   align-items: flex-start;
 
   gap: 14px;
@@ -874,40 +863,14 @@
   border-radius: 14px;
 
   background: #eee5f4;
-}
-
-.pickupIcon {
-  width: 45px;
-  height: 45px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex: 0 0 auto;
-
-  border-radius: 12px;
-
-  background: #ffffff;
 
   color: #672f96;
 }
 
-.pickupBox > div:last-child {
+.pickupBox > div {
   display: flex;
 
   flex-direction: column;
-}
-
-.pickupBox > div:last-child > span {
-  margin-bottom: 5px;
-
-  color: #8d55b4;
-
-  font-size: 8px;
-  font-weight: 800;
-
-  letter-spacing: 0.14em;
 }
 
 .pickupBox strong {
@@ -941,7 +904,7 @@
   gap: 10px;
 }
 
-.paymentCard {
+.paymentOption {
   min-height: 74px;
 }
 
@@ -951,6 +914,7 @@
 
 .paymentIcon span {
   font-size: 9px;
+
   font-weight: 900;
 
   letter-spacing: -0.02em;
@@ -972,10 +936,6 @@
   background: #fdfbfe;
 }
 
-.changeBox .field {
-  max-width: 330px;
-}
-
 .changeResult {
   display: block;
 
@@ -993,10 +953,10 @@
 }
 
 /* =========================================================
-   ORDER SUMMARY
+   RESUMO DO PEDIDO
    ========================================================= */
 
-.orderSummary {
+.summary {
   margin-top: 24px;
 
   border: 1px solid rgba(103, 47, 150, 0.1);
@@ -1008,47 +968,23 @@
   background: #ffffff;
 }
 
-.orderSummaryHeader {
+.summaryHeader {
   display: flex;
+
   align-items: center;
-  justify-content: space-between;
+
+  gap: 9px;
 
   padding: 15px 17px;
 
   border-bottom: 1px solid rgba(103, 47, 150, 0.08);
 
   background: #fdfbfe;
-}
 
-.orderSummaryHeader > div {
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 3px;
-}
-
-.orderSummaryHeader > div > span {
-  color: #8d55b4;
-
-  font-size: 8px;
-  font-weight: 800;
-
-  letter-spacing: 0.15em;
-}
-
-.orderSummaryHeader strong {
-  color: #342039;
+  color: #672f96;
 
   font-size: 12px;
   font-weight: 800;
-}
-
-.itemCount {
-  color: #806f88;
-
-  font-size: 9px;
-  font-weight: 600;
 }
 
 .summaryItems {
@@ -1061,7 +997,9 @@
 
 .summaryItem {
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
 
   gap: 20px;
@@ -1079,28 +1017,29 @@
   min-width: 0;
 
   display: flex;
-  align-items: center;
 
-  gap: 7px;
+  flex-direction: column;
+
+  gap: 4px;
 }
 
 .summaryItem > div strong {
-  color: #672f96;
-
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.summaryItem > div span {
   overflow: hidden;
 
   color: #342039;
 
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
 
   text-overflow: ellipsis;
+
   white-space: nowrap;
+}
+
+.summaryItem > div span {
+  color: #806f88;
+
+  font-size: 9px;
 }
 
 .summaryItem > strong {
@@ -1122,7 +1061,9 @@
 
 .summaryTotals > div {
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
 
   padding: 4px 0;
@@ -1141,22 +1082,22 @@
   font-weight: 700;
 }
 
-.summaryTotals .totalRow {
+.summaryTotal {
   margin-top: 7px;
 
-  padding-top: 12px;
+  padding-top: 12px !important;
 
   border-top: 1px solid rgba(103, 47, 150, 0.1);
 }
 
-.summaryTotals .totalRow span {
+.summaryTotal span {
   color: #342039;
 
   font-size: 11px;
   font-weight: 800;
 }
 
-.summaryTotals .totalRow strong {
+.summaryTotal strong {
   color: #672f96;
 
   font-size: 17px;
@@ -1171,9 +1112,12 @@
 
 .error {
   display: flex;
-  align-items: flex-start;
 
-  gap: 9px;
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 10px;
 
   max-width: 760px;
 
@@ -1188,35 +1132,35 @@
   background: #fff8fa;
 
   color: #7f4055;
-}
-
-.error > span {
-  width: 17px;
-  height: 17px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex: 0 0 auto;
-
-  border-radius: 50%;
-
-  background: #7f4055;
-
-  color: #ffffff;
-
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.error p {
-  margin: 1px 0 0;
 
   font-size: 9px;
   font-weight: 600;
 
   line-height: 1.45;
+}
+
+.error > span {
+  flex: 1;
+}
+
+.error button {
+  width: 24px;
+  height: 24px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 auto;
+
+  border: 0;
+
+  background: transparent;
+
+  color: #7f4055;
+
+  cursor: pointer;
 }
 
 /* =========================================================
@@ -1227,7 +1171,9 @@
   flex: 0 0 auto;
 
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
 
   gap: 20px;
@@ -1242,39 +1188,61 @@
     0 -8px 25px rgba(52, 32, 57, 0.035);
 }
 
-.footerTotal {
-  display: flex;
+.backButton {
+  display: inline-flex;
 
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 
-  gap: 4px;
-}
+  gap: 7px;
 
-.footerTotal span {
+  padding: 7px 0;
+
+  border: 0;
+
+  background: transparent;
+
   color: #806f88;
 
-  font-size: 8px;
-  font-weight: 800;
+  font: inherit;
 
-  letter-spacing: 0.16em;
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    color 0.18s ease,
+    transform 0.18s ease;
 }
 
-.footerTotal strong {
-  color: #342039;
+.backButton:hover:not(:disabled) {
+  color: #672f96;
 
-  font-size: 17px;
-  font-weight: 800;
+  transform: translateX(-2px);
+}
 
-  line-height: 1;
+.backButton:disabled {
+  opacity: 0.5;
 
-  letter-spacing: -0.025em;
+  cursor: not-allowed;
+}
+
+.backButton:focus-visible {
+  outline: 2px solid #672f96;
+
+  outline-offset: 4px;
+
+  border-radius: 4px;
 }
 
 .continueButton {
   min-width: 175px;
+
   min-height: 49px;
 
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
 
@@ -1336,18 +1304,8 @@
   outline-offset: 3px;
 }
 
-.spinner {
-  width: 15px;
-  height: 15px;
-
-  border: 2px solid rgba(255, 255, 255, 0.35);
-
-  border-top-color: #ffffff;
-
-  border-radius: 50%;
-
-  animation:
-    spinner 0.7s linear infinite;
+.arrowRight {
+  transform: rotate(180deg);
 }
 
 /* =========================================================
@@ -1397,7 +1355,7 @@
     padding: 14px;
   }
 
-  .checkout {
+  .container {
     height: calc(100dvh - 28px);
 
     max-height: calc(100dvh - 28px);
@@ -1409,7 +1367,11 @@
     padding: 19px 22px 21px;
   }
 
-  .body {
+  .progressWrapper {
+    padding: 0 22px;
+  }
+
+  .content {
     padding: 23px 22px 25px;
   }
 
@@ -1433,7 +1395,7 @@
     padding: 0;
   }
 
-  .checkout {
+  .container {
     width: 100%;
 
     height: 100dvh;
@@ -1452,29 +1414,26 @@
       18px;
   }
 
-  .headerTop {
-    margin-bottom: 17px;
+  .closeButton {
+    top: 18px;
+    right: 18px;
   }
 
-  .headerContent h1 {
-    font-size: 30px;
-  }
-
-  .headerContent p {
-    font-size: 11px;
+  .progressWrapper {
+    padding: 0 18px;
   }
 
   .progress {
     margin-top: 21px;
   }
 
-  .progressItem {
+  .progressStep {
     gap: 6px;
 
     font-size: 8px;
   }
 
-  .progressCircle {
+  .progressNumber {
     width: 22px;
     height: 22px;
 
@@ -1482,30 +1441,30 @@
   }
 
   .progressLine {
+    top: 11px;
+
     left: 11px;
     right: 11px;
-
-    top: 11px;
   }
 
-  .body {
+  .content {
     padding:
       22px
       18px
       25px;
   }
 
-  .sectionHeader {
+  .stepHeader {
     gap: 12px;
 
     margin-bottom: 20px;
   }
 
-  .sectionHeader strong {
+  .stepTitle {
     font-size: 16px;
   }
 
-  .sectionHeader p {
+  .stepDescription {
     font-size: 10px;
   }
 
@@ -1515,20 +1474,16 @@
     gap: 14px;
   }
 
-  .inputWrap {
+  .inputWithIcon {
     min-height: 47px;
   }
 
-  .infoBox {
-    margin-top: 19px;
-  }
-
-  .optionCard,
-  .paymentCard {
+  .deliveryOption,
+  .paymentOption {
     padding: 14px;
   }
 
-  .optionIcon,
+  .deliveryIcon,
   .paymentIcon {
     width: 38px;
     height: 38px;
@@ -1536,11 +1491,13 @@
     margin-right: 10px;
   }
 
-  .optionContent strong {
+  .deliveryText strong,
+  .paymentText strong {
     font-size: 11px;
   }
 
-  .optionContent span {
+  .deliveryText span,
+  .paymentText span {
     font-size: 9px;
   }
 
@@ -1548,7 +1505,7 @@
     padding: 16px;
   }
 
-  .orderSummary {
+  .summary {
     margin-top: 20px;
   }
 
@@ -1557,10 +1514,6 @@
       13px
       18px
       max(16px, env(safe-area-inset-bottom));
-  }
-
-  .footerTotal {
-    display: none;
   }
 
   .continueButton {
@@ -1581,37 +1534,24 @@
     padding-right: 15px;
   }
 
-  .body {
+  .progressWrapper {
     padding-left: 15px;
 
     padding-right: 15px;
   }
 
-  .headerContent h1 {
+  .content {
+    padding-left: 15px;
+
+    padding-right: 15px;
+  }
+
+  .title {
     font-size: 27px;
   }
 
-  .progressItem span {
+  .progressLabel {
     display: none;
-  }
-
-  .progressItem:nth-child(1),
-  .progressItem:nth-child(2),
-  .progressItem:nth-child(3) {
-    justify-content: flex-start;
-  }
-
-  .progress {
-    grid-template-columns:
-      repeat(3, 1fr);
-  }
-
-  .progressItem:nth-child(2) {
-    justify-content: center;
-  }
-
-  .progressItem:nth-child(3) {
-    justify-content: flex-end;
   }
 
   .footer {
@@ -1627,24 +1567,20 @@
 
 @media (prefers-reduced-motion: reduce) {
   .overlay,
-  .checkout {
+  .container {
     animation: none;
   }
 
   .backButton,
   .closeButton,
-  .optionCard,
-  .paymentCard,
-  .inputWrap,
+  .deliveryOption,
+  .paymentOption,
+  .inputWithIcon,
   .continueButton {
     transition: none;
   }
 
-  .progressLine span,
-  .spinner,
-  .cepLoader {
+  .spin {
     animation: none;
-
-    transition: none;
   }
 }
