@@ -31,11 +31,14 @@ export async function GET(request: Request) {
     const whatsapp =
       normalizarWhatsapp(whatsappInformado)
 
-    if (!whatsapp) {
+    if (
+      whatsapp.length !== 12 &&
+      whatsapp.length !== 13
+    ) {
       return NextResponse.json(
         {
           sucesso: false,
-          erro: 'WhatsApp não informado.',
+          erro: 'WhatsApp inválido.',
         },
         { status: 400 },
       )
@@ -53,7 +56,6 @@ export async function GET(request: Request) {
           complement,
           neighborhood,
           city,
-          uf,
           reference_point,
           created_at,
           updated_at

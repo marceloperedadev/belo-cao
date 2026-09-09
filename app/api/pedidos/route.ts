@@ -1,33 +1,80 @@
-import { Pool, type PoolClient } from '@neondatabase/serverless'
+
+import { NextResponse } from 'next/server'
+import { Pool } from '@neondatabase/serverless'
 
 export const runtime = 'nodejs'
 
-const databaseUrl = process.env.DATABASE_URL
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+})
 
-/* =========================================================
-   ERRO CONTROLADO
-   ========================================================= */
+// =========================================================
+// TIPOS
+// =========================================================
 
-class PedidoConflitoError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'PedidoConflitoError'
-  }
+type ItemPedido = {
+  id: string
+  quantidade: number
 }
 
-/* =========================================================
-   HELPERS
-   ========================================================= */
-
-function textoSeguro(valor: unknown): string {
-  if (typeof valor !== 'string') {
-    return ''
+type BodyPedido = {
+  cliente?: {
+    nome?: string
+    whatsapp?: string
+    cep?: string
+    rua?: string
+    numero?: string
+    complemento?: string
+    bairro?: string
+    cidade?: string
+    uf?: string
+    referencia?: string
   }
 
-  return valor.trim()
+  formaEntrega?: 'entrega' | 'retirada'
+
+  formaPagamento?: 'pix' | 'dinheiro' | 'cartao'
+
+  trocoPara?: number | null
+
+  frete?: number | null
+
+  itens?: ItemPedido[]
 }
 
-function numeroSeguro(valor: unknown): number {
+// =========================================================
+// UTILITÁRIOS
+// =========================================================
+
+function somenteNumeros(valor: unknown): string {
+  return String(valor ?? '').replace(/\D/g, '')
+}
+
+function normalizarWhatsApp(
+  valor: unknown,
+): string {
+  const numeros =
+    somenteNumeros(valor)
+
+  if (
+    numeros.startsWith('55')
+  ) {
+    return numeros
+  }
+
+  if (
+    numeros.length === 10 ||
+    numeros.length === 11
+  ) {
+    return `55${numeros}`
+  }
+
+  return numeros
+}
+
+function numeroSeguro(
+  valor: unknown,
+): number {
   if (
     valor === null ||
     valor === undefined ||
@@ -37,651 +84,693 @@ function numeroSeguro(valor: unknown): number {
   }
 
   const numero =
-    typeof valor === 'number'
-      ? valor
-      : Number(
-          String(valor).replace(',', '.'),
-        )
+    Number(valor)
 
-  return Number.isFinite(numero)
+  return Number.isFinite(
+    numero,
+  )
     ? numero
     : 0
 }
 
-function inteiroPositivo(
-  valor: unknown,
-): number {
-  const numero = Number(valor)
-
-  if (
-    !Number.isInteger(numero) ||
-    numero <= 0
-  ) {
-    return 0
-  }
-
-  return numero
-}
-
-function uuidValido(
-  valor: unknown,
-): boolean {
-  if (typeof valor !== 'string') {
-    return false
-  }
-
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    valor,
-  )
-}
-
-/* =========================================================
-   WHATSAPP — NORMALIZAÇÃO
-   ========================================================= */
-
-function normalizarWhatsApp(
-  valor: unknown,
+function formatarNumeroPedido(
+  numero: number,
 ): string {
-  let numero = textoSeguro(valor).replace(
-    /\D/g,
-    '',
-  )
-
-  if (!numero) {
-    return ''
-  }
-
-  /*
-   * Se já possui código do Brasil,
-   * mantém.
-   */
-  if (numero.startsWith('55')) {
-    return numero
-  }
-
-  /*
-   * Números brasileiros sem código
-   * do país.
-   */
-  if (
-    numero.length === 10 ||
-    numero.length === 11
-  ) {
-    return `55${numero}`
-  }
-
-  return numero
+  return `#${String(
+    numero,
+  ).padStart(5, '0')}`
 }
 
-/* =========================================================
-   POST /api/pedidos
-   ========================================================= */
+// =========================================================
+// POST — CRIAR PEDIDO
+// =========================================================
 
 export async function POST(
   request: Request,
 ) {
-  let client: PoolClient | null = null
-  let pool: Pool | null = null
-  let transacaoIniciada = false
+  const client =
+    await pool.connect()
+
+  let transacaoIniciada =
+    false
 
   try {
-    /* =====================================================
-       DATABASE
-       ===================================================== */
+    // =====================================================
+    // LÊ BODY
+    // =====================================================
 
-    if (!databaseUrl) {
-      console.error(
-        'DATABASE_URL não configurada.',
-      )
+    const body =
+      (await request.json()) as BodyPedido
 
-      return Response.json(
+    const cliente =
+      body.cliente
+
+    if (!cliente) {
+      return NextResponse.json(
         {
           sucesso: false,
-          erro: 'Banco de dados não configurado.',
-        },
-        { status: 500 },
-      )
-    }
-
-    /* =====================================================
-       BODY
-       ===================================================== */
-
-    let body: any
-
-    try {
-      body = await request.json()
-    } catch {
-      return Response.json(
-        {
-          sucesso: false,
-          erro: 'JSON inválido.',
+          erro:
+            'Dados do cliente não informados.',
         },
         { status: 400 },
       )
     }
 
-    /* =====================================================
-       CLIENTE
-       ===================================================== */
+    // =====================================================
+    // DADOS DO CLIENTE
+    // =====================================================
 
-    const cliente = body?.cliente
-
-    if (
-      !cliente ||
-      typeof cliente !== 'object'
-    ) {
-      return Response.json(
-        {
-          sucesso: false,
-          erro: 'Informe os dados do cliente.',
-        },
-        { status: 400 },
-      )
-    }
-
-    const nome = textoSeguro(
-      cliente.nome,
-    )
-
-    const whatsappBruto =
-      textoSeguro(
-        cliente.whatsapp ||
-          cliente.telefone,
-      )
+    const nome =
+      String(
+        cliente.nome ?? '',
+      ).trim()
 
     const whatsapp =
       normalizarWhatsApp(
-        whatsappBruto,
+        cliente.whatsapp,
       )
 
-    const cep = textoSeguro(
-      cliente.cep,
-    )
+    const cep =
+      somenteNumeros(
+        cliente.cep,
+      )
 
-    const rua = textoSeguro(
-      cliente.rua ||
-        cliente.street,
-    )
+    const rua =
+      String(
+        cliente.rua ?? '',
+      ).trim()
 
-    const numero = textoSeguro(
-      cliente.numero,
-    )
+    const numero =
+      String(
+        cliente.numero ?? '',
+      ).trim()
 
     const complemento =
-      textoSeguro(
-        cliente.complemento,
-      )
+      String(
+        cliente.complemento ?? '',
+      ).trim()
 
-    const bairro = textoSeguro(
-      cliente.bairro ||
-        cliente.neighborhood,
-    )
+    const bairro =
+      String(
+        cliente.bairro ?? '',
+      ).trim()
 
-    const cidade = textoSeguro(
-      cliente.cidade ||
-        cliente.city,
-    )
+    const cidade =
+      String(
+        cliente.cidade ?? '',
+      ).trim()
 
     const referencia =
-      textoSeguro(
-        cliente.referencia ||
-          cliente.pontoReferencia ||
-          cliente.reference_point,
-      )
+      String(
+        cliente.referencia ?? '',
+      ).trim()
 
-    /* =====================================================
-       VALIDAÇÕES DO CLIENTE
-       ===================================================== */
+    const formaEntrega =
+      body.formaEntrega
+
+    const formaPagamento =
+      body.formaPagamento
+
+    const itens =
+      Array.isArray(
+        body.itens,
+      )
+        ? body.itens
+        : []
+
+    // =====================================================
+    // VALIDAÇÕES
+    // =====================================================
 
     if (!nome) {
-      return Response.json(
+      return NextResponse.json(
         {
           sucesso: false,
-          erro: 'Informe o nome.',
-        },
-        { status: 400 },
-      )
-    }
-
-    if (!whatsapp) {
-      return Response.json(
-        {
-          sucesso: false,
-          erro: 'Informe o WhatsApp.',
+          erro:
+            'Informe o nome.',
         },
         { status: 400 },
       )
     }
 
     if (
-      whatsapp.length < 12 ||
-      whatsapp.length > 13
+      whatsapp.length !== 12 &&
+      whatsapp.length !== 13
     ) {
-      return Response.json(
+      return NextResponse.json(
         {
           sucesso: false,
-          erro: 'WhatsApp inválido.',
+          erro:
+            'WhatsApp inválido.',
         },
         { status: 400 },
       )
     }
-
-    /* =====================================================
-       FORMA DE ENTREGA
-       ===================================================== */
-
-    const tipoEntrega =
-      textoSeguro(
-        body.formaEntrega ||
-          body.tipoEntrega ||
-          body.entrega ||
-          'retirada',
-      )
 
     if (
-      tipoEntrega !== 'entrega' &&
-      tipoEntrega !== 'retirada'
+      formaEntrega !==
+        'entrega' &&
+      formaEntrega !==
+        'retirada'
     ) {
-      return Response.json(
+      return NextResponse.json(
         {
           sucesso: false,
-          erro: 'Tipo de entrega inválido.',
+          erro:
+            'Forma de entrega inválida.',
         },
         { status: 400 },
       )
     }
 
-    /* =====================================================
-       FRETE
-       =====================================================
+    if (
+      formaPagamento !==
+        'pix' &&
+      formaPagamento !==
+        'dinheiro' &&
+      formaPagamento !==
+        'cartao'
+    ) {
+      return NextResponse.json(
+        {
+          sucesso: false,
+          erro:
+            'Forma de pagamento inválida.',
+        },
+        { status: 400 },
+      )
+    }
 
-       REGRA:
+    if (
+      itens.length === 0
+    ) {
+      return NextResponse.json(
+        {
+          sucesso: false,
+          erro:
+            'O pedido não possui produtos.',
+        },
+        { status: 400 },
+      )
+    }
 
-       ENTREGA:
-       - Se o frete não foi definido:
-         freteACombinar = true
-         shipping no banco = 0
-       - Se no futuro for informado um
-         valor de frete:
-         freteACombinar = false
+    // =====================================================
+    // VALIDA ENDEREÇO
+    // =====================================================
 
-       RETIRADA:
-       - frete = 0
-       - freteACombinar = false
-       ===================================================== */
+    if (
+      formaEntrega ===
+      'entrega'
+    ) {
+      if (!cep) {
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro:
+              'CEP não informado.',
+          },
+          { status: 400 },
+        )
+      }
 
-    const freteFoiInformado =
-      body.frete !== null &&
-      body.frete !== undefined &&
-      body.frete !== ''
+      if (!rua) {
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro:
+              'Rua não informada.',
+          },
+          { status: 400 },
+        )
+      }
+
+      if (!numero) {
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro:
+              'Número não informado.',
+          },
+          { status: 400 },
+        )
+      }
+
+      if (!bairro) {
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro:
+              'Bairro não informado.',
+          },
+          { status: 400 },
+        )
+      }
+
+      if (!cidade) {
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro:
+              'Cidade não informada.',
+          },
+          { status: 400 },
+        )
+      }
+    }
+
+    // =====================================================
+    // INICIA TRANSAÇÃO
+    // =====================================================
+
+    await client.query(
+      'BEGIN',
+    )
+
+    transacaoIniciada =
+      true
+
+    // =====================================================
+    // BUSCA PRODUTOS
+    //
+    // O PREÇO VEM DIRETAMENTE DO BANCO.
+    // =====================================================
+
+    const ids =
+      itens.map(
+        (item) =>
+          item.id,
+      )
+
+    const produtosResult =
+      await client.query(
+        `
+          SELECT
+            id,
+            name,
+            price,
+            stock,
+            active
+          FROM public.products
+          WHERE id = ANY($1::uuid[])
+        `,
+        [ids],
+      )
+
+    const produtosMap =
+      new Map<
+        string,
+        {
+          id: string
+          name: string
+          price: number
+          stock: number
+          active: boolean
+        }
+      >()
+
+    for (
+      const produto
+      of produtosResult.rows
+    ) {
+      produtosMap.set(
+        String(
+          produto.id,
+        ),
+        {
+          id: String(
+            produto.id,
+          ),
+
+          name: String(
+            produto.name,
+          ),
+
+          price:
+            Number(
+              produto.price,
+            ),
+
+          stock:
+            Number(
+              produto.stock,
+            ),
+
+          active:
+            Boolean(
+              produto.active,
+            ),
+        },
+      )
+    }
+
+    // =====================================================
+    // CONFERE SE TODOS OS PRODUTOS EXISTEM
+    // =====================================================
+
+    if (
+      produtosMap.size !==
+      itens.length
+    ) {
+      await client.query(
+        'ROLLBACK',
+      )
+
+      transacaoIniciada =
+        false
+
+      return NextResponse.json(
+        {
+          sucesso: false,
+          erro:
+            'Um ou mais produtos não foram encontrados.',
+        },
+        { status: 400 },
+      )
+    }
+
+    // =====================================================
+    // PROCESSA ITENS
+    // =====================================================
+
+    let subtotal = 0
+
+    const itensProcessados: {
+      id: string
+      name: string
+      quantidade: number
+      precoUnitario: number
+      subtotal: number
+    }[] = []
+
+    for (
+      const item of itens
+    ) {
+      const produto =
+        produtosMap.get(
+          item.id,
+        )
+
+      if (!produto) {
+        await client.query(
+          'ROLLBACK',
+        )
+
+        transacaoIniciada =
+          false
+
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro:
+              'Produto não encontrado.',
+          },
+          { status: 400 },
+        )
+      }
+
+      const quantidade =
+        Math.floor(
+          Number(
+            item.quantidade,
+          ),
+        )
+
+      if (
+        !Number.isFinite(
+          quantidade,
+        ) ||
+        quantidade < 1
+      ) {
+        await client.query(
+          'ROLLBACK',
+        )
+
+        transacaoIniciada =
+          false
+
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro:
+              `Quantidade inválida para ${produto.name}.`,
+          },
+          { status: 400 },
+        )
+      }
+
+      if (
+        !produto.active
+      ) {
+        await client.query(
+          'ROLLBACK',
+        )
+
+        transacaoIniciada =
+          false
+
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro:
+              `${produto.name} não está disponível.`,
+          },
+          { status: 400 },
+        )
+      }
+
+      if (
+        produto.stock <
+        quantidade
+      ) {
+        await client.query(
+          'ROLLBACK',
+        )
+
+        transacaoIniciada =
+          false
+
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro:
+              `Estoque insuficiente para ${produto.name}.`,
+          },
+          { status: 400 },
+        )
+      }
+
+      const subtotalItem =
+        produto.price *
+        quantidade
+
+      subtotal +=
+        subtotalItem
+
+      itensProcessados.push(
+        {
+          id:
+            produto.id,
+
+          name:
+            produto.name,
+
+          quantidade,
+
+          precoUnitario:
+            produto.price,
+
+          subtotal:
+            subtotalItem,
+        },
+      )
+    }
+
+    // =====================================================
+    // FRETE
+    // =====================================================
+
+    const freteInformado =
+      body.frete !==
+        null &&
+      body.frete !==
+        undefined &&
+      body.frete !==
+        ''
 
     let frete = 0
 
-    if (freteFoiInformado) {
-      frete = numeroSeguro(
-        body.frete,
-      )
-    }
+    let freteACombinar =
+      false
 
-    if (frete < 0) {
-      return Response.json(
-        {
-          sucesso: false,
-          erro: 'Valor de frete inválido.',
-        },
-        { status: 400 },
-      )
-    }
-
-    const freteACombinar =
-      tipoEntrega === 'entrega' &&
-      !freteFoiInformado
-
-    /*
-     * Segurança adicional:
-     *
-     * Retirada nunca possui frete.
-     */
     if (
-      tipoEntrega === 'retirada'
+      formaEntrega ===
+      'retirada'
     ) {
       frete = 0
+
+      freteACombinar =
+        false
+    } else if (
+      freteInformado
+    ) {
+      frete =
+        numeroSeguro(
+          body.frete,
+        )
+
+      if (frete < 0) {
+        await client.query(
+          'ROLLBACK',
+        )
+
+        transacaoIniciada =
+          false
+
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro:
+              'Valor de frete inválido.',
+          },
+          { status: 400 },
+        )
+      }
+
+      freteACombinar =
+        false
+    } else {
+      frete = 0
+
+      freteACombinar =
+        true
     }
 
-    /* =====================================================
-       PAGAMENTO
-       ===================================================== */
+    const total =
+      subtotal + frete
 
-    const formaPagamento =
-      textoSeguro(
-        body.formaPagamento,
-      )
-
-    if (!formaPagamento) {
-      return Response.json(
-        {
-          sucesso: false,
-          erro: 'Informe a forma de pagamento.',
-        },
-        { status: 400 },
-      )
-    }
+    // =====================================================
+    // TROCO
+    // =====================================================
 
     let trocoPara:
       | number
       | null = null
 
     if (
-      body.trocoPara !== null &&
-      body.trocoPara !== undefined &&
-      body.trocoPara !== ''
+      formaPagamento ===
+      'dinheiro'
     ) {
-      const valorTroco =
-        numeroSeguro(
-          body.trocoPara,
-        )
-
-      if (valorTroco < 0) {
-        return Response.json(
-          {
-            sucesso: false,
-            erro: 'Valor de troco inválido.',
-          },
-          { status: 400 },
-        )
-      }
-
-      trocoPara = valorTroco
-    }
-
-    /* =====================================================
-       ITENS
-       ===================================================== */
-
-    if (
-      !Array.isArray(body.itens) ||
-      body.itens.length === 0
-    ) {
-      return Response.json(
-        {
-          sucesso: false,
-          erro: 'O carrinho está vazio.',
-        },
-        { status: 400 },
-      )
-    }
-
-    /* =====================================================
-       NORMALIZAR ITENS
-       ===================================================== */
-
-    const mapaItens =
-      new Map<string, number>()
-
-    for (const item of body.itens) {
-      const produtoId =
-        textoSeguro(item?.id)
-
-      const quantidade =
-        inteiroPositivo(
-          item?.quantidade,
-        )
-
       if (
-        !uuidValido(produtoId)
+        body.trocoPara !==
+          null &&
+        body.trocoPara !==
+          undefined &&
+        body.trocoPara !==
+          ''
       ) {
-        return Response.json(
-          {
-            sucesso: false,
-            erro: 'Produto inválido.',
-          },
-          { status: 400 },
-        )
+        trocoPara =
+          numeroSeguro(
+            body.trocoPara,
+          )
+
+        if (
+          trocoPara <
+          total
+        ) {
+          await client.query(
+            'ROLLBACK',
+          )
+
+          transacaoIniciada =
+            false
+
+          return NextResponse.json(
+            {
+              sucesso: false,
+              erro:
+                'O valor para troco precisa ser maior ou igual ao total do pedido.',
+            },
+            { status: 400 },
+          )
+        }
       }
-
-      if (!quantidade) {
-        return Response.json(
-          {
-            sucesso: false,
-            erro: 'Quantidade inválida.',
-          },
-          { status: 400 },
-        )
-      }
-
-      const quantidadeAtual =
-        mapaItens.get(
-          produtoId,
-        ) || 0
-
-      const novaQuantidade =
-        quantidadeAtual +
-        quantidade
-
-      if (
-        novaQuantidade > 999
-      ) {
-        return Response.json(
-          {
-            sucesso: false,
-            erro: 'Quantidade máxima por produto excedida.',
-          },
-          { status: 400 },
-        )
-      }
-
-      mapaItens.set(
-        produtoId,
-        novaQuantidade,
-      )
     }
 
-    if (
-      mapaItens.size === 0
-    ) {
-      return Response.json(
-        {
-          sucesso: false,
-          erro: 'O carrinho está vazio.',
-        },
-        { status: 400 },
-      )
-    }
+    // =====================================================
+    // BUSCA CLIENTE PELO WHATSAPP
+    // =====================================================
 
-    if (
-      mapaItens.size > 100
-    ) {
-      return Response.json(
-        {
-          sucesso: false,
-          erro: 'Quantidade de produtos no pedido excedida.',
-        },
-        { status: 400 },
-      )
-    }
-
-    const itensNormalizados =
-      Array.from(
-        mapaItens.entries(),
-      ).map(
-        ([id, quantidade]) => ({
-          id,
-          quantidade,
-        }),
-      )
-
-    const produtoIds =
-      itensNormalizados.map(
-        (item) => item.id,
-      )
-
-    /* =====================================================
-       POOL
-       ===================================================== */
-
-    pool = new Pool({
-      connectionString:
-        databaseUrl,
-    })
-
-    client =
-      await pool.connect()
-
-    /* =====================================================
-       TRANSAÇÃO
-       ===================================================== */
-
-    await client.query(
-      'BEGIN',
-    )
-
-    transacaoIniciada = true
-
-    /* =====================================================
-       BUSCAR / CRIAR CLIENTE
-       ===================================================== */
-
-    const clienteExistenteResult =
+    const clienteExistente =
       await client.query(
         `
           SELECT
-            id,
-            name,
-            whatsapp,
-            cep,
-            street,
-            number,
-            complement,
-            neighborhood,
-            city,
-            reference_point
+            id
           FROM public.customers
           WHERE whatsapp = $1
-          FOR UPDATE
+          LIMIT 1
         `,
         [whatsapp],
       )
 
     let customerId: string
 
-    /* =====================================================
-       CLIENTE EXISTENTE
-       ===================================================== */
+    // =====================================================
+    // ATUALIZA CLIENTE EXISTENTE
+    // =====================================================
 
     if (
-      clienteExistenteResult.rowCount &&
-      clienteExistenteResult.rowCount >
-        0
+      clienteExistente
+        .rows.length > 0
     ) {
-      const clienteExistente =
-        clienteExistenteResult
-          .rows[0]
-
       customerId =
-        clienteExistente.id
-
-      /*
-       * Atualiza os dados mais recentes.
-       *
-       * Campos vazios não apagam
-       * dados anteriores.
-       */
-      const clienteAtualizadoResult =
-        await client.query(
-          `
-            UPDATE public.customers
-            SET
-              name = COALESCE(
-                NULLIF($1, ''),
-                name
-              ),
-
-              cep = COALESCE(
-                NULLIF($2, ''),
-                cep
-              ),
-
-              street = COALESCE(
-                NULLIF($3, ''),
-                street
-              ),
-
-              number = COALESCE(
-                NULLIF($4, ''),
-                number
-              ),
-
-              complement = COALESCE(
-                NULLIF($5, ''),
-                complement
-              ),
-
-              neighborhood = COALESCE(
-                NULLIF($6, ''),
-                neighborhood
-              ),
-
-              city = COALESCE(
-                NULLIF($7, ''),
-                city
-              ),
-
-              reference_point = COALESCE(
-                NULLIF($8, ''),
-                reference_point
-              ),
-
-              updated_at = NOW()
-
-            WHERE id = $9::uuid
-
-            RETURNING
-              id,
-              name,
-              whatsapp,
-              cep,
-              street,
-              number,
-              complement,
-              neighborhood,
-              city,
-              reference_point
-          `,
-          [
-            nome,
-            cep,
-            rua,
-            numero,
-            complemento,
-            bairro,
-            cidade,
-            referencia,
-            customerId,
-          ],
+        String(
+          clienteExistente
+            .rows[0]
+            .id,
         )
 
-      const clienteAtualizado =
-        clienteAtualizadoResult
-          .rows[0]
-
-      customerId =
-        clienteAtualizado.id
-
-      console.log(
-        'Cliente existente encontrado:',
-        customerId,
+      await client.query(
+        `
+          UPDATE public.customers
+          SET
+            name = $1,
+            whatsapp = $2,
+            cep = $3,
+            street = $4,
+            number = $5,
+            complement = $6,
+            neighborhood = $7,
+            city = $8,
+            reference_point = $9,
+            updated_at = NOW()
+          WHERE id = $10
+        `,
+        [
+          nome,
+          whatsapp,
+          cep || null,
+          rua || null,
+          numero || null,
+          complemento ||
+            null,
+          bairro || null,
+          cidade || null,
+          referencia ||
+            null,
+          customerId,
+        ],
       )
-    } else {
-      /* ===================================================
-         CLIENTE NOVO
-         =================================================== */
+    }
 
-      const novoClienteResult =
+    // =====================================================
+    // CRIA NOVO CLIENTE
+    // =====================================================
+
+    else {
+      const novoCliente =
         await client.query(
           `
             INSERT INTO public.customers (
-              id,
               name,
               whatsapp,
               cep,
@@ -695,7 +784,6 @@ export async function POST(
               updated_at
             )
             VALUES (
-              gen_random_uuid(),
               $1,
               $2,
               $3,
@@ -716,338 +804,179 @@ export async function POST(
             cep || null,
             rua || null,
             numero || null,
-            complemento || null,
+            complemento ||
+              null,
             bairro || null,
             cidade || null,
-            referencia || null,
+            referencia ||
+              null,
           ],
         )
 
       customerId =
-        novoClienteResult
-          .rows[0].id
-
-      console.log(
-        'Novo cliente criado:',
-        customerId,
-      )
+        String(
+          novoCliente
+            .rows[0]
+            .id,
+        )
     }
 
-    /* =====================================================
-       BUSCAR PRODUTOS E BLOQUEAR LINHAS
-       ===================================================== */
+    // =====================================================
+    // CRIA PEDIDO
+    //
+    // order_number NÃO É ENVIADO.
+    // O BANCO GERA AUTOMATICAMENTE.
+    // =====================================================
 
-    const produtosResult =
+    const pedidoResult =
       await client.query(
         `
-          SELECT
+          INSERT INTO public.orders (
+            customer_id,
+            customer_name,
+            customer_whatsapp,
+            delivery_type,
+            cep,
+            street,
+            number,
+            complement,
+            neighborhood,
+            city,
+            reference_point,
+            payment_method,
+            change_for,
+            subtotal,
+            shipping,
+            total,
+            status,
+            created_at,
+            updated_at
+          )
+          VALUES (
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7,
+            $8,
+            $9,
+            $10,
+            $11,
+            $12,
+            $13,
+            $14,
+            $15,
+            $16,
+            'recebido',
+            NOW(),
+            NOW()
+          )
+          RETURNING
             id,
-            name,
-            price,
-            stock,
-            active
-          FROM public.products
-          WHERE id = ANY($1::uuid[])
-          ORDER BY id
-          FOR UPDATE
+            order_number,
+            customer_id,
+            customer_name,
+            customer_whatsapp,
+            delivery_type,
+            cep,
+            street,
+            number,
+            complement,
+            neighborhood,
+            city,
+            reference_point,
+            payment_method,
+            change_for,
+            subtotal,
+            shipping,
+            total,
+            status,
+            created_at,
+            updated_at
         `,
-        [produtoIds],
-      )
+        [
+          customerId,
+          nome,
+          whatsapp,
+          formaEntrega,
 
-    const produtos =
-      produtosResult.rows
+          formaEntrega ===
+          'entrega'
+            ? cep || null
+            : null,
 
-    /* =====================================================
-       VALIDAR EXISTÊNCIA DOS PRODUTOS
-       ===================================================== */
+          formaEntrega ===
+          'entrega'
+            ? rua || null
+            : null,
 
-    if (
-      produtos.length !==
-      produtoIds.length
-    ) {
-      const encontrados =
-        new Set(
-          produtos.map(
-            (produto) =>
-              produto.id,
-          ),
-        )
+          formaEntrega ===
+          'entrega'
+            ? numero || null
+            : null,
 
-      const faltantes =
-        produtoIds.filter(
-          (id) =>
-            !encontrados.has(id),
-        )
+          formaEntrega ===
+          'entrega'
+            ? complemento ||
+              null
+            : null,
 
-      throw new PedidoConflitoError(
-        `Produto(s) não encontrado(s): ${faltantes.join(
-          ', ',
-        )}`,
-      )
-    }
+          formaEntrega ===
+          'entrega'
+            ? bairro || null
+            : null,
 
-    /* =====================================================
-       MAPA DE PRODUTOS
-       ===================================================== */
+          formaEntrega ===
+          'entrega'
+            ? cidade || null
+            : null,
 
-    const produtosPorId =
-      new Map(
-        produtos.map(
-          (produto) => [
-            produto.id,
-            produto,
-          ],
-        ),
-      )
+          formaEntrega ===
+          'entrega'
+            ? referencia ||
+              null
+            : null,
 
-    /* =====================================================
-       VALIDAR PRODUTOS E ESTOQUE
-       ===================================================== */
+          formaPagamento,
 
-    for (const item of itensNormalizados) {
-      const produto =
-        produtosPorId.get(
-          item.id,
-        )
+          trocoPara,
 
-      if (!produto) {
-        throw new PedidoConflitoError(
-          'Produto não encontrado.',
-        )
-      }
-
-      if (!produto.active) {
-        throw new PedidoConflitoError(
-          `O produto "${produto.name}" não está disponível.`,
-        )
-      }
-
-      const estoque =
-        Number(produto.stock)
-
-      if (
-        !Number.isFinite(
-          estoque,
-        )
-      ) {
-        throw new PedidoConflitoError(
-          `Estoque inválido para o produto "${produto.name}".`,
-        )
-      }
-
-      if (
-        estoque <
-        item.quantidade
-      ) {
-        throw new PedidoConflitoError(
-          `Estoque insuficiente para "${produto.name}". Disponível: ${estoque}.`,
-        )
-      }
-    }
-
-    /* =====================================================
-       CALCULAR SUBTOTAL
-       ===================================================== */
-
-    let subtotal = 0
-
-    const itensPedido =
-      itensNormalizados.map(
-        (item) => {
-          const produto =
-            produtosPorId.get(
-              item.id,
-            )!
-
-          const precoUnitario =
-            numeroSeguro(
-              produto.price,
-            )
-
-          const subtotalItem =
-            precoUnitario *
-            item.quantidade
-
-          subtotal +=
-            subtotalItem
-
-          return {
-            produtoId:
-              produto.id,
-
-            nome:
-              produto.name,
-
-            quantidade:
-              item.quantidade,
-
-            precoUnitario,
-
-            subtotal:
-              subtotalItem,
-          }
-        },
-      )
-
-    /* =====================================================
-       TOTAL
-       =====================================================
-
-       Se o frete ainda não foi
-       combinado, o total armazenado
-       representa somente os produtos.
-
-       Exemplo:
-
-       Produtos: R$ 11,90
-       Frete: A combinar
-       Total dos produtos: R$ 11,90
-       */
-
-    const total =
-      subtotal + frete
-
-    /* =====================================================
-       VALIDAÇÃO DO TROCO
-       ===================================================== */
-
-    /*
-     * Quando o frete é "A combinar",
-     * o valor conhecido para conferência
-     * é o subtotal.
-     *
-     * Quando o frete já está definido,
-     * usamos o total completo.
-     */
-    const valorBaseParaTroco =
-      freteACombinar
-        ? subtotal
-        : total
-
-    if (
-      formaPagamento.toLowerCase() ===
-        'dinheiro' &&
-      trocoPara !== null &&
-      trocoPara > 0 &&
-      trocoPara <
-        valorBaseParaTroco
-    ) {
-      throw new PedidoConflitoError(
-        `O valor informado para troco deve ser igual ou maior que R$ ${valorBaseParaTroco.toFixed(
-          2,
-        )}.`,
-      )
-    }
-
-    /* =====================================================
-       ID DO PEDIDO
-       ===================================================== */
-
-    const pedidoId =
-      crypto.randomUUID()
-
-    /* =====================================================
-       STATUS INICIAL
-       ===================================================== */
-
-    const status =
-      'recebido'
-
-    /* =====================================================
-       INSERIR PEDIDO
-       ===================================================== */
-
-    await client.query(
-      `
-        INSERT INTO public.orders (
-          id,
-          customer_id,
-          customer_name,
-          customer_whatsapp,
-          delivery_type,
-          cep,
-          street,
-          number,
-          complement,
-          neighborhood,
-          city,
-          reference_point,
-          payment_method,
-          change_for,
           subtotal,
-          shipping,
+
+          frete,
+
           total,
-          status,
-          created_at,
-          updated_at
-        )
-        VALUES (
-          $1::uuid,
-          $2::uuid,
-          $3,
-          $4,
-          $5,
-          $6,
-          $7,
-          $8,
-          $9,
-          $10,
-          $11,
-          $12,
-          $13,
-          $14,
-          $15,
-          $16,
-          $17,
-          $18,
-          NOW(),
-          NOW()
-        )
-      `,
-      [
-        pedidoId,
-        customerId,
-        nome,
-        whatsapp,
-        tipoEntrega,
-        cep || null,
-        rua || null,
-        numero || null,
-        complemento || null,
-        bairro || null,
-        cidade || null,
-        referencia || null,
-        formaPagamento,
-        trocoPara,
-        subtotal,
+        ],
+      )
 
-        /*
-         * O banco exige shipping NOT NULL.
-         *
-         * Quando "A combinar":
-         * armazenamos 0 internamente,
-         * mas a API informa claramente
-         * que o frete ainda não foi definido.
-         */
-        frete,
+    const pedido =
+      pedidoResult.rows[0]
 
-        total,
-        status,
-      ],
-    )
+    if (!pedido) {
+      throw new Error(
+        'O pedido não foi retornado pelo banco de dados.',
+      )
+    }
 
-    /* =====================================================
-       INSERIR ITENS DO PEDIDO
-       ===================================================== */
+    // =====================================================
+    // SALVA OS ITENS DO PEDIDO
+    //
+    // IMPORTANTE:
+    // order_items NÃO possui "total".
+    // A coluna obrigatória é "subtotal".
+    //
+    // subtotal = quantidade × unit_price
+    // =====================================================
 
-    for (const item of itensPedido) {
-      const itemId =
-        crypto.randomUUID()
-
+    for (
+      const item of
+      itensProcessados
+    ) {
       await client.query(
         `
           INSERT INTO public.order_items (
-            id,
             order_id,
             product_id,
             product_name,
@@ -1056,20 +985,18 @@ export async function POST(
             subtotal
           )
           VALUES (
-            $1::uuid,
-            $2::uuid,
-            $3::uuid,
+            $1,
+            $2,
+            $3,
             $4,
             $5,
-            $6,
-            $7
+            $6
           )
         `,
         [
-          itemId,
-          pedidoId,
-          item.produtoId,
-          item.nome,
+          pedido.id,
+          item.id,
+          item.name,
           item.quantidade,
           item.precoUnitario,
           item.subtotal,
@@ -1077,245 +1004,218 @@ export async function POST(
       )
     }
 
-    /* =====================================================
-       BAIXAR ESTOQUE
-       ===================================================== */
+    // =====================================================
+    // BAIXA ESTOQUE
+    // =====================================================
 
-    for (const item of itensPedido) {
-      const estoqueResult =
+    for (
+      const item of
+      itensProcessados
+    ) {
+      const estoqueAtualizado =
         await client.query(
           `
             UPDATE public.products
             SET
               stock = stock - $1,
               updated_at = NOW()
-            WHERE id = $2::uuid
-              AND active = TRUE
+            WHERE id = $2
               AND stock >= $1
-            RETURNING id, stock
+              AND active = true
+            RETURNING id
           `,
           [
             item.quantidade,
-            item.produtoId,
+            item.id,
           ],
         )
 
       if (
-        estoqueResult.rowCount !==
-        1
+        estoqueAtualizado
+          .rows.length === 0
       ) {
-        throw new PedidoConflitoError(
-          `Não foi possível atualizar o estoque de "${item.nome}".`,
+        await client.query(
+          'ROLLBACK',
+        )
+
+        transacaoIniciada =
+          false
+
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro:
+              `O estoque de ${item.name} mudou enquanto o pedido era processado.`,
+          },
+          { status: 409 },
         )
       }
     }
 
-    /* =====================================================
-       COMMIT
-       ===================================================== */
+    // =====================================================
+    // FINALIZA TRANSAÇÃO
+    // =====================================================
 
     await client.query(
       'COMMIT',
     )
 
-    transacaoIniciada = false
+    transacaoIniciada =
+      false
 
-    /* =====================================================
-       LOG
-       ===================================================== */
+    // =====================================================
+    // NORMALIZA VALORES
+    // =====================================================
 
-    console.log(
-      'Pedido criado com sucesso:',
-      {
-        pedidoId,
-        customerId,
-        whatsapp,
-        tipoEntrega,
-        subtotal,
-        frete,
-        freteACombinar,
-        total,
-        status,
-      },
-    )
+    const numeroPedido =
+      Number(
+        pedido.order_number,
+      )
 
-    /* =====================================================
-       RESPOSTA
-       ===================================================== */
+    const pedidoCodigo =
+      formatarNumeroPedido(
+        numeroPedido,
+      )
 
-    return Response.json(
+    const subtotalResposta =
+      Number(
+        pedido.subtotal,
+      )
+
+    const freteResposta =
+      Number(
+        pedido.shipping,
+      )
+
+    const totalResposta =
+      Number(
+        pedido.total,
+      )
+
+    const trocoResposta =
+      pedido.change_for !==
+      null
+        ? Number(
+            pedido.change_for,
+          )
+        : null
+
+    // =====================================================
+    // RESPOSTA FINAL
+    // =====================================================
+
+    return NextResponse.json(
       {
         sucesso: true,
 
-        pedidoId,
+        pedidoId:
+          String(
+            pedido.id,
+          ),
 
-        customerId,
+        orderNumber:
+          numeroPedido,
 
-        /*
-         * IMPORTANTE:
-         *
-         * Esta propriedade informa ao
-         * Checkout que "0" não significa
-         * frete grátis.
-         */
-        freteACombinar,
+        numeroPedido:
+          pedidoCodigo,
 
         pedido: {
-          id: pedidoId,
-          customerId,
-          status,
-          subtotal,
-          frete,
-          freteACombinar,
-          total,
-        },
+          ...pedido,
 
-        subtotal,
-
-        /*
-         * Internamente continua 0
-         * quando ainda não combinado.
-         */
-        frete,
-
-        /*
-         * Quando entrega:
-         * representa apenas os produtos.
-         *
-         * Quando retirada:
-         * representa o total final.
-         */
-        total,
-
-        status,
-
-        cliente: {
-          id: customerId,
-          nome,
-          whatsapp,
-          cep,
-          rua,
-          numero,
-          complemento,
-          bairro,
-          cidade,
-          referencia,
-        },
-
-        itens:
-          itensPedido.map(
-            (item) => ({
-              id:
-                item.produtoId,
-
-              nome:
-                item.nome,
-
-              quantidade:
-                item.quantidade,
-
-              precoUnitario:
-                item.precoUnitario,
-
-              subtotal:
-                item.subtotal,
-            }),
+          id: String(
+            pedido.id,
           ),
+
+          customer_id:
+            pedido.customer_id
+              ? String(
+                  pedido.customer_id,
+                )
+              : null,
+
+          order_number:
+            numeroPedido,
+
+          numeroPedido:
+            pedidoCodigo,
+
+          subtotal:
+            subtotalResposta,
+
+          shipping:
+            freteResposta,
+
+          total:
+            totalResposta,
+
+          change_for:
+            trocoResposta,
+
+          freteACombinar,
+        },
+
+        subtotal:
+          subtotalResposta,
+
+        frete:
+          freteResposta,
+
+        total:
+          totalResposta,
+
+        freteACombinar,
+
+        status:
+          pedido.status,
       },
       {
         status: 201,
       },
     )
-  } catch (erro: any) {
-    /* =====================================================
-       ROLLBACK
-       ===================================================== */
+  } catch (error) {
+    // =====================================================
+    // ROLLBACK DE SEGURANÇA
+    // =====================================================
 
-    if (
-      client &&
-      transacaoIniciada
-    ) {
+    if (transacaoIniciada) {
       try {
         await client.query(
           'ROLLBACK',
         )
-      } catch (
-        rollbackErro
-      ) {
-        console.error(
-          'Erro ao executar ROLLBACK:',
-          rollbackErro,
-        )
-      }
+      } catch {}
     }
 
-    /* =====================================================
-       ERRO CONTROLADO
-       ===================================================== */
-
-    if (
-      erro instanceof
-      PedidoConflitoError
-    ) {
-      console.warn(
-        'Conflito ao criar pedido:',
-        erro.message,
-      )
-
-      return Response.json(
-        {
-          sucesso: false,
-          erro: erro.message,
-        },
-        {
-          status: 409,
-        },
-      )
-    }
-
-    /* =====================================================
-       ERRO DO POSTGRES
-       ===================================================== */
+    // =====================================================
+    // ERRO REAL — DESENVOLVIMENTO
+    // =====================================================
 
     console.error(
-      'Erro ao criar pedido:',
-      erro,
+      '========================================',
     )
 
-    return Response.json(
+    console.error(
+      'ERRO REAL AO CRIAR PEDIDO:',
+    )
+
+    console.error(error)
+
+    console.error(
+      '========================================',
+    )
+
+    const mensagem =
+      error instanceof Error
+        ? error.message
+        : String(error)
+
+    return NextResponse.json(
       {
         sucesso: false,
-        erro:
-          'Não foi possível finalizar o pedido.',
+        erro: mensagem,
       },
-      {
-        status: 500,
-      },
+      { status: 500 },
     )
   } finally {
-    /* =====================================================
-       LIBERAR CLIENTE
-       ===================================================== */
-
-    if (client) {
-      client.release()
-    }
-
-    /* =====================================================
-       ENCERRAR POOL
-       ===================================================== */
-
-    if (pool) {
-      try {
-        await pool.end()
-      } catch (
-        erroPool
-      ) {
-        console.error(
-          'Erro ao encerrar pool:',
-          erroPool,
-        )
-      }
-    }
+    client.release()
   }
 }
