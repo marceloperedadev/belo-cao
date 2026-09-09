@@ -8,7 +8,17 @@ const pool = new Pool({
 })
 
 function normalizarWhatsapp(valor: string) {
-  return valor.replace(/\D/g, '')
+  const numeros = valor.replace(/\D/g, '')
+
+  if (numeros.startsWith('55')) {
+    return numeros
+  }
+
+  if (numeros.length === 10 || numeros.length === 11) {
+    return `55${numeros}`
+  }
+
+  return numeros
 }
 
 export async function GET(request: Request) {
@@ -43,11 +53,12 @@ export async function GET(request: Request) {
           complement,
           neighborhood,
           city,
+          uf,
           reference_point,
           created_at,
           updated_at
         FROM public.customers
-        WHERE regexp_replace(whatsapp, '\\D', '', 'g') = $1
+        WHERE whatsapp = $1
         LIMIT 1
       `,
       [whatsapp],

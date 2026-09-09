@@ -1,4 +1,3 @@
-
 'use client'
 
 import {
@@ -54,7 +53,18 @@ type Cliente = {
   complemento: string
   bairro: string
   cidade: string
+
+  /*
+   * UF é usada apenas no checkout
+   * para exibição do endereço.
+   *
+   * IMPORTANTE:
+   * a tabela customers NÃO possui
+   * coluna uf, então este campo
+   * não é enviado para a API.
+   */
   uf: string
+
   referencia: string
 }
 
@@ -76,7 +86,7 @@ type CheckoutProps = {
 }
 
 /* =========================================================
-   RESPOSTA DA API
+   RESPOSTA DA API — PEDIDO
    ========================================================= */
 
 type RespostaPedido = {
@@ -89,15 +99,54 @@ type RespostaPedido = {
   subtotal?: number
   frete?: number
   total?: number
+
+  /*
+   * TRUE:
+   * entrega selecionada e frete ainda não definido.
+   */
+  freteACombinar?: boolean
+
   status?: string
 
   pedido?: {
     id: string
+    customerId?: string
     subtotal: number
     frete: number
     total: number
     status: string
+    freteACombinar?: boolean
   }
+}
+
+/* =========================================================
+   RESPOSTA DA API — CLIENTE
+   ========================================================= */
+
+type RespostaCliente = {
+  sucesso?: boolean
+  encontrado?: boolean
+  erro?: string
+
+  cliente?: {
+    id: string
+    name: string
+    whatsapp: string
+
+    cep?: string | null
+    street?: string | null
+    number?: string | null
+    complement?: string | null
+    neighborhood?: string | null
+    city?: string | null
+
+    /*
+     * Não esperamos mais UF da API,
+     * porque a tabela customers não possui
+     * essa coluna.
+     */
+    reference_point?: string | null
+  } | null
 }
 
 /* =========================================================
@@ -106,33 +155,127 @@ type RespostaPedido = {
 
 const WHATSAPP_LOJA = '5512997093459'
 
+const STORAGE_WHATSAPP =
+  'belo-cao-cliente-whatsapp'
+
+/* =========================================================
+   EMOJIS — UNICODE SEGURO
+   =========================================================
+   NÃO usar emojis literais aqui.
+
+   Os escapes Unicode evitam problemas de
+   codificação que geram caracteres "�".
+   ========================================================= */
+
+const ICONES_WHATSAPP = {
+  cachorro: '\u{1F436}',
+  pedido: '\u{1F4CB}',
+  cliente: '\u{1F464}',
+  whatsapp: '\u{1F4F1}',
+  sacola: '\u{1F6CD}\uFE0F',
+  entrega: '\u{1F69A}',
+  local: '\u{1F4CD}',
+  pagamento: '\u{1F4B3}',
+  alerta: '\u{26A0}\uFE0F',
+  patas: '\u{1F43E}',
+}
+
 /* =========================================================
    HELPERS
    ========================================================= */
 
-function somenteNumeros(valor: string) {
+function somenteNumeros(
+  valor: string,
+): string {
   return valor.replace(/\D/g, '')
 }
 
-function formatarCEP(valor: string) {
-  const numeros = somenteNumeros(valor).slice(0, 8)
+/* =========================================================
+   NORMALIZAR WHATSAPP
+   ========================================================= */
+
+function normalizarWhatsApp(
+  valor: string,
+): string {
+  const numeros =
+    somenteNumeros(valor)
+
+  if (!numeros) {
+    return ''
+  }
+
+  if (numeros.startsWith('55')) {
+    return numeros
+  }
+
+  if (
+    numeros.length === 10 ||
+    numeros.length === 11
+  ) {
+    return `55${numeros}`
+  }
+
+  return numeros
+}
+
+/* =========================================================
+   FORMATAR CEP
+   ========================================================= */
+
+function formatarCEP(
+  valor: string,
+): string {
+  const numeros =
+    somenteNumeros(valor).slice(
+      0,
+      8,
+    )
 
   if (numeros.length <= 5) {
     return numeros
   }
 
-  return `${numeros.slice(0, 5)}-${numeros.slice(5)}`
+  return `${numeros.slice(
+    0,
+    5,
+  )}-${numeros.slice(5)}`
 }
 
-function formatarWhatsApp(valor: string) {
-  const numeros = somenteNumeros(valor).slice(0, 11)
+/* =========================================================
+   FORMATAR WHATSAPP
+   ========================================================= */
+
+function formatarWhatsApp(
+  valor: string,
+): string {
+  let numeros =
+    somenteNumeros(valor)
+
+  /*
+   * Se o usuário colar o número
+   * completo com 55, removemos
+   * o código do país apenas para
+   * exibição.
+   */
+
+  if (
+    numeros.startsWith('55') &&
+    numeros.length >= 12
+  ) {
+    numeros = numeros.slice(2)
+  }
+
+  numeros = numeros.slice(0, 11)
 
   if (numeros.length <= 2) {
     return numeros
   }
 
   if (numeros.length <= 7) {
-    return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`
+    return `(${numeros.slice(
+      0,
+      2,
+    )}) ${numeros.slice(2)}`
   }
 
   return `(${numeros.slice(
@@ -144,11 +287,58 @@ function formatarWhatsApp(valor: string) {
   )}-${numeros.slice(7)}`
 }
 
-function formatarMoeda(valor: number) {
-  return valor.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  })
+/* =========================================================
+   FORMATAR MOEDA
+   ========================================================= */
+
+function formatarMoeda(
+  valor: number,
+): string {
+  return Number(valor || 0).toLocaleString(
+    'pt-BR',
+    {
+      style: 'currency',
+      currency: 'BRL',
+    },
+  )
+}
+
+/* =========================================================
+   CONVERTER VALOR DE TROCO
+   ========================================================= */
+
+function converterNumero(
+  valor: string,
+): number | null {
+  if (!valor.trim()) {
+    return null
+  }
+
+  /*
+   * Aceita:
+   *
+   * 100
+   * 100,00
+   * 100.00
+   */
+
+  const normalizado =
+    valor
+      .trim()
+      .replace(/\./g, '')
+      .replace(',', '.')
+
+  const numero =
+    Number(normalizado)
+
+  if (
+    !Number.isFinite(numero) ||
+    numero <= 0
+  ) {
+    return null
+  }
+
+  return numero
 }
 
 /* =========================================================
@@ -166,7 +356,8 @@ export function Checkout({
      ESTADOS
      ======================================================= */
 
-  const [etapa, setEtapa] = useState(1)
+  const [etapa, setEtapa] =
+    useState(1)
 
   const [cliente, setCliente] =
     useState<Cliente>({
@@ -183,17 +374,44 @@ export function Checkout({
       referencia: '',
     })
 
-  const [formaEntrega, setFormaEntrega] =
-    useState<FormaEntrega>('entrega')
+  const [
+    buscandoCliente,
+    setBuscandoCliente,
+  ] = useState(false)
 
-  const [formaPagamento, setFormaPagamento] =
-    useState<FormaPagamento>('pix')
+  const [
+    clienteEncontrado,
+    setClienteEncontrado,
+  ] = useState(false)
+
+  const [
+    clienteConsultado,
+    setClienteConsultado,
+  ] = useState(false)
+
+  const [
+    formaEntrega,
+    setFormaEntrega,
+  ] =
+    useState<FormaEntrega>(
+      'entrega',
+    )
+
+  const [
+    formaPagamento,
+    setFormaPagamento,
+  ] =
+    useState<FormaPagamento>(
+      'pix',
+    )
 
   const [trocoPara, setTrocoPara] =
     useState('')
 
-  const [buscandoCEP, setBuscandoCEP] =
-    useState(false)
+  const [
+    buscandoCEP,
+    setBuscandoCEP,
+  ] = useState(false)
 
   const [enviando, setEnviando] =
     useState(false)
@@ -207,13 +425,20 @@ export function Checkout({
   const pedidoFinalizadoRef =
     useRef(false)
 
+  /*
+   * Impede consultas repetidas
+   * do mesmo WhatsApp.
+   */
+  const consultaClienteRef =
+    useRef('')
+
   /* =======================================================
      CÁLCULOS
      ======================================================= */
 
   const subtotal = useMemo(() => {
     return itens.reduce(
-      (total, item) => {
+      (totalAtual, item) => {
         const quantidade =
           Number(item.quantidade) || 0
 
@@ -221,7 +446,7 @@ export function Checkout({
           Number(item.price) || 0
 
         return (
-          total +
+          totalAtual +
           preco * quantidade
         )
       },
@@ -230,13 +455,30 @@ export function Checkout({
   }, [itens])
 
   /*
-   * Frete atualmente gratuito.
+   * =======================================================
+   * REGRA DE FRETE
+   * =======================================================
+   *
+   * ENTREGA:
+   *   Frete ainda não foi combinado.
+   *   Internamente = 0.
+   *
+   * RETIRADA:
+   *   Frete = R$ 0,00.
    */
-  const frete =
+
+  const freteACombinar =
     formaEntrega === 'entrega'
+
+  const frete =
+    formaEntrega === 'retirada'
       ? 0
       : 0
 
+  /*
+   * Enquanto o frete não for definido,
+   * o total exibido é apenas o subtotal.
+   */
   const total =
     subtotal + frete
 
@@ -257,6 +499,10 @@ export function Checkout({
     setFormaPagamento('pix')
     setTrocoPara('')
 
+    setClienteEncontrado(false)
+    setClienteConsultado(false)
+    setBuscandoCliente(false)
+
     setCliente({
       nome: '',
       whatsapp: '',
@@ -271,9 +517,105 @@ export function Checkout({
       referencia: '',
     })
 
+    consultaClienteRef.current = ''
+
     pedidoFinalizadoRef.current =
       false
   }, [aberto])
+
+  /* =======================================================
+     RECUPERAR WHATSAPP SALVO
+     ======================================================= */
+
+  useEffect(() => {
+    if (!aberto) {
+      return
+    }
+
+    try {
+      const whatsappSalvo =
+        window.localStorage.getItem(
+          STORAGE_WHATSAPP,
+        )
+
+      if (!whatsappSalvo) {
+        return
+      }
+
+      const whatsapp =
+        somenteNumeros(
+          whatsappSalvo,
+        )
+
+      if (
+        whatsapp.length < 10
+      ) {
+        return
+      }
+
+      setCliente(
+        (anterior) => ({
+          ...anterior,
+
+          whatsapp:
+            formatarWhatsApp(
+              whatsapp,
+            ),
+        }),
+      )
+    } catch (error) {
+      console.warn(
+        'Não foi possível recuperar o WhatsApp salvo:',
+        error,
+      )
+    }
+  }, [aberto])
+
+  /* =======================================================
+     BUSCAR CLIENTE AUTOMATICAMENTE
+     ======================================================= */
+
+  useEffect(() => {
+    if (!aberto) {
+      return
+    }
+
+    const whatsapp =
+      normalizarWhatsApp(
+        cliente.whatsapp,
+      )
+
+    if (
+      whatsapp.length !== 12 &&
+      whatsapp.length !== 13
+    ) {
+      setClienteEncontrado(false)
+      setClienteConsultado(false)
+
+      return
+    }
+
+    if (
+      consultaClienteRef.current ===
+      whatsapp
+    ) {
+      return
+    }
+
+    const timer =
+      window.setTimeout(() => {
+        void buscarCliente(
+          whatsapp,
+        )
+      }, 450)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [
+    aberto,
+    cliente.whatsapp,
+  ])
 
   /* =======================================================
      ESC
@@ -320,10 +662,210 @@ export function Checkout({
     campo: keyof Cliente,
     valor: string,
   ) {
-    setCliente((anterior) => ({
-      ...anterior,
-      [campo]: valor,
-    }))
+    if (
+      campo === 'whatsapp'
+    ) {
+      const formatado =
+        formatarWhatsApp(valor)
+
+      setCliente(
+        (anterior) => ({
+          ...anterior,
+          whatsapp: formatado,
+        }),
+      )
+
+      setClienteEncontrado(false)
+      setClienteConsultado(false)
+
+      consultaClienteRef.current =
+        ''
+
+      return
+    }
+
+    setCliente(
+      (anterior) => ({
+        ...anterior,
+        [campo]: valor,
+      }),
+    )
+  }
+
+  /* =======================================================
+     BUSCAR CLIENTE
+     ======================================================= */
+
+  async function buscarCliente(
+    whatsappInformado: string,
+  ) {
+    const whatsapp =
+      normalizarWhatsApp(
+        whatsappInformado,
+      )
+
+    if (
+      whatsapp.length !== 12 &&
+      whatsapp.length !== 13
+    ) {
+      return
+    }
+
+    consultaClienteRef.current =
+      whatsapp
+
+    try {
+      setBuscandoCliente(true)
+      setErro('')
+
+      const resposta =
+        await fetch(
+          `/api/clientes?whatsapp=${encodeURIComponent(
+            whatsapp,
+          )}`,
+          {
+            method: 'GET',
+            cache: 'no-store',
+          },
+        )
+
+      let dados: RespostaCliente =
+        {}
+
+      try {
+        dados =
+          await resposta.json()
+      } catch {
+        dados = {}
+      }
+
+      if (!resposta.ok) {
+        throw new Error(
+          dados.erro ||
+            'Não foi possível consultar seu cadastro.',
+        )
+      }
+
+      setClienteConsultado(true)
+
+      /* ===================================================
+         CLIENTE NÃO ENCONTRADO
+         =================================================== */
+
+      if (
+        !dados.encontrado ||
+        !dados.cliente
+      ) {
+        setClienteEncontrado(false)
+
+        setCliente(
+          (anterior) => ({
+            ...anterior,
+
+            whatsapp:
+              formatarWhatsApp(
+                whatsapp,
+              ),
+          }),
+        )
+
+        return
+      }
+
+      /* ===================================================
+         CLIENTE ENCONTRADO
+         =================================================== */
+
+      const clienteApi =
+        dados.cliente
+
+      setClienteEncontrado(true)
+
+      setCliente(
+        (anterior) => ({
+          ...anterior,
+
+          nome:
+            clienteApi.name ||
+            anterior.nome,
+
+          whatsapp:
+            formatarWhatsApp(
+              clienteApi.whatsapp ||
+                whatsapp,
+            ),
+
+          cep:
+            clienteApi.cep
+              ? formatarCEP(
+                  clienteApi.cep,
+                )
+              : anterior.cep,
+
+          rua:
+            clienteApi.street ||
+            anterior.rua,
+
+          numero:
+            clienteApi.number ||
+            anterior.numero,
+
+          complemento:
+            clienteApi.complement ||
+            anterior.complemento,
+
+          bairro:
+            clienteApi.neighborhood ||
+            anterior.bairro,
+
+          cidade:
+            clienteApi.city ||
+            anterior.cidade,
+
+          /*
+           * UF NÃO vem do banco.
+           *
+           * Se o cliente já possui cidade/endereço,
+           * o usuário poderá informar o estado caso
+           * necessário ou o ViaCEP poderá preencher.
+           */
+          uf:
+            anterior.uf,
+
+          referencia:
+            clienteApi.reference_point ||
+            anterior.referencia,
+        }),
+      )
+
+      try {
+        window.localStorage.setItem(
+          STORAGE_WHATSAPP,
+          whatsapp,
+        )
+      } catch (error) {
+        console.warn(
+          'Não foi possível salvar o WhatsApp:',
+          error,
+        )
+      }
+    } catch (error) {
+      console.error(
+        'Erro ao buscar cliente:',
+        error,
+      )
+
+      setClienteConsultado(true)
+      setClienteEncontrado(false)
+
+      setErro(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível consultar seu cadastro.',
+      )
+    } finally {
+      setBuscandoCliente(false)
+    }
   }
 
   /* =======================================================
@@ -331,9 +873,10 @@ export function Checkout({
      ======================================================= */
 
   async function buscarCEP() {
-    const cep = somenteNumeros(
-      cliente.cep,
-    )
+    const cep =
+      somenteNumeros(
+        cliente.cep,
+      )
 
     if (cep.length !== 8) {
       return
@@ -363,27 +906,33 @@ export function Checkout({
         )
       }
 
-      setCliente((anterior) => ({
-        ...anterior,
+      setCliente(
+        (anterior) => ({
+          ...anterior,
 
-        cep: formatarCEP(cep),
+          cep: formatarCEP(cep),
 
-        rua:
-          dados.logradouro ||
-          anterior.rua,
+          rua:
+            dados.logradouro ||
+            anterior.rua,
 
-        bairro:
-          dados.bairro ||
-          anterior.bairro,
+          bairro:
+            dados.bairro ||
+            anterior.bairro,
 
-        cidade:
-          dados.localidade ||
-          anterior.cidade,
+          cidade:
+            dados.localidade ||
+            anterior.cidade,
 
-        uf:
-          dados.uf ||
-          anterior.uf,
-      }))
+          /*
+           * UF vem do ViaCEP apenas para
+           * exibição no checkout.
+           */
+          uf:
+            dados.uf ||
+            anterior.uf,
+        }),
+      )
     } catch (error) {
       console.error(
         'Erro ao buscar CEP:',
@@ -418,12 +967,29 @@ export function Checkout({
         cliente.whatsapp,
       )
 
-    if (whatsapp.length < 10) {
+    if (
+      whatsapp.length !== 10 &&
+      whatsapp.length !== 11
+    ) {
       setErro(
         'Informe um WhatsApp válido.',
       )
 
       return false
+    }
+
+    try {
+      window.localStorage.setItem(
+        STORAGE_WHATSAPP,
+        normalizarWhatsApp(
+          cliente.whatsapp,
+        ),
+      )
+    } catch (error) {
+      console.warn(
+        'Não foi possível salvar o WhatsApp:',
+        error,
+      )
     }
 
     setErro('')
@@ -436,6 +1002,10 @@ export function Checkout({
      ======================================================= */
 
   function validarEtapa2() {
+    /*
+     * Retirada não precisa de endereço.
+     */
+
     if (
       formaEntrega ===
       'retirada'
@@ -484,6 +1054,14 @@ export function Checkout({
     if (!cliente.cidade.trim()) {
       setErro(
         'Informe a cidade.',
+      )
+
+      return false
+    }
+
+    if (!cliente.uf.trim()) {
+      setErro(
+        'Informe o estado.',
       )
 
       return false
@@ -548,35 +1126,55 @@ export function Checkout({
     subtotalConfirmado: number,
     freteConfirmado: number,
     totalConfirmado: number,
-  ) {
+    freteACombinarConfirmado: boolean,
+  ): string {
+    /* =====================================================
+       PRODUTOS
+       ===================================================== */
+
     const linhasProdutos =
-      itens.map((item) => {
-        const quantidade =
-          Number(item.quantidade) || 0
+      itens.map(
+        (item) => {
+          const quantidade =
+            Number(item.quantidade) ||
+            0
 
-        const preco =
-          Number(item.price) || 0
+          const preco =
+            Number(item.price) || 0
 
-        const valor =
-          preco * quantidade
+          const valor =
+            preco * quantidade
 
-        return (
-          `• ${item.name} x${quantidade} — ` +
-          `${formatarMoeda(valor)}`
-        )
-      })
+          return (
+            `• ${item.name} x${quantidade} — ` +
+            `${formatarMoeda(valor)}`
+          )
+        },
+      )
+
+    /* =====================================================
+       ENDEREÇO
+       ===================================================== */
 
     const endereco =
       formaEntrega === 'entrega'
         ? [
             cliente.rua,
+
             `Nº ${cliente.numero}`,
+
             cliente.complemento
               ? `Compl.: ${cliente.complemento}`
               : '',
+
             cliente.bairro,
-            `${cliente.cidade} - ${cliente.uf}`,
+
+            cliente.uf
+              ? `${cliente.cidade} - ${cliente.uf}`
+              : cliente.cidade,
+
             `CEP: ${cliente.cep}`,
+
             cliente.referencia
               ? `Referência: ${cliente.referencia}`
               : '',
@@ -585,57 +1183,119 @@ export function Checkout({
             .join(', ')
         : 'Retirada na loja'
 
+    /* =====================================================
+       PAGAMENTO
+       ===================================================== */
+
     const pagamento =
       formaPagamento === 'pix'
         ? 'Pix'
-        : formaPagamento === 'dinheiro'
-          ? `Dinheiro${
-              trocoPara
-                ? ` — troco para ${formatarMoeda(
-                    Number(
-                      trocoPara.replace(
-                        ',',
-                        '.',
-                      ),
-                    ) || 0,
-                  )}`
-                : ''
-            }`
+        : formaPagamento ===
+            'dinheiro'
+          ? (() => {
+              const troco =
+                converterNumero(
+                  trocoPara,
+                )
+
+              if (
+                troco !== null
+              ) {
+                return `Dinheiro — troco para ${formatarMoeda(
+                  troco,
+                )}`
+              }
+
+              return 'Dinheiro'
+            })()
           : 'Cartão'
 
-    return [
-      `🐶 *BELO CÃO — NOVO PEDIDO*`,
-      ``,
-      `📋 *Pedido:* ${pedidoId}`,
-      ``,
-      `👤 *Cliente:* ${cliente.nome}`,
-      `📱 *WhatsApp:* ${cliente.whatsapp}`,
-      ``,
-      `🛍️ *ITENS DO PEDIDO*`,
+    /* =====================================================
+       FRETE
+       ===================================================== */
+
+    const mensagemFrete =
+      freteACombinarConfirmado
+        ? 'A combinar'
+        : formatarMoeda(
+            freteConfirmado,
+          )
+
+    /* =====================================================
+       TOTAL
+       ===================================================== */
+
+    const mensagemTotal =
+      freteACombinarConfirmado
+        ? `*TOTAL DOS PRODUTOS: ${formatarMoeda(
+            subtotalConfirmado,
+          )}*`
+        : `*TOTAL: ${formatarMoeda(
+            totalConfirmado,
+          )}*`
+
+    /* =====================================================
+       MENSAGEM FINAL
+       ===================================================== */
+
+    const mensagem = [
+      `${ICONES_WHATSAPP.cachorro} *BELO CÃO — NOVO PEDIDO*`,
+
+      '',
+
+      `${ICONES_WHATSAPP.pedido} *Pedido:* ${pedidoId}`,
+
+      '',
+
+      `${ICONES_WHATSAPP.cliente} *Cliente:* ${cliente.nome}`,
+
+      `${ICONES_WHATSAPP.whatsapp} *WhatsApp:* ${cliente.whatsapp}`,
+
+      '',
+
+      `${ICONES_WHATSAPP.sacola} *ITENS DO PEDIDO*`,
+
       ...linhasProdutos,
-      ``,
-      `🚚 *ENTREGA:* ${
+
+      '',
+
+      `${ICONES_WHATSAPP.entrega} *ENTREGA:* ${
         formaEntrega ===
         'entrega'
           ? 'Entrega'
           : 'Retirada na loja'
       }`,
-      `📍 *Endereço:* ${endereco}`,
-      ``,
-      `💳 *Pagamento:* ${pagamento}`,
-      ``,
+
+      `${ICONES_WHATSAPP.local} *Endereço:* ${endereco}`,
+
+      '',
+
+      `${ICONES_WHATSAPP.pagamento} *Pagamento:* ${pagamento}`,
+
+      '',
+
       `Subtotal: ${formatarMoeda(
         subtotalConfirmado,
       )}`,
-      `Frete: ${formatarMoeda(
-        freteConfirmado,
-      )}`,
-      `*TOTAL: ${formatarMoeda(
-        totalConfirmado,
-      )}*`,
-      ``,
-      `Obrigado por comprar na Belo Cão! 🐾`,
+
+      `Frete: ${mensagemFrete}`,
+
+      mensagemTotal,
+
+      ...(freteACombinarConfirmado
+        ? [
+            '',
+
+            `${ICONES_WHATSAPP.alerta} *O valor do frete será combinado posteriormente pelo WhatsApp.*`,
+          ]
+        : []),
+
+      '',
+
+      `Obrigado por comprar na Belo Cão! ${ICONES_WHATSAPP.patas}`,
     ].join('\n')
+
+    return mensagem
   }
 
   /* =======================================================
@@ -643,17 +1303,10 @@ export function Checkout({
      ======================================================= */
 
   async function enviarPedido() {
-    /*
-     * Impede duplo clique.
-     */
     if (enviando) {
       return
     }
 
-    /*
-     * Impede segundo envio depois
-     * de um pedido confirmado.
-     */
     if (
       pedidoFinalizadoRef.current
     ) {
@@ -693,11 +1346,14 @@ export function Checkout({
     }
 
     const whatsapp =
-      somenteNumeros(
+      normalizarWhatsApp(
         cliente.whatsapp,
       )
 
-    if (whatsapp.length < 10) {
+    if (
+      whatsapp.length !== 12 &&
+      whatsapp.length !== 13
+    ) {
       setErro(
         'Informe um WhatsApp válido.',
       )
@@ -713,30 +1369,17 @@ export function Checkout({
 
       /* =================================================
          PREPARAR ITENS
-
-         IMPORTANTE:
-         A API /api/pedidos espera:
-
-         {
-           id: UUID_DO_PRODUTO,
-           quantidade: number
-         }
-
-         NÃO usar "productId" aqui.
          ================================================= */
 
       const itensPedido =
         itens.map((item) => ({
           id: item.id,
+
           quantidade:
-            Number(item.quantidade) || 0,
+            Number(item.quantidade) ||
+            0,
         }))
 
-      /*
-       * Segurança adicional:
-       * não permite enviar item com
-       * quantidade inválida.
-       */
       const itemInvalido =
         itensPedido.some(
           (item) =>
@@ -751,7 +1394,23 @@ export function Checkout({
       }
 
       /* =================================================
-         DADOS DO PEDIDO
+         TROCO
+         ================================================= */
+
+      const trocoNumerico =
+        formaPagamento ===
+        'dinheiro'
+          ? converterNumero(
+              trocoPara,
+            )
+          : null
+
+      /* =================================================
+         DADOS DO CLIENTE
+         =================================================
+         IMPORTANTE:
+         Não enviamos "uf", pois a tabela
+         public.customers não possui essa coluna.
          ================================================= */
 
       const payload = {
@@ -762,55 +1421,94 @@ export function Checkout({
           whatsapp,
 
           cep:
-            cliente.cep.trim(),
+            formaEntrega ===
+            'entrega'
+              ? cliente.cep.trim()
+              : '',
 
           rua:
-            cliente.rua.trim(),
+            formaEntrega ===
+            'entrega'
+              ? cliente.rua.trim()
+              : '',
 
           numero:
-            cliente.numero.trim(),
+            formaEntrega ===
+            'entrega'
+              ? cliente.numero.trim()
+              : '',
 
           complemento:
-            cliente.complemento.trim(),
+            formaEntrega ===
+            'entrega'
+              ? cliente.complemento.trim()
+              : '',
 
           bairro:
-            cliente.bairro.trim(),
+            formaEntrega ===
+            'entrega'
+              ? cliente.bairro.trim()
+              : '',
 
           cidade:
-            cliente.cidade.trim(),
-
-          uf:
-            cliente.uf.trim(),
+            formaEntrega ===
+            'entrega'
+              ? cliente.cidade.trim()
+              : '',
 
           referencia:
-            cliente.referencia.trim(),
+            formaEntrega ===
+            'entrega'
+              ? cliente.referencia.trim()
+              : '',
         },
 
+        /* =================================================
+           ENTREGA
+           ================================================= */
+
         formaEntrega,
+
+        /* =================================================
+           PAGAMENTO
+           ================================================= */
 
         formaPagamento,
 
         trocoPara:
-          formaPagamento ===
-          'dinheiro'
-            ? Number(
-                trocoPara.replace(
-                  ',',
-                  '.',
-                ),
-              ) || null
-            : null,
+          trocoNumerico,
 
-        /*
-         * IMPORTANTE:
-         * itens agora possui "id",
-         * exatamente como a API espera.
-         */
+        /* =================================================
+           ITENS
+           ================================================= */
+
         itens: itensPedido,
 
-        subtotal,
-        frete,
-        total,
+        /* =================================================
+           FRETE
+           =================================================
+           
+           ENTREGA:
+           null = frete ainda não definido.
+           
+           RETIRADA:
+           0 = sem frete.
+           
+           A API interpreta isso e devolve
+           freteACombinar.
+           ================================================= */
+
+        frete:
+          formaEntrega ===
+          'entrega'
+            ? null
+            : 0,
+
+        /*
+         * O frontend não define o frete.
+         * A API é responsável pelo cálculo/regra final.
+         */
+        total: subtotal,
       }
 
       /* =================================================
@@ -918,7 +1616,26 @@ export function Checkout({
         )
 
       /* =================================================
-         MONTAR MENSAGEM WHATSAPP
+         FRETE A COMBINAR
+         =================================================
+         
+         A API é a autoridade final.
+         Se não vier a informação, usamos
+         a regra local:
+         
+         entrega = a combinar
+         retirada = não
+         ================================================= */
+
+      const freteACombinarConfirmado =
+        dados.pedido
+          ?.freteACombinar ??
+        dados.freteACombinar ??
+        formaEntrega ===
+          'entrega'
+
+      /* =================================================
+         MONTAR WHATSAPP
          ================================================= */
 
       const mensagem =
@@ -927,7 +1644,19 @@ export function Checkout({
           subtotalConfirmado,
           freteConfirmado,
           totalConfirmado,
+          freteACombinarConfirmado,
         )
+
+      /* =================================================
+         URL WHATSAPP
+         =================================================
+         
+         encodeURIComponent garante que:
+         - emojis sejam preservados
+         - acentos sejam preservados
+         - quebras de linha sejam preservadas
+         - caracteres especiais não quebrem a URL
+         ================================================= */
 
       const url =
         `https://wa.me/${WHATSAPP_LOJA}` +
@@ -946,34 +1675,33 @@ export function Checkout({
           'noopener,noreferrer',
         )
 
-      /*
-       * Neste momento o pedido já foi:
-       *
-       * 1. criado em orders;
-       * 2. registrado em order_items;
-       * 3. estoque baixado;
-       * 4. transação confirmada.
-       *
-       * Portanto, o pedido está finalizado
-       * mesmo que o navegador bloqueie o WhatsApp.
-       */
+      /* =================================================
+         MARCAR PEDIDO FINALIZADO
+         ================================================= */
 
       pedidoFinalizadoRef.current =
         true
 
       /* =================================================
-         FINALIZAR NO LOJAPAGE
+         SALVAR WHATSAPP
          ================================================= */
 
-      /*
-       * O LojaPage irá:
-       *
-       * - setCarrinho([]);
-       * - limpar localStorage;
-       * - fechar checkout;
-       * - fechar carrinho;
-       * - atualizar produtos/estoque.
-       */
+      try {
+        window.localStorage.setItem(
+          STORAGE_WHATSAPP,
+          whatsapp,
+        )
+      } catch (error) {
+        console.warn(
+          'Não foi possível salvar o WhatsApp:',
+          error,
+        )
+      }
+
+      /* =================================================
+         FINALIZAR CHECKOUT
+         ================================================= */
+
       onPedidoFinalizado?.()
 
       /* =================================================
@@ -986,11 +1714,6 @@ export function Checkout({
         )
       }
 
-      /*
-       * Não fazemos setEnviando(false)
-       * porque o Checkout pode ser desmontado
-       * imediatamente pelo LojaPage.
-       */
       return
     } catch (error) {
       console.error(
@@ -998,10 +1721,6 @@ export function Checkout({
         error,
       )
 
-      /*
-       * Só mostra erro se o pedido
-       * realmente não foi finalizado.
-       */
       if (
         !pedidoFinalizadoRef.current
       ) {
@@ -1092,6 +1811,8 @@ export function Checkout({
           <div
             className={styles.progress}
           >
+            {/* PASSO 1 */}
+
             <div
               className={`${styles.progressStep} ${
                 etapa >= 1
@@ -1132,6 +1853,8 @@ export function Checkout({
               }`}
             />
 
+            {/* PASSO 2 */}
+
             <div
               className={`${styles.progressStep} ${
                 etapa >= 2
@@ -1171,6 +1894,8 @@ export function Checkout({
                   : ''
               }`}
             />
+
+            {/* PASSO 3 */}
 
             <div
               className={`${styles.progressStep} ${
@@ -1262,6 +1987,8 @@ export function Checkout({
                   styles.form
                 }
               >
+                {/* NOME */}
+
                 <div
                   className={
                     styles.field
@@ -1292,6 +2019,8 @@ export function Checkout({
                     autoComplete="name"
                   />
                 </div>
+
+                {/* WHATSAPP */}
 
                 <div
                   className={
@@ -1324,24 +2053,88 @@ export function Checkout({
                       ) =>
                         atualizarCliente(
                           'whatsapp',
-                          formatarWhatsApp(
-                            event
-                              .target
-                              .value,
-                          ),
+                          event.target
+                            .value,
                         )
                       }
                       placeholder="(00) 00000-0000"
                       autoComplete="tel"
                     />
+
+                    {buscandoCliente && (
+                      <Loader2
+                        size={17}
+                        className={
+                          styles.spin
+                        }
+                      />
+                    )}
                   </div>
 
                   <small>
                     Usaremos este número
-                    para confirmar seu
-                    pedido.
+                    para localizar seu
+                    cadastro e confirmar
+                    seu pedido.
                   </small>
                 </div>
+
+                {/* CLIENTE ENCONTRADO */}
+
+                {clienteEncontrado && (
+                  <div
+                    className={
+                      styles.pickupBox
+                    }
+                  >
+                    <Check
+                      size={20}
+                    />
+
+                    <div>
+                      <strong>
+                        Cadastro encontrado
+                      </strong>
+
+                      <p>
+                        Encontramos seus
+                        dados. Eles foram
+                        preenchidos
+                        automaticamente.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* CLIENTE NÃO ENCONTRADO */}
+
+                {clienteConsultado &&
+                  !clienteEncontrado &&
+                  !buscandoCliente && (
+                    <div
+                      className={
+                        styles.pickupBox
+                      }
+                    >
+                      <User
+                        size={20}
+                      />
+
+                      <div>
+                        <strong>
+                          Primeiro pedido?
+                        </strong>
+
+                        <p>
+                          Não encontramos
+                          um cadastro com
+                          este WhatsApp.
+                          Preencha seus
+                          dados normalmente.
+                        </p>
+                      </div>
+                    </div>
+                  )}
               </div>
             </section>
           )}
@@ -1399,11 +2192,15 @@ export function Checkout({
                 </div>
               </div>
 
+              {/* FORMAS DE ENTREGA */}
+
               <div
                 className={
                   styles.deliveryOptions
                 }
               >
+                {/* ENTREGA */}
+
                 <button
                   type="button"
                   className={`${styles.deliveryOption} ${
@@ -1455,6 +2252,8 @@ export function Checkout({
                     )}
                   </span>
                 </button>
+
+                {/* RETIRADA */}
 
                 <button
                   type="button"
@@ -1509,6 +2308,10 @@ export function Checkout({
                 </button>
               </div>
 
+              {/* ===========================================
+                  ENDEREÇO
+                  =========================================== */}
+
               {formaEntrega ===
                 'entrega' && (
                 <div
@@ -1536,6 +2339,8 @@ export function Checkout({
                       styles.form
                     }
                   >
+                    {/* CEP */}
+
                     <div
                       className={
                         styles.field
@@ -1601,6 +2406,8 @@ export function Checkout({
                       </div>
                     </div>
 
+                    {/* RUA */}
+
                     <div
                       className={
                         styles.field
@@ -1631,6 +2438,8 @@ export function Checkout({
                         autoComplete="street-address"
                       />
                     </div>
+
+                    {/* NÚMERO + COMPLEMENTO */}
 
                     <div
                       className={
@@ -1705,6 +2514,8 @@ export function Checkout({
                       </div>
                     </div>
 
+                    {/* BAIRRO + CIDADE */}
+
                     <div
                       className={
                         styles.formRow
@@ -1775,6 +2586,8 @@ export function Checkout({
                       </div>
                     </div>
 
+                    {/* ESTADO + REFERÊNCIA */}
+
                     <div
                       className={
                         styles.formRow
@@ -1802,10 +2615,12 @@ export function Checkout({
                           ) =>
                             atualizarCliente(
                               'uf',
-                              event
-                                .target
-                                .value
+                              event.target.value
                                 .toUpperCase()
+                                .replace(
+                                  /[^A-Z]/g,
+                                  '',
+                                )
                                 .slice(
                                   0,
                                   2,
@@ -1844,8 +2659,7 @@ export function Checkout({
                           ) =>
                             atualizarCliente(
                               'referencia',
-                              event
-                                .target
+                              event.target
                                 .value,
                             )
                           }
@@ -1856,6 +2670,10 @@ export function Checkout({
                   </div>
                 </div>
               )}
+
+              {/* ===========================================
+                  RETIRADA
+                  =========================================== */}
 
               {formaEntrega ===
                 'retirada' && (
@@ -1938,11 +2756,15 @@ export function Checkout({
                 </div>
               </div>
 
+              {/* FORMAS DE PAGAMENTO */}
+
               <div
                 className={
                   styles.paymentOptions
                 }
               >
+                {/* PIX */}
+
                 <button
                   type="button"
                   className={`${styles.paymentOption} ${
@@ -1993,6 +2815,8 @@ export function Checkout({
                     )}
                   </span>
                 </button>
+
+                {/* DINHEIRO */}
 
                 <button
                   type="button"
@@ -2045,6 +2869,8 @@ export function Checkout({
                   </span>
                 </button>
 
+                {/* CARTÃO */}
+
                 <button
                   type="button"
                   className={`${styles.paymentOption} ${
@@ -2095,6 +2921,10 @@ export function Checkout({
                   </span>
                 </button>
               </div>
+
+              {/* =========================================
+                  TROCO
+                  ========================================= */}
 
               {formaPagamento ===
                 'dinheiro' && (
@@ -2222,11 +3052,17 @@ export function Checkout({
                   )}
                 </div>
 
+                {/* =======================================
+                    TOTAIS
+                    ======================================= */}
+
                 <div
                   className={
                     styles.summaryTotals
                   }
                 >
+                  {/* SUBTOTAL */}
+
                   <div>
                     <span>
                       Subtotal
@@ -2239,19 +3075,23 @@ export function Checkout({
                     </strong>
                   </div>
 
+                  {/* FRETE */}
+
                   <div>
                     <span>
                       Frete
                     </span>
 
                     <strong>
-                      {frete === 0
-                        ? 'Grátis'
+                      {freteACombinar
+                        ? 'A combinar'
                         : formatarMoeda(
                             frete,
                           )}
                     </strong>
                   </div>
+
+                  {/* TOTAL */}
 
                   <div
                     className={
@@ -2259,7 +3099,9 @@ export function Checkout({
                     }
                   >
                     <span>
-                      Total
+                      {freteACombinar
+                        ? 'Total dos produtos'
+                        : 'Total'}
                     </span>
 
                     <strong>
@@ -2268,6 +3110,21 @@ export function Checkout({
                       )}
                     </strong>
                   </div>
+
+                  {/* AVISO */}
+
+                  {freteACombinar && (
+                    <div
+                      className={
+                        styles.shippingNotice
+                      }
+                    >
+                      O valor do frete
+                      será combinado
+                      posteriormente
+                      pelo WhatsApp.
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
@@ -2308,6 +3165,8 @@ export function Checkout({
         <footer
           className={styles.footer}
         >
+          {/* VOLTAR */}
+
           <button
             type="button"
             className={
@@ -2327,6 +3186,10 @@ export function Checkout({
             </span>
           </button>
 
+          {/* =================================================
+              CONTINUAR / FINALIZAR
+              ================================================= */}
+
           {etapa < 3 ? (
             <button
               type="button"
@@ -2334,7 +3197,10 @@ export function Checkout({
                 styles.continueButton
               }
               onClick={avancar}
-              disabled={enviando}
+              disabled={
+                enviando ||
+                buscandoCliente
+              }
             >
               <span>
                 Continuar
