@@ -1,0 +1,514 @@
+/* =========================================================
+   BELO CÃO
+   LOGIN ADMINISTRATIVO
+   ROXO + BRANCO
+   PREMIUM · LIMPO · DISCRETO
+   ========================================================= */
+
+.pagina {
+  min-height: 100vh;
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+
+  padding: 32px 20px;
+
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(103, 47, 150, 0.10),
+      transparent 38%
+    ),
+    #faf9fb;
+
+  color: #342039;
+}
+
+/* =========================================================
+   CONTAINER
+   ========================================================= */
+
+.container {
+  width: 100%;
+  max-width: 460px;
+}
+
+/* =========================================================
+   CARD
+   ========================================================= */
+
+.loginCard {
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 38px;
+
+  background: #ffffff;
+
+  border: 1px solid rgba(103, 47, 150, 0.10);
+
+  border-radius: 24px;
+
+  box-shadow:
+    0 24px 70px rgba(52, 32, 57, 0.08),
+    0 4px 18px rgba(52, 32, 57, 0.04);
+}
+
+/* =========================================================
+   MARCA
+   ========================================================= */
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin-bottom: 42px;
+}
+
+.logo {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 12px;
+
+  background: #672f96;
+
+  color: #ffffff;
+
+  box-shadow:
+    0 8px 20px rgba(103, 47, 150, 0.18);
+}
+
+.marca strong {
+  display: block;
+
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 800;
+
+  letter-spacing: 0.10em;
+
+  color: #342039;
+}
+
+.marca span {
+  display: block;
+
+  margin-top: 4px;
+
+  font-size: 9px;
+  line-height: 1.2;
+  font-weight: 700;
+
+  letter-spacing: 0.12em;
+
+  color: #806f88;
+}
+
+/* =========================================================
+   CABEÇALHO
+   ========================================================= */
+
+.cabecalho {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+
+  margin-bottom: 30px;
+}
+
+.iconeSeguranca {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 11px;
+
+  background: #eee5f4;
+
+  color: #672f96;
+}
+
+.eyebrow {
+  display: block;
+
+  margin-bottom: 7px;
+
+  font-size: 10px;
+  line-height: 1;
+
+  font-weight: 800;
+
+  letter-spacing: 0.15em;
+
+  color: #8d55b4;
+}
+
+.cabecalho h1 {
+  margin: 0;
+
+  font-size: clamp(28px, 5vw, 34px);
+  line-height: 1.05;
+
+  letter-spacing: -0.04em;
+
+  font-weight: 800;
+
+  color: #342039;
+}
+
+.cabecalho p {
+  margin: 9px 0 0;
+
+  font-size: 14px;
+  line-height: 1.6;
+
+  color: #806f88;
+}
+
+/* =========================================================
+   FORMULÁRIO
+   ========================================================= */
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.campo label {
+  font-size: 12px;
+  line-height: 1.2;
+
+  font-weight: 700;
+
+  color: #342039;
+}
+
+/* =========================================================
+   INPUT
+   ========================================================= */
+
+.inputWrapper {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+}
+
+.inputWrapper input {
+  width: 100%;
+  height: 50px;
+
+  box-sizing: border-box;
+
+  padding: 0 15px;
+
+  border: 1px solid #e7e0eb;
+
+  border-radius: 12px;
+
+  outline: none;
+
+  background: #ffffff;
+
+  color: #342039;
+
+  font-family: inherit;
+  font-size: 14px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.inputWrapper input::placeholder {
+  color: #b0a5b4;
+}
+
+.inputWrapper input:hover {
+  border-color: #d9cce0;
+}
+
+.inputWrapper input:focus {
+  border-color: #672f96;
+
+  box-shadow:
+    0 0 0 4px rgba(103, 47, 150, 0.08);
+}
+
+.inputWrapper input:disabled {
+  opacity: 0.65;
+
+  cursor: not-allowed;
+
+  background: #faf9fb;
+}
+
+/* =========================================================
+   ÍCONE DO INPUT
+   ========================================================= */
+
+.inputIcon {
+  position: absolute;
+
+  left: 15px;
+
+  color: #806f88;
+
+  pointer-events: none;
+}
+
+.inputIcon + input {
+  padding-left: 44px;
+}
+
+/* =========================================================
+   MOSTRAR SENHA
+   ========================================================= */
+
+.mostrarSenha {
+  position: absolute;
+
+  right: 7px;
+
+  width: 36px;
+  height: 36px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 0;
+  border-radius: 9px;
+
+  background: transparent;
+
+  color: #806f88;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.mostrarSenha:hover {
+  background: #f5f1f7;
+
+  color: #672f96;
+}
+
+.mostrarSenha:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   ERRO
+   ========================================================= */
+
+.erro {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  padding: 12px 14px;
+
+  border: 1px solid rgba(180, 55, 70, 0.15);
+
+  border-radius: 10px;
+
+  background: rgba(180, 55, 70, 0.055);
+
+  color: #9b3546;
+
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   BOTÃO
+   ========================================================= */
+
+.botaoEntrar {
+  width: 100%;
+  height: 52px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 9px;
+
+  margin-top: 2px;
+
+  border: 0;
+  border-radius: 12px;
+
+  background: #672f96;
+
+  color: #ffffff;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 750;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 10px 24px rgba(103, 47, 150, 0.18);
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.botaoEntrar:hover:not(:disabled) {
+  background: #592680;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 13px 28px rgba(103, 47, 150, 0.23);
+}
+
+.botaoEntrar:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.botaoEntrar:disabled {
+  opacity: 0.7;
+
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   RODAPÉ
+   ========================================================= */
+
+.rodape {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  margin-top: 26px;
+  padding-top: 22px;
+
+  border-top: 1px solid #eee9f0;
+
+  color: #9a8da0;
+
+  font-size: 10px;
+  line-height: 1.4;
+
+  text-align: center;
+}
+
+.rodape svg {
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   VERIFICAÇÃO DE SESSÃO
+   ========================================================= */
+
+.verificando {
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 10px;
+
+  color: #806f88;
+
+  font-size: 13px;
+}
+
+/* =========================================================
+   SPINNER
+   ========================================================= */
+
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   RESPONSIVO
+   ========================================================= */
+
+@media (max-width: 520px) {
+  .pagina {
+    padding: 20px 16px;
+  }
+
+  .loginCard {
+    padding: 28px 22px;
+
+    border-radius: 20px;
+  }
+
+  .marca {
+    margin-bottom: 34px;
+  }
+
+  .cabecalho {
+    margin-bottom: 26px;
+  }
+
+  .cabecalho h1 {
+    font-size: 29px;
+  }
+}
+
+@media (max-width: 360px) {
+  .loginCard {
+    padding: 24px 18px;
+  }
+
+  .cabecalho {
+    gap: 10px;
+  }
+
+  .iconeSeguranca {
+    width: 34px;
+    height: 34px;
+  }
+}
