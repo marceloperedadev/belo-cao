@@ -1,0 +1,1505 @@
+/* =========================================================
+   BELO CÃO
+   PEDIDO CARD
+   COMPONENT CSS
+   PREMIUM · CLEAN · RESPONSIVE
+   ========================================================= */
+
+.pedido {
+  overflow: hidden;
+
+  border: 1px solid #e9e3ec;
+  border-radius: 15px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 4px 18px
+    rgba(53, 30, 66, 0.035);
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.pedido:hover {
+  border-color: rgba(
+    103,
+    47,
+    150,
+    0.2
+  );
+
+  box-shadow:
+    0 8px 28px
+    rgba(53, 30, 66, 0.065);
+}
+
+.pedidoAberto {
+  border-color: rgba(
+    103,
+    47,
+    150,
+    0.28
+  );
+
+  box-shadow:
+    0 10px 30px
+    rgba(53, 30, 66, 0.08);
+}
+
+.pedidoPrecisaAtencao {
+  border-color: rgba(
+    176,
+    71,
+    88,
+    0.25
+  );
+}
+
+/* =========================================================
+   RESUMO
+   ========================================================= */
+
+.pedidoResumo {
+  display: grid;
+
+  grid-template-columns:
+    minmax(240px, 1.35fr)
+    minmax(220px, 1fr)
+    auto
+    24px;
+
+  align-items: center;
+
+  width: 100%;
+  min-height: 82px;
+
+  padding:
+    13px
+    16px;
+
+  border: 0;
+
+  background: #ffffff;
+  color: #302034;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  font: inherit;
+}
+
+.pedidoResumo:focus-visible {
+  outline: 2px solid #672f96;
+  outline-offset: -2px;
+}
+
+.pedidoIdentificacao {
+  display: flex;
+  align-items: center;
+
+  gap: 17px;
+
+  min-width: 0;
+}
+
+.pedidoNumero {
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+
+  min-width: 86px;
+}
+
+.pedidoNumero strong {
+  color: #302034;
+
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.pedidoNumero span {
+  color: #988da0;
+
+  font-size: 10px;
+
+  white-space: nowrap;
+}
+
+.cliente {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  min-width: 0;
+}
+
+.clienteIcone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+
+  flex: 0 0 32px;
+
+  border-radius: 9px;
+
+  background: #f3edf7;
+  color: #672f96;
+}
+
+.cliente > div {
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+
+  min-width: 0;
+}
+
+.cliente strong {
+  overflow: hidden;
+
+  color: #302034;
+
+  font-size: 12px;
+  font-weight: 750;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cliente span {
+  color: #75677d;
+
+  font-size: 10px;
+}
+
+.pedidoResumoCentro {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  min-width: 0;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 5px;
+
+  min-height: 27px;
+
+  padding:
+    0 9px;
+
+  border-radius: 7px;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  white-space: nowrap;
+}
+
+.status-recebido {
+  background: #f3edf7;
+  color: #672f96;
+}
+
+.status-confirmado {
+  background: #edf5fa;
+  color: #28627b;
+}
+
+.status-em_preparo {
+  background: #fff4e8;
+  color: #a15c1e;
+}
+
+.status-saiu_para_entrega {
+  background: #eef6f1;
+  color: #287646;
+}
+
+.status-concluido {
+  background: #edf7f0;
+  color: #287646;
+}
+
+.status-cancelado {
+  background: #fdf0f2;
+  color: #b04758;
+}
+
+.pedidoAlerta,
+.estoqueResolvido {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 4px;
+
+  min-height: 27px;
+
+  padding:
+    0 8px;
+
+  border-radius: 7px;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  white-space: nowrap;
+}
+
+.pedidoAlerta {
+  background: #fdf0f2;
+  color: #b04758;
+}
+
+.estoqueResolvido {
+  background: #edf7f0;
+  color: #287646;
+}
+
+.total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  gap: 4px;
+}
+
+.total strong {
+  color: #302034;
+
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.total span {
+  color: #988da0;
+
+  font-size: 9px;
+}
+
+.pedidoChevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #988da0;
+
+  transition:
+    color 0.2s ease,
+    transform 0.25s ease;
+}
+
+.pedidoAberto .pedidoChevron {
+  color: #672f96;
+
+  transform: rotate(180deg);
+}
+
+/* =========================================================
+   DETALHES
+   ========================================================= */
+
+.detalhes {
+  padding:
+    0
+    16px
+    17px;
+
+  border-top: 1px solid #eee9f0;
+
+  animation:
+    detalhesEntrada
+    0.2s ease both;
+}
+
+@keyframes detalhesEntrada {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0);
+  }
+}
+
+/* =========================================================
+   STATUS BOX
+   ========================================================= */
+
+.statusBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding:
+    17px
+    0;
+
+  border-bottom: 1px solid #eee9f0;
+}
+
+.label {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: #672f96;
+
+  font-size: 9px;
+  font-weight: 850;
+
+  letter-spacing: 0.12em;
+
+  text-transform: uppercase;
+}
+
+.statusBox strong {
+  color: #302034;
+
+  font-size: 12px;
+}
+
+.statusControle {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+}
+
+.selectWrapper {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+}
+
+.selectWrapper select {
+  min-width: 180px;
+  height: 38px;
+
+  padding:
+    0 35px
+    0 12px;
+
+  border: 1px solid #e2dbe6;
+  border-radius: 9px;
+
+  background: #ffffff;
+  color: #302034;
+
+  font-family: inherit;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  outline: none;
+
+  appearance: none;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.selectWrapper select:hover {
+  border-color: rgba(
+    103,
+    47,
+    150,
+    0.3
+  );
+}
+
+.selectWrapper select:focus {
+  border-color: #672f96;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(103, 47, 150, 0.08);
+}
+
+.selectWrapper select:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.selectWrapper svg {
+  position: absolute;
+
+  right: 11px;
+
+  pointer-events: none;
+
+  color: #75677d;
+}
+
+.statusMensagem {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 5px;
+
+  color: #287646;
+
+  font-size: 10px;
+  font-weight: 750;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   ESTOQUE
+   ========================================================= */
+
+.estoqueBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 18px;
+
+  margin:
+    15px
+    0
+    0;
+
+  padding: 14px;
+
+  border-radius: 12px;
+}
+
+.estoquePendente {
+  border: 1px solid
+    rgba(176, 71, 88, 0.16);
+
+  background: #fff8f9;
+}
+
+.estoqueResolvidoBox {
+  border: 1px solid
+    rgba(40, 118, 70, 0.15);
+
+  background: #f5faf6;
+}
+
+.estoqueInfo {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 10px;
+
+  min-width: 0;
+}
+
+.estoqueIcone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 34px;
+  height: 34px;
+
+  flex: 0 0 34px;
+
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #b04758;
+}
+
+.estoqueResolvidoBox
+  .estoqueIcone {
+  color: #287646;
+}
+
+.estoqueInfo > div {
+  min-width: 0;
+}
+
+.estoqueInfo strong {
+  display: block;
+
+  color: #302034;
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.estoqueInfo p {
+  margin:
+    4px
+    0
+    0;
+
+  color: #75677d;
+
+  font-size: 10px;
+
+  line-height: 1.45;
+}
+
+.estoqueAcoes {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  flex: 0 0 auto;
+}
+
+.devolverEstoque,
+.naoDevolverEstoque {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 6px;
+
+  min-height: 35px;
+
+  padding:
+    0 11px;
+
+  border-radius: 8px;
+
+  font-family: inherit;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.devolverEstoque {
+  border: 1px solid
+    rgba(40, 118, 70, 0.2);
+
+  background: #ffffff;
+  color: #287646;
+}
+
+.devolverEstoque:hover:not(:disabled) {
+  border-color: #287646;
+
+  background: #edf7f0;
+}
+
+.naoDevolverEstoque {
+  border: 1px solid
+    rgba(176, 71, 88, 0.18);
+
+  background: #ffffff;
+  color: #b04758;
+}
+
+.naoDevolverEstoque:hover:not(:disabled) {
+  border-color: #b04758;
+
+  background: #fdf0f2;
+}
+
+.devolverEstoque:disabled,
+.naoDevolverEstoque:disabled {
+  cursor: wait;
+
+  opacity: 0.5;
+}
+
+/* =========================================================
+   GRID DE INFORMAÇÕES
+   ========================================================= */
+
+.detalhesGrid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 10px;
+
+  padding:
+    16px
+    0;
+}
+
+.bloco {
+  min-width: 0;
+
+  padding: 14px;
+
+  border: 1px solid #eee9f0;
+  border-radius: 12px;
+
+  background: #fcfbfd;
+}
+
+.blocoTitulo {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  margin-bottom: 12px;
+
+  color: #672f96;
+}
+
+.blocoTitulo h3 {
+  margin: 0;
+
+  color: #302034;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.blocoConteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  gap: 4px;
+
+  min-width: 0;
+}
+
+.blocoConteudo > strong {
+  overflow: hidden;
+
+  max-width: 100%;
+
+  color: #302034;
+
+  font-size: 12px;
+  font-weight: 800;
+
+  text-overflow: ellipsis;
+}
+
+.blocoConteudo > span {
+  overflow: hidden;
+
+  max-width: 100%;
+
+  color: #75677d;
+
+  font-size: 10px;
+
+  line-height: 1.45;
+
+  text-overflow: ellipsis;
+}
+
+.whatsapp {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 6px;
+
+  min-height: 31px;
+
+  margin-top: 7px;
+
+  padding:
+    0 9px;
+
+  border: 1px solid
+    rgba(40, 118, 70, 0.18);
+
+  border-radius: 8px;
+
+  background: #edf7f0;
+  color: #287646;
+
+  font-family: inherit;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.whatsapp:hover {
+  border-color: rgba(
+    40,
+    118,
+    70,
+    0.35
+  );
+
+  background: #e3f3e8;
+}
+
+/* =========================================================
+   VALORES
+   ========================================================= */
+
+.valores {
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+.valores > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+}
+
+.valores span {
+  color: #75677d;
+
+  font-size: 10px;
+}
+
+.valores strong {
+  color: #302034;
+
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.valorTotal {
+  margin-top: 4px;
+
+  padding-top: 8px;
+
+  border-top: 1px solid #e9e3ec;
+}
+
+.valorTotal span {
+  color: #302034;
+
+  font-weight: 800;
+}
+
+.valorTotal strong {
+  color: #672f96;
+
+  font-size: 13px;
+  font-weight: 850;
+}
+
+/* =========================================================
+   TAXA DE ENTREGA — NOVO
+   ========================================================= */
+
+.linhaTaxa {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+}
+
+.taxaExibicao {
+  display: flex;
+
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 8px;
+}
+
+.editarTaxa {
+  border: 0;
+
+  padding:
+    2px
+    0;
+
+  background: transparent;
+
+  color: #672f96;
+
+  font-family: inherit;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.editarTaxa:hover {
+  text-decoration: underline;
+}
+
+.editarTaxa:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.5;
+}
+
+.taxaEditor {
+  display: flex;
+
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 4px;
+}
+
+.taxaEditor > span {
+  color: #8c8192;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.taxaEditor input {
+  width: 74px;
+  height: 28px;
+
+  padding:
+    0
+    7px;
+
+  border: 1px solid #ded6e3;
+  border-radius: 7px;
+
+  background: #ffffff;
+  color: #342039;
+
+  font-family: inherit;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  outline: none;
+
+  box-sizing: border-box;
+}
+
+.taxaEditor input:focus {
+  border-color:
+    rgba(103, 47, 150, 0.45);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(103, 47, 150, 0.08);
+}
+
+.taxaEditor button {
+  width: 28px;
+  height: 28px;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid #e9e4ec;
+  border-radius: 7px;
+
+  background: #ffffff;
+  color: #672f96;
+
+  cursor: pointer;
+}
+
+.taxaEditor button:hover:not(:disabled) {
+  background: #f7f3fa;
+}
+
+.taxaEditor button:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.5;
+}
+
+.taxaStatus {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 4px;
+
+  color: #672f96;
+
+  font-size: 9px;
+  font-weight: 800;
+}
+
+/* =========================================================
+   ITENS
+   ========================================================= */
+
+.itens {
+  overflow: hidden;
+
+  border: 1px solid #eee9f0;
+  border-radius: 12px;
+
+  background: #ffffff;
+}
+
+.itensHeader {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  padding:
+    13px
+    14px;
+
+  border-bottom: 1px solid #eee9f0;
+
+  background: #fcfbfd;
+}
+
+.itensHeader > div {
+  display: flex;
+  flex-direction: column;
+
+  gap: 2px;
+}
+
+.itensHeader strong {
+  color: #302034;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.itensHeader > span {
+  color: #988da0;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.itensLista {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  padding:
+    12px
+    14px;
+
+  border-bottom: 1px solid #f0ebf2;
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.itemInfo {
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+
+  min-width: 0;
+}
+
+.itemInfo strong {
+  overflow: hidden;
+
+  color: #302034;
+
+  font-size: 11px;
+  font-weight: 750;
+
+  text-overflow: ellipsis;
+}
+
+.itemInfo span {
+  color: #75677d;
+
+  font-size: 9px;
+}
+
+.item > strong {
+  flex: 0 0 auto;
+
+  color: #302034;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* =========================================================
+   RODAPÉ DO PEDIDO
+   ========================================================= */
+
+.pedidoRodape {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  padding-top: 13px;
+
+  color: #988da0;
+
+  font-size: 9px;
+}
+
+/* =========================================================
+   AÇÕES
+   ========================================================= */
+
+.acoesPedido {
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  margin-left: auto;
+}
+
+.acaoPedido {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 6px;
+
+  min-height: 31px;
+
+  padding:
+    0
+    10px;
+
+  border: 1px solid #e6dfeb;
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: #5d4f65;
+
+  font-family: inherit;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.acaoPedido:hover {
+  border-color:
+    rgba(103, 47, 150, 0.25);
+
+  background: #f8f4fa;
+
+  color: #672f96;
+}
+
+/* =========================================================
+   RESPONSIVO — 1100PX
+   ========================================================= */
+
+@media (max-width: 1100px) {
+  .pedidoResumo {
+    grid-template-columns:
+      minmax(230px, 1.25fr)
+      minmax(180px, 1fr)
+      auto
+      24px;
+  }
+
+  .detalhesGrid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =========================================================
+   RESPONSIVO — 800PX
+   ========================================================= */
+
+@media (max-width: 800px) {
+  .pedidoResumo {
+    grid-template-columns:
+      minmax(0, 1fr)
+      auto
+      24px;
+
+    gap: 10px;
+
+    padding:
+      14px;
+  }
+
+  .pedidoResumoCentro {
+    grid-column: 1 / 2;
+
+    grid-row: 2;
+  }
+
+  .total {
+    grid-column: 2;
+
+    grid-row: 1 / 3;
+  }
+
+  .pedidoChevron {
+    grid-column: 3;
+
+    grid-row: 1 / 3;
+  }
+
+  .statusBox {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+  .statusControle {
+    width: 100%;
+  }
+
+  .selectWrapper {
+    width: 100%;
+  }
+
+  .selectWrapper select {
+    width: 100%;
+  }
+
+  .estoqueBox {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+  .estoqueAcoes {
+    width: 100%;
+  }
+
+  .devolverEstoque,
+  .naoDevolverEstoque {
+    flex: 1;
+  }
+}
+
+/* =========================================================
+   RESPONSIVO — 560PX
+   ========================================================= */
+
+@media (max-width: 560px) {
+  .pedido {
+    border-radius: 12px;
+  }
+
+  .pedidoResumo {
+    grid-template-columns:
+      minmax(0, 1fr)
+      22px;
+
+    padding:
+      13px;
+  }
+
+  .pedidoIdentificacao {
+    gap: 10px;
+  }
+
+  .pedidoNumero {
+    min-width: 68px;
+  }
+
+  .pedidoNumero strong {
+    font-size: 11px;
+  }
+
+  .pedidoNumero span {
+    font-size: 8px;
+  }
+
+  .clienteIcone {
+    width: 29px;
+    height: 29px;
+
+    flex-basis: 29px;
+  }
+
+  .cliente strong {
+    font-size: 10px;
+  }
+
+  .cliente span {
+    font-size: 8px;
+  }
+
+  .pedidoResumoCentro {
+    grid-column: 1 / -1;
+
+    grid-row: 2;
+  }
+
+  .total {
+    grid-column: 1;
+
+    grid-row: 3;
+
+    align-items: flex-start;
+
+    margin-top: 2px;
+  }
+
+  .total strong {
+    font-size: 12px;
+  }
+
+  .pedidoChevron {
+    grid-column: 2;
+
+    grid-row: 1 / 4;
+  }
+
+  .detalhes {
+    padding:
+      0
+      12px
+      13px;
+  }
+
+  .detalhesGrid {
+    grid-template-columns:
+      1fr;
+
+    gap: 8px;
+  }
+
+  .statusBox {
+    padding:
+      14px
+      0;
+  }
+
+  .estoqueBox {
+    padding: 12px;
+  }
+
+  .estoqueAcoes {
+    flex-direction: column;
+  }
+
+  .devolverEstoque,
+  .naoDevolverEstoque {
+    width: 100%;
+  }
+
+  .item {
+    padding:
+      11px
+      12px;
+  }
+
+  .pedidoRodape {
+    align-items: flex-start;
+
+    flex-direction: column;
+
+    gap: 4px;
+  }
+
+  .acoesPedido {
+    width: 100%;
+
+    margin-left: 0;
+  }
+
+  .acaoPedido {
+    flex: 1;
+  }
+
+  .taxaEditor {
+    gap: 3px;
+  }
+
+  .taxaEditor input {
+    width: 68px;
+  }
+}
+
+/* =========================================================
+   TAXA DE ENTREGA
+   EDIÇÃO MANUAL
+   ========================================================= */
+
+.linhaTaxa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.taxaExibicao {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.editarTaxa {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #672f96;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.editarTaxa:hover {
+  text-decoration: underline;
+}
+
+.editarTaxa:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.taxaEditor {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.taxaEditor > span {
+  color: #8c8192;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.taxaEditor input {
+  width: 72px;
+  height: 28px;
+  padding: 0 7px;
+
+  border: 1px solid #e2dbe6;
+  border-radius: 7px;
+
+  background: #ffffff;
+  color: #302034;
+
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 750;
+
+  outline: none;
+}
+
+.taxaEditor input:focus {
+  border-color: #672f96;
+  box-shadow:
+    0 0 0 3px rgba(103, 47, 150, 0.08);
+}
+
+.taxaEditor input:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.taxaEditor button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+  padding: 0;
+
+  border: 1px solid #e2dbe6;
+  border-radius: 7px;
+
+  background: #ffffff;
+  color: #672f96;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.taxaEditor button:hover:not(:disabled) {
+  background: #f7f3fa;
+  border-color: rgba(103, 47, 150, 0.3);
+}
+
+.taxaEditor button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.taxaStatus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+
+  color: #287646;
+  font-size: 9px;
+  font-weight: 750;
+
+  white-space: nowrap;
+}

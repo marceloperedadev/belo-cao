@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server'
 import { Pool } from '@neondatabase/serverless'
 
 /* =========================================================
+   CONFIGURAÇÃO
+   ========================================================= */
+
+export const runtime = 'nodejs'
+
+/* =========================================================
    BANCO
    ========================================================= */
 
@@ -23,6 +29,19 @@ const STATUS_VALIDOS = [
 ] as const
 
 type StatusPedido = (typeof STATUS_VALIDOS)[number]
+
+/* =========================================================
+   RESOLUÇÃO DO ESTOQUE
+   ========================================================= */
+
+const RESOLUCOES_ESTOQUE = [
+  'pendente',
+  'devolvido',
+  'nao_devolver',
+] as const
+
+type ResolucaoEstoque =
+  (typeof RESOLUCOES_ESTOQUE)[number]
 
 /* =========================================================
    TRANSIÇÕES PERMITIDAS
@@ -83,7 +102,66 @@ function transicaoPermitida(
 }
 
 /* =========================================================
+   NORMALIZAR RESOLUÇÃO DO ESTOQUE
+
+   Compatibilidade com pedidos antigos:
+
+   stock_resolution = NULL
+   stock_restored = false
+      → pendente
+
+   stock_resolution = NULL
+   stock_restored = true
+      → devolvido
+
+   stock_resolution = devolvido
+      → devolvido
+
+   stock_resolution = nao_devolver
+      → nao_devolver
+   ========================================================= */
+
+function obterResolucaoEstoque(
+  stockResolution: unknown,
+  stockRestored: unknown,
+): ResolucaoEstoque {
+  if (
+    stockResolution ===
+    'devolvido'
+  ) {
+    return 'devolvido'
+  }
+
+  if (
+    stockResolution ===
+    'nao_devolver'
+  ) {
+    return 'nao_devolver'
+  }
+
+  if (
+    stockRestored === true
+  ) {
+    return 'devolvido'
+  }
+
+  return 'pendente'
+}
+
+/* =========================================================
    GET — LISTAR PEDIDOS
+   =========================================================
+
+   IMPORTANTE:
+
+   A lista normal continua limitada.
+
+   Porém, os pedidos cancelados com estoque pendente
+   são buscados separadamente.
+
+   Dessa forma, uma pendência antiga NÃO desaparece
+   porque chegaram novos pedidos.
+
    ========================================================= */
 
 export async function GET(
@@ -93,13 +171,21 @@ export async function GET(
     const { searchParams } =
       new URL(request.url)
 
+    /* =======================================================
+       LIMITE DA LISTA NORMAL
+       ======================================================= */
+
     const limitParam = Number(
-      searchParams.get('limit') ?? '100',
+      searchParams.get(
+        'limit',
+      ) ?? '100',
     )
 
     const limit = Math.min(
       Math.max(
-        Number.isFinite(limitParam)
+        Number.isFinite(
+          limitParam,
+        )
           ? limitParam
           : 100,
         1,
@@ -107,83 +193,387 @@ export async function GET(
       200,
     )
 
-    const result = await pool.query(
-      `
-        SELECT
-          o.id,
-          o.order_number,
-          o.customer_id,
-          o.customer_name,
-          o.customer_whatsapp,
-          o.delivery_type,
-          o.cep,
-          o.street,
-          o.number,
-          o.complement,
-          o.neighborhood,
-          o.city,
-          o.reference_point,
-          o.payment_method,
-          o.change_for,
-          o.subtotal,
-          o.shipping,
-          o.total,
-          o.status,
-          o.stock_restored,
-          o.created_at,
-          o.updated_at,
+    /* =======================================================
+       FILTRO
 
-          COALESCE(
-            json_agg(
-              json_build_object(
-                'id', oi.id,
-                'product_id', oi.product_id,
-                'product_name', oi.product_name,
-                'quantity', oi.quantity,
-                'unit_price', oi.unit_price,
-                'subtotal', oi.subtotal
+       Pode receber:
+
+       todos
+       recebido
+       confirmado
+       em_preparo
+       saiu_para_entrega
+       concluido
+       cancelado
+       pendencias
+       ======================================================= */
+
+    const filtro =
+      searchParams.get(
+        'filtro',
+      ) ?? 'todos'
+
+    /* =======================================================
+       VALIDAÇÃO DO FILTRO
+       ======================================================= */
+
+    const filtroValido =
+      filtro === 'todos' ||
+      filtro === 'pendencias' ||
+      statusValido(filtro)
+
+    if (!filtroValido) {
+      return NextResponse.json(
+        {
+          sucesso: false,
+          mensagem:
+            'Filtro de pedidos inválido.',
+        },
+        {
+          status: 400,
+        },
+      )
+    }
+
+    /* =======================================================
+       PEDIDOS QUE PRECISAM DE ATENÇÃO
+
+       ATENÇÃO:
+
+       Não usamos LIMIT aqui.
+
+       A finalidade é justamente impedir que uma
+       pendência antiga desapareça.
+
+       São pedidos:
+
+       status = cancelado
+
+       E:
+
+       stock_resolution = pendente
+       OU
+       stock_resolution IS NULL + stock_restored = false
+
+       ======================================================= */
+
+    const pendenciasResult =
+      await pool.query(
+        `
+          SELECT
+            o.id,
+            o.order_number,
+            o.customer_id,
+            o.customer_name,
+            o.customer_whatsapp,
+            o.delivery_type,
+            o.cep,
+            o.street,
+            o.number,
+            o.complement,
+            o.neighborhood,
+            o.city,
+            o.reference_point,
+            o.payment_method,
+            o.change_for,
+            o.subtotal,
+            o.shipping,
+            o.total,
+            o.status,
+            o.stock_restored,
+            o.stock_resolution,
+            o.created_at,
+            o.updated_at,
+
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', oi.id,
+                  'product_id', oi.product_id,
+                  'product_name', oi.product_name,
+                  'quantity', oi.quantity,
+                  'unit_price', oi.unit_price,
+                  'subtotal', oi.subtotal
+                )
+                ORDER BY oi.id
               )
-              ORDER BY oi.id
+              FILTER (
+                WHERE oi.id IS NOT NULL
+              ),
+              '[]'::json
+            ) AS items
+
+          FROM public.orders o
+
+          LEFT JOIN public.order_items oi
+            ON oi.order_id = o.id
+
+          WHERE
+            o.status = 'cancelado'
+
+            AND (
+              (
+                o.stock_resolution IS NULL
+                AND COALESCE(
+                  o.stock_restored,
+                  FALSE
+                ) = FALSE
+              )
+
+              OR
+
+              o.stock_resolution = 'pendente'
             )
-            FILTER (
-              WHERE oi.id IS NOT NULL
+
+          GROUP BY o.id
+
+          ORDER BY
+            o.created_at ASC
+        `,
+      )
+
+    /* =======================================================
+       NORMALIZAR PENDÊNCIAS
+       ======================================================= */
+
+    const pendencias =
+      pendenciasResult.rows.map(
+        (pedido) => ({
+          ...pedido,
+
+          items:
+            Array.isArray(
+              pedido.items,
+            )
+              ? pedido.items
+              : [],
+
+          stock_restored:
+            Boolean(
+              pedido.stock_restored,
             ),
-            '[]'::json
-          ) AS items
 
-        FROM public.orders o
+          stock_resolution:
+            obterResolucaoEstoque(
+              pedido.stock_resolution,
+              Boolean(
+                pedido.stock_restored,
+              ),
+            ),
 
-        LEFT JOIN public.order_items oi
-          ON oi.order_id = o.id
+          precisa_atencao: true,
+        }),
+      )
 
-        GROUP BY o.id
+    /* =======================================================
+       SE FILTRO = PENDÊNCIAS
 
-        ORDER BY o.created_at DESC
+       Retornamos somente as pendências.
 
-        LIMIT $1
-      `,
-      [limit],
-    )
+       Isso permite ao frontend criar um filtro
+       específico sem depender da lista normal.
+       ======================================================= */
 
-    const pedidos = result.rows.map(
-      (pedido) => ({
-        ...pedido,
-
-        items: Array.isArray(
-          pedido.items,
+    if (
+      filtro ===
+      'pendencias'
+    ) {
+      const valorTotalPendencias =
+        pendencias.reduce(
+          (
+            total,
+            pedido,
+          ) =>
+            total +
+            Number(
+              pedido.total ?? 0,
+            ),
+          0,
         )
-          ? pedido.items
-          : [],
 
-        stock_restored:
-          Boolean(
-            pedido.stock_restored,
-          ),
-      }),
+      return NextResponse.json({
+        sucesso: true,
+
+        totalPedidos:
+          pendencias.length,
+
+        valorTotal:
+          valorTotalPendencias,
+
+        pendencias: {
+          total:
+            pendencias.length,
+
+          pedidos:
+            pendencias,
+        },
+
+        pedidos:
+          pendencias,
+      })
+    }
+
+    /* =======================================================
+       BUSCAR LISTA NORMAL
+       ======================================================= */
+
+    const parametros: Array<
+      string | number
+    > = []
+
+    let where = ''
+
+    /* =======================================================
+       FILTRAR POR STATUS
+       ======================================================= */
+
+    if (
+      filtro !== 'todos'
+    ) {
+      parametros.push(
+        filtro,
+      )
+
+      where = `
+        WHERE o.status = $1
+      `
+    }
+
+    /* =======================================================
+       LIMIT
+
+       O número do parâmetro depende da existência
+       do filtro.
+       ======================================================= */
+
+    const parametroLimit =
+      parametros.length + 1
+
+    parametros.push(
+      limit,
     )
+
+    const result =
+      await pool.query(
+        `
+          SELECT
+            o.id,
+            o.order_number,
+            o.customer_id,
+            o.customer_name,
+            o.customer_whatsapp,
+            o.delivery_type,
+            o.cep,
+            o.street,
+            o.number,
+            o.complement,
+            o.neighborhood,
+            o.city,
+            o.reference_point,
+            o.payment_method,
+            o.change_for,
+            o.subtotal,
+            o.shipping,
+            o.total,
+            o.status,
+            o.stock_restored,
+            o.stock_resolution,
+            o.created_at,
+            o.updated_at,
+
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', oi.id,
+                  'product_id', oi.product_id,
+                  'product_name', oi.product_name,
+                  'quantity', oi.quantity,
+                  'unit_price', oi.unit_price,
+                  'subtotal', oi.subtotal
+                )
+                ORDER BY oi.id
+              )
+              FILTER (
+                WHERE oi.id IS NOT NULL
+              ),
+              '[]'::json
+            ) AS items
+
+          FROM public.orders o
+
+          LEFT JOIN public.order_items oi
+            ON oi.order_id = o.id
+
+          ${where}
+
+          GROUP BY o.id
+
+          ORDER BY
+            o.created_at DESC
+
+          LIMIT $${parametroLimit}
+        `,
+        parametros,
+      )
+
+    /* =======================================================
+       NORMALIZAR PEDIDOS
+       ======================================================= */
+
+    const pedidos =
+      result.rows.map(
+        (pedido) => {
+          const stockRestored =
+            Boolean(
+              pedido.stock_restored,
+            )
+
+          const stockResolution =
+            obterResolucaoEstoque(
+              pedido.stock_resolution,
+              stockRestored,
+            )
+
+          const precisaAtencao =
+            pedido.status ===
+              'cancelado' &&
+            stockResolution ===
+              'pendente'
+
+          return {
+            ...pedido,
+
+            items:
+              Array.isArray(
+                pedido.items,
+              )
+                ? pedido.items
+                : [],
+
+            stock_restored:
+              stockRestored,
+
+            stock_resolution:
+              stockResolution,
+
+            precisa_atencao:
+              precisaAtencao,
+          }
+        },
+      )
+
+    /* =======================================================
+       TOTAL DE PEDIDOS DA LISTA
+       ======================================================= */
 
     const totalPedidos =
       pedidos.length
+
+    /* =======================================================
+       FATURAMENTO
+
+       Cancelados não entram.
+       ======================================================= */
 
     const valorTotal =
       pedidos.reduce(
@@ -208,10 +598,31 @@ export async function GET(
         0,
       )
 
+    /* =======================================================
+       RESPOSTA
+       ======================================================= */
+
     return NextResponse.json({
       sucesso: true,
+
       totalPedidos,
+
       valorTotal,
+
+      /* =====================================================
+         RESUMO DE ATENÇÃO
+
+         Esse número é independente do LIMIT.
+         ===================================================== */
+
+      pendencias: {
+        total:
+          pendencias.length,
+
+        pedidos:
+          pendencias,
+      },
+
       pedidos,
     })
   } catch (error) {
@@ -223,6 +634,7 @@ export async function GET(
     return NextResponse.json(
       {
         sucesso: false,
+
         mensagem:
           'Erro ao carregar os pedidos.',
       },
@@ -237,11 +649,13 @@ export async function GET(
    PATCH — ALTERAR STATUS DO PEDIDO
 
    IMPORTANTE:
+
    CANCELAR NÃO DEVOLVE ESTOQUE.
 
-   A devolução é feita separadamente pelo endpoint:
+   A devolução é feita separadamente em:
 
    POST /api/admin/pedidos/estoque
+
    ========================================================= */
 
 export async function PATCH(
@@ -260,9 +674,9 @@ export async function PATCH(
     const novoStatus =
       body?.status
 
-    /* =====================================================
-       VALIDAÇÃO
-       ===================================================== */
+    /* =======================================================
+       VALIDAÇÃO DO ID
+       ======================================================= */
 
     if (
       typeof pedidoId !==
@@ -272,6 +686,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           sucesso: false,
+
           mensagem:
             'ID do pedido não informado.',
         },
@@ -280,6 +695,10 @@ export async function PATCH(
         },
       )
     }
+
+    /* =======================================================
+       VALIDAÇÃO DO STATUS
+       ======================================================= */
 
     if (
       typeof novoStatus !==
@@ -291,6 +710,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           sucesso: false,
+
           mensagem:
             'Status do pedido inválido.',
         },
@@ -300,17 +720,17 @@ export async function PATCH(
       )
     }
 
-    /* =====================================================
+    /* =======================================================
        TRANSAÇÃO
-       ===================================================== */
+       ======================================================= */
 
     await client.query(
       'BEGIN',
     )
 
-    /* =====================================================
+    /* =======================================================
        BUSCAR PEDIDO COM LOCK
-       ===================================================== */
+       ======================================================= */
 
     const pedidoResult =
       await client.query(
@@ -319,7 +739,8 @@ export async function PATCH(
             id,
             order_number,
             status,
-            stock_restored
+            stock_restored,
+            stock_resolution
           FROM public.orders
           WHERE id = $1
           FOR UPDATE
@@ -338,6 +759,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           sucesso: false,
+
           mensagem:
             'Pedido não encontrado.',
         },
@@ -353,9 +775,9 @@ export async function PATCH(
     const statusAtual =
       pedido.status as StatusPedido
 
-    /* =====================================================
+    /* =======================================================
        VALIDAR STATUS ATUAL
-       ===================================================== */
+       ======================================================= */
 
     if (
       !statusValido(
@@ -369,6 +791,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           sucesso: false,
+
           mensagem:
             'O pedido possui um status inválido no banco.',
         },
@@ -378,9 +801,9 @@ export async function PATCH(
       )
     }
 
-    /* =====================================================
+    /* =======================================================
        VALIDAR TRANSIÇÃO
-       ===================================================== */
+       ======================================================= */
 
     if (
       !transicaoPermitida(
@@ -396,7 +819,8 @@ export async function PATCH(
         {
           sucesso: false,
 
-          mensagem: `Não é permitido alterar o pedido de "${statusAtual}" para "${novoStatus}".`,
+          mensagem:
+            `Não é permitido alterar o pedido de "${statusAtual}" para "${novoStatus}".`,
 
           statusAtual,
 
@@ -413,9 +837,9 @@ export async function PATCH(
       )
     }
 
-    /* =====================================================
+    /* =======================================================
        NENHUMA ALTERAÇÃO
-       ===================================================== */
+       ======================================================= */
 
     if (
       statusAtual ===
@@ -437,15 +861,37 @@ export async function PATCH(
           statusAtual,
 
         estoqueDevolvido:
-          false,
+          Boolean(
+            pedido.stock_restored,
+          ),
+
+        resolucaoEstoque:
+          obterResolucaoEstoque(
+            pedido.stock_resolution,
+            Boolean(
+              pedido.stock_restored,
+            ),
+          ),
       })
     }
 
-    /* =====================================================
+    /* =======================================================
        ATUALIZAR STATUS
 
-       NÃO ALTERAMOS O ESTOQUE AQUI.
-       ===================================================== */
+       IMPORTANTE:
+
+       Se estiver cancelando agora,
+       garantimos que a resolução do estoque
+       fique como pendente.
+
+       Não devolvemos estoque aqui.
+       ======================================================= */
+
+    const deveMarcarComoPendente =
+      novoStatus ===
+        'cancelado' &&
+      statusAtual !==
+        'cancelado'
 
     const updateResult =
       await client.query(
@@ -453,17 +899,31 @@ export async function PATCH(
           UPDATE public.orders
           SET
             status = $1,
+
+            stock_resolution =
+              CASE
+                WHEN $1 = 'cancelado'
+                 AND $2 = FALSE
+                THEN 'pendente'
+
+                ELSE stock_resolution
+              END,
+
             updated_at = NOW()
-          WHERE id = $2
+
+          WHERE id = $3
+
           RETURNING
             id,
             order_number,
             status,
             stock_restored,
+            stock_resolution,
             updated_at
         `,
         [
           novoStatus,
+          deveMarcarComoPendente,
           pedidoId,
         ],
       )
@@ -480,13 +940,29 @@ export async function PATCH(
     const pedidoAtualizado =
       updateResult.rows[0]
 
-    /* =====================================================
+    /* =======================================================
        COMMIT
-       ===================================================== */
+       ======================================================= */
 
     await client.query(
       'COMMIT',
     )
+
+    /* =======================================================
+       RESOLUÇÃO FINAL
+       ======================================================= */
+
+    const resolucaoEstoque =
+      obterResolucaoEstoque(
+        pedidoAtualizado.stock_resolution,
+        Boolean(
+          pedidoAtualizado.stock_restored,
+        ),
+      )
+
+    /* =======================================================
+       RESPOSTA
+       ======================================================= */
 
     return NextResponse.json({
       sucesso: true,
@@ -494,19 +970,32 @@ export async function PATCH(
       mensagem:
         novoStatus ===
         'cancelado'
-          ? 'Pedido cancelado. O estoque permanece inalterado até uma devolução manual.'
+          ? 'Pedido cancelado. Os produtos permanecem pendentes de decisão sobre o estoque.'
           : 'Status do pedido atualizado com sucesso.',
 
-      pedido:
-        pedidoAtualizado,
+      pedido: {
+        ...pedidoAtualizado,
+
+        stock_restored:
+          Boolean(
+            pedidoAtualizado.stock_restored,
+          ),
+
+        stock_resolution:
+          resolucaoEstoque,
+      },
 
       estoqueDevolvido:
-        false,
+        Boolean(
+          pedidoAtualizado.stock_restored,
+        ),
+
+      resolucaoEstoque,
     })
   } catch (error) {
-    /* =====================================================
+    /* =======================================================
        ROLLBACK
-       ===================================================== */
+       ======================================================= */
 
     try {
       await client.query(

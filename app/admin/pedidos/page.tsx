@@ -2,19 +2,15 @@
 'use client'
 
 import {
+  AlertTriangle,
   ArrowLeft,
   Check,
-  ChevronDown,
-  ChevronRight,
   Clock3,
   Loader2,
-  MessageCircle,
   Package,
   RefreshCw,
-  RotateCcw,
   ShoppingBag,
   TrendingUp,
-  User,
   X,
 } from 'lucide-react'
 
@@ -25,1205 +21,1475 @@ import {
   useState,
 } from 'react'
 
+import { useRouter } from 'next/navigation'
+
+import PedidoCard, {
+  type Pedido,
+  type PedidoApi,
+  type ResolucaoEstoque,
+  type StatusPedido,
+} from '@/app/admin/pedidos/pedidoCard/PedidoCard'
+
 import styles from './Pedidos.module.css'
 
-/* =========================================================
-   TIPOS
-   ========================================================= */
+// =========================================================
+// TIPOS
+// =========================================================
 
-type ItemPedido = {
-  id: string
-  produtoId: string | null
-  nome: string
-  quantidade: number
-  precoUnitario: number
-  subtotal: number
-}
-
-type Pedido = {
-  id: string
-  orderNumber: number | string
-  numeroPedido: string
-
-  cliente: {
-    id: string | null
-    nome: string
-    whatsapp: string
-  }
-
-  entrega: {
-    tipo: string
-    cep: string | null
-    rua: string | null
-    numero: string | null
-    complemento: string | null
-    bairro: string | null
-    cidade: string | null
-    referencia: string | null
-  }
-
-  pagamento: {
-    forma: string
-    trocoPara: number | null
-  }
-
-  valores: {
-    subtotal: number
-    frete: number
-    total: number
-  }
-
-  itens: ItemPedido[]
-
-  status: string
-
-  /* Controle manual do estoque */
-  estoqueDevolvido: boolean
-  estoqueDevolvidoEm: string | null
-
-  criadoEm: string
-  atualizadoEm: string
-}
-
-/* =========================================================
-   RESPOSTA DA API
-   ========================================================= */
-
-type PedidoApi = {
-  id: string
-  order_number: number | string
-
-  customer_id: string | null
-  customer_name: string
-  customer_whatsapp: string
-
-  delivery_type: string
-  cep: string | null
-  street: string | null
-  number: string | null
-  complement: string | null
-  neighborhood: string | null
-  city: string | null
-  reference_point: string | null
-
-  payment_method: string
-  change_for: number | string | null
-
-  subtotal: number | string
-  shipping: number | string
-  total: number | string
-
-  status: string
-
-  /* Controle de devolução */
-  stock_restored: boolean
-  stock_restored_at: string | null
-
-  created_at: string
-  updated_at: string
-
-  items: ItemApi[]
-}
-
-type ItemApi = {
-  id: string
-  product_id: string | null
-  product_name: string
-  quantity: number | string
-  unit_price: number | string
-  subtotal: number | string
-}
+type StatusFiltro =
+  | 'todos'
+  | 'recebido'
+  | 'confirmado'
+  | 'em_preparo'
+  | 'saiu_para_entrega'
+  | 'concluido'
+  | 'cancelado'
+  | 'atencao'
 
 type RespostaPedidos = {
-  sucesso: boolean
-  pedidos: PedidoApi[]
-  totalPedidos: number
-  valorTotal: number | string
-
-  filtros?: {
-    status: string
-    limite: number
-  }
-
-  erro?: string
-  mensagem?: string
+  pedidos?: PedidoApi[]
+  data?: PedidoApi[]
+  items?: PedidoApi[]
 }
 
-type RespostaEstoque = {
-  sucesso: boolean
-  mensagem?: string
-  erro?: string
+// =========================================================
+// OPÇÕES DE STATUS
+// =========================================================
 
-  estoqueDevolvido?: boolean
+const STATUS_OPTIONS: {
+  value: Exclude<
+    StatusFiltro,
+    'todos' | 'atencao'
+  >
+  label: string
+}[] = [
+  {
+    value: 'recebido',
+    label: 'Recebidos',
+  },
+  {
+    value: 'confirmado',
+    label: 'Confirmados',
+  },
+  {
+    value: 'em_preparo',
+    label: 'Em preparo',
+  },
+  {
+    value: 'saiu_para_entrega',
+    label: 'Em entrega',
+  },
+  {
+    value: 'concluido',
+    label: 'Concluídos',
+  },
+  {
+    value: 'cancelado',
+    label: 'Cancelados',
+  },
+]
 
-  pedido?: {
-    id: string
-    order_number: number | string
-    status: string
-    stock_restored: boolean
-    stock_restored_at: string | null
-    updated_at: string
-  }
+// =========================================================
+// UTILITÁRIOS
+// =========================================================
 
-  itens?: Array<{
-    productId: string
-    productName: string
-    quantity: number
-    stockAtual: number
-  }>
+type Registro = Record<string, unknown>
+
+function registro(valor: unknown): Registro {
+  return valor !== null && typeof valor === 'object'
+    ? (valor as Registro)
+    : {}
 }
 
-/* =========================================================
-   STATUS
-   ========================================================= */
-
-const STATUS = [
-  'todos',
-  'recebido',
-  'confirmado',
-  'em_preparo',
-  'saiu_para_entrega',
-  'concluido',
-  'cancelado',
-] as const
-
-type StatusPedido = (typeof STATUS)[number]
-
-type StatusAtualizavel = Exclude<
-  StatusPedido,
-  'todos'
->
-
-const TRANSICOES_STATUS: Record<
-  StatusAtualizavel,
-  StatusAtualizavel[]
-> = {
-  recebido: [
-    'confirmado',
-    'cancelado',
-  ],
-
-  confirmado: [
-    'em_preparo',
-    'cancelado',
-  ],
-
-  em_preparo: [
-    'saiu_para_entrega',
-    'cancelado',
-  ],
-
-  saiu_para_entrega: [
-    'concluido',
-    'cancelado',
-  ],
-
-  concluido: [],
-
-  cancelado: [],
-}
-
-/* =========================================================
-   HELPERS
-   ========================================================= */
-
-function numeroSeguro(
-  valor:
-    | number
-    | string
-    | null
-    | undefined,
-): number {
-  const numero = Number(valor)
-
-  return Number.isFinite(numero)
-    ? numero
-    : 0
-}
-
-function textoSeguro(
+function texto(
   valor: unknown,
+  fallback = '',
 ): string {
-  if (
-    valor === null ||
-    valor === undefined
-  ) {
-    return ''
+  if (valor === null || valor === undefined) {
+    return fallback
   }
 
-  return String(valor)
+  const resultado = String(valor).trim()
+  return resultado || fallback
 }
 
-/* =========================================================
-   NORMALIZAR PEDIDO
-   ========================================================= */
+function numero(
+  valor: unknown,
+  fallback = 0,
+): number {
+  if (typeof valor === 'number' && Number.isFinite(valor)) {
+    return valor
+  }
+
+  if (typeof valor === 'string') {
+    const limpo = valor
+      .trim()
+      .replace(/R\$|BRL/gi, '')
+      .replace(/\s/g, '')
+
+    if (limpo.includes(',') && limpo.includes('.')) {
+      const normalizado = limpo.replace(/\./g, '').replace(',', '.')
+      const resultado = Number(normalizado)
+      return Number.isFinite(resultado) ? resultado : fallback
+    }
+
+    if (limpo.includes(',')) {
+      const resultado = Number(limpo.replace(',', '.'))
+      return Number.isFinite(resultado) ? resultado : fallback
+    }
+  }
+
+  const resultado = Number(valor)
+  return Number.isFinite(resultado) ? resultado : fallback
+}
+
+function dataValida(valor: unknown): string {
+  if (!valor) {
+    return new Date().toISOString()
+  }
+
+  const data = new Date(String(valor))
+
+  if (Number.isNaN(data.getTime())) {
+    return new Date().toISOString()
+  }
+
+  return data.toISOString()
+}
+
+function normalizarStatus(valor: unknown): StatusPedido {
+  const status = texto(valor, 'recebido')
+    .toLowerCase()
+    .trim()
+    .replace(/-/g, '_')
+    .replace(/\s+/g, '_')
+
+  if (['cancelado', 'cancelada', 'cancelled'].includes(status)) {
+    return 'cancelado'
+  }
+
+  if (['confirmado', 'confirmada', 'confirmed'].includes(status)) {
+    return 'confirmado'
+  }
+
+  if (
+    ['em_preparo', 'em_preparacao', 'preparando', 'preparing'].includes(
+      status,
+    )
+  ) {
+    return 'em_preparo'
+  }
+
+  if (
+    [
+      'saiu_para_entrega',
+      'saiu_entrega',
+      'em_entrega',
+      'out_for_delivery',
+    ].includes(status)
+  ) {
+    return 'saiu_para_entrega'
+  }
+
+  if (['concluido', 'concluida', 'completed', 'complete'].includes(status)) {
+    return 'concluido'
+  }
+
+  return 'recebido'
+}
+
+function normalizarResolucaoEstoque(
+  valor: unknown,
+): ResolucaoEstoque {
+  const raw = texto(valor, 'pendente')
+    .toLowerCase()
+    .trim()
+    .replace(/-/g, '_')
+    .replace(/\s+/g, '_')
+
+  if (
+    [
+      'devolvido',
+      'devolvida',
+      'returned',
+      'devolvido_ao_estoque',
+      'returned_to_stock',
+    ].includes(raw)
+  ) {
+    return 'devolvido'
+  }
+
+  if (
+    [
+      'nao_devolver',
+      'não_devolver',
+      'naodevolver',
+      'nao_devolvido',
+      'não_devolvido',
+      'not_returned',
+      'not_return',
+    ].includes(raw)
+  ) {
+    return 'nao_devolver'
+  }
+
+  return 'pendente'
+}
+
+function encontrarItens(pedido: unknown): unknown[] {
+  const dados = registro(pedido)
+
+  const candidatos = [
+    dados.itens,
+    dados.items,
+    dados.produtos,
+    dados.products,
+    dados.order_items,
+    dados.orderItems,
+    dados.itensPedido,
+    dados.orderProducts,
+  ]
+
+  for (const candidato of candidatos) {
+    if (Array.isArray(candidato)) {
+      return candidato
+    }
+  }
+
+  return []
+}
+
+function normalizarItem(item: unknown, indice: number) {
+  const dados = registro(item)
+  const produto = registro(
+    dados.produto ?? dados.product ?? dados.productData ?? dados.produtoData,
+  )
+
+  const id = texto(
+    dados.id ??
+      dados.itemId ??
+      dados.produtoId ??
+      dados.productId ??
+      dados.product_id ??
+      produto.id ??
+      produto.productId,
+    `item-${indice}`,
+  )
+
+  const nome = texto(
+    dados.nome ??
+      dados.product_name ??
+      dados.productName ??
+      dados.name ??
+      dados.produtoNome ??
+      produto.nome ??
+      produto.name ??
+      produto.title,
+    'Produto',
+  )
+
+  const quantidade = numero(
+    dados.quantidade ?? dados.quantity ?? dados.qtd ?? dados.qty,
+    1,
+  )
+
+  const precoUnitario = numero(
+    dados.precoUnitario ??
+      dados.unit_price ??
+      dados.preco ??
+      dados.price ??
+      dados.valorUnitario ??
+      produto.preco ??
+      produto.price,
+  )
+
+  const subtotalInformado = numero(
+    dados.subtotal ??
+      dados.total ??
+      dados.valorTotal ??
+      dados.line_total,
+  )
+
+  const subtotal =
+    subtotalInformado > 0
+      ? subtotalInformado
+      : precoUnitario * quantidade
+
+  return {
+    id,
+    nome,
+    quantidade,
+    precoUnitario,
+    subtotal,
+  }
+}
+
+// =========================================================
+// NORMALIZA PEDIDO
+// =========================================================
 
 function normalizarPedido(
   pedido: PedidoApi,
 ): Pedido {
-  const orderNumber =
-    pedido.order_number
+  const dados = registro(pedido)
+  const clienteApi = registro(dados.cliente ?? dados.customer)
+  const entregaApi = registro(dados.entrega ?? dados.delivery)
+  const pagamentoApi = registro(dados.pagamento ?? dados.payment)
 
-  const numeroPedido =
-    typeof orderNumber === 'number'
-      ? `#${String(
-          orderNumber,
-        ).padStart(5, '0')}`
-      : String(
-          orderNumber,
-        ).startsWith('#')
-        ? String(orderNumber)
-        : `#${String(
-            orderNumber,
-          ).padStart(5, '0')}`
+  const id = texto(
+    dados.id ?? dados.pedidoId ?? dados.orderId,
+    texto(dados.numeroPedido ?? dados.order_number, ''),
+  )
+
+  const itens = encontrarItens(pedido).map(normalizarItem)
+
+  const resolucaoEstoque = normalizarResolucaoEstoque(
+    dados.resolucaoEstoque ??
+      dados.estoqueResolucao ??
+      dados.stock_resolution ??
+      dados.stockResolution ??
+      dados.resolucao_estoque,
+  )
+
+  const numeroPedido = texto(
+    dados.numeroPedido ??
+      dados.numero ??
+      dados.order_number ??
+      dados.orderNumber,
+    id ? `#${id}` : '#—',
+  )
+
+  const tipoEntrega = texto(
+    entregaApi.tipo ??
+      entregaApi.type ??
+      dados.tipoEntrega ??
+      dados.delivery_type ??
+      dados.deliveryType,
+    'delivery',
+  )
+
+  const pagamentoMetodo = texto(
+    pagamentoApi.metodo ??
+      pagamentoApi.forma ??
+      pagamentoApi.method ??
+      pagamentoApi.type ??
+      dados.metodoPagamento ??
+      dados.formaPagamento ??
+      dados.payment_method ??
+      dados.paymentMethod,
+    'Não informado',
+  )
+
+  const telefone = texto(
+    clienteApi.telefone ??
+      clienteApi.celular ??
+      clienteApi.whatsapp ??
+      clienteApi.phone ??
+      dados.telefone ??
+      dados.customer_whatsapp ??
+      dados.customer_phone,
+  )
+
+  const enderecoCompleto = texto(
+    entregaApi.endereco ??
+      entregaApi.address ??
+      dados.endereco ??
+      dados.address,
+  )
+
+  const enderecoPartes = [
+    enderecoCompleto,
+    texto(
+      entregaApi.rua ??
+        entregaApi.street ??
+        dados.rua ??
+        dados.street,
+    ),
+    texto(
+      entregaApi.numero ??
+        entregaApi.number ??
+        dados.numeroEndereco ??
+        dados.number,
+    ),
+  ].filter(Boolean)
+
+  const endereco = enderecoPartes.filter(
+    (valor, indice, array) => array.indexOf(valor) === indice,
+  ).join(', ')
 
   return {
-    id: pedido.id,
-
-    orderNumber,
-
+    id,
     numeroPedido,
+    status: normalizarStatus(dados.status),
 
     cliente: {
-      id:
-        pedido.customer_id ??
-        null,
-
-      nome:
-        textoSeguro(
-          pedido.customer_name,
-        ) || 'Cliente',
-
-      whatsapp:
-        textoSeguro(
-          pedido.customer_whatsapp,
-        ),
+      nome: texto(
+        clienteApi.nome ??
+          clienteApi.name ??
+          dados.nomeCliente ??
+          dados.customer_name ??
+          dados.customerName,
+        'Cliente',
+      ),
+      telefone,
     },
 
     entrega: {
-      tipo:
-        textoSeguro(
-          pedido.delivery_type,
-        ),
-
-      cep:
-        pedido.cep ?? null,
-
-      rua:
-        pedido.street ?? null,
-
-      numero:
-        pedido.number ?? null,
-
+      tipo: tipoEntrega.toLowerCase() === 'pickup' ? 'pickup' : 'delivery',
+      endereco: endereco || undefined,
       complemento:
-        pedido.complement ??
-        null,
-
+        texto(
+          entregaApi.complemento ??
+            entregaApi.complement ??
+            dados.complemento ??
+            dados.complement,
+        ) || undefined,
       bairro:
-        pedido.neighborhood ??
-        null,
-
+        texto(
+          entregaApi.bairro ??
+            entregaApi.neighborhood ??
+            dados.bairro ??
+            dados.neighborhood,
+        ) || undefined,
       cidade:
-        pedido.city ?? null,
-
-      referencia:
-        pedido.reference_point ??
-        null,
+        texto(
+          entregaApi.cidade ??
+            entregaApi.city ??
+            dados.cidade ??
+            dados.city,
+        ) || undefined,
     },
 
     pagamento: {
-      forma:
-        textoSeguro(
-          pedido.payment_method,
-        ),
-
-      trocoPara:
-        pedido.change_for ===
-          null ||
-        pedido.change_for ===
-          undefined
-          ? null
-          : numeroSeguro(
-              pedido.change_for,
-            ),
+      metodo: pagamentoMetodo,
+      status:
+        texto(
+          pagamentoApi.status ??
+            dados.statusPagamento ??
+            dados.payment_status,
+        ) || undefined,
     },
 
-    valores: {
-      subtotal:
-        numeroSeguro(
-          pedido.subtotal,
-        ),
+    itens,
 
-      frete:
-        numeroSeguro(
-          pedido.shipping,
-        ),
+    subtotal: numero(
+      dados.subtotal ?? dados.sub_total,
+    ),
 
-      total:
-        numeroSeguro(
-          pedido.total,
-        ),
+    taxaEntrega: numero(
+      entregaApi.taxaEntrega ??
+        entregaApi.taxa ??
+        entregaApi.deliveryFee ??
+        dados.taxaEntrega ??
+        dados.taxa ??
+        dados.frete ??
+        dados.shipping ??
+        dados.delivery_fee,
+    ),
+
+    total: numero(
+      dados.total ?? dados.valorTotal ?? dados.totalAmount,
+    ),
+
+    resolucaoEstoque,
+
+    criadoEm: dataValida(
+      dados.criadoEm ??
+        dados.createdAt ??
+        dados.dataCriacao ??
+        dados.created_at,
+    ),
+
+    atualizadoEm: dataValida(
+      dados.atualizadoEm ??
+        dados.updatedAt ??
+        dados.updated_at,
+    ),
+  }
+}
+
+function mesclarPedidos(
+  principal: Pedido,
+  secundario: Pedido,
+): Pedido {
+  const itens =
+    secundario.itens.length > 0
+      ? secundario.itens
+      : principal.itens
+
+  const resolucaoEstoque =
+    secundario.resolucaoEstoque !== 'pendente'
+      ? secundario.resolucaoEstoque
+      : principal.resolucaoEstoque
+
+  return {
+    ...principal,
+    ...secundario,
+    cliente: {
+      nome:
+        secundario.cliente.nome !== 'Cliente'
+          ? secundario.cliente.nome
+          : principal.cliente.nome,
+      telefone:
+        secundario.cliente.telefone || principal.cliente.telefone,
     },
-
-    itens: Array.isArray(
-      pedido.items,
-    )
-      ? pedido.items.map(
-          (item) => ({
-            id: item.id,
-
-            produtoId:
-              item.product_id ??
-              null,
-
-            nome:
-              textoSeguro(
-                item.product_name,
-              ) || 'Produto',
-
-            quantidade:
-              numeroSeguro(
-                item.quantity,
-              ),
-
-            precoUnitario:
-              numeroSeguro(
-                item.unit_price,
-              ),
-
-            subtotal:
-              numeroSeguro(
-                item.subtotal,
-              ),
-          }),
-        )
-      : [],
-
+    entrega: {
+      ...principal.entrega,
+      ...secundario.entrega,
+      endereco:
+        secundario.entrega.endereco || principal.entrega.endereco,
+      complemento:
+        secundario.entrega.complemento || principal.entrega.complemento,
+      bairro:
+        secundario.entrega.bairro || principal.entrega.bairro,
+      cidade:
+        secundario.entrega.cidade || principal.entrega.cidade,
+    },
     status:
-      textoSeguro(
-        pedido.status,
-      ),
-
-    estoqueDevolvido:
-      Boolean(
-        pedido.stock_restored,
-      ),
-
-    estoqueDevolvidoEm:
-      pedido.stock_restored_at ??
-      null,
-
+      secundario.status !== 'recebido' || principal.status === 'recebido'
+        ? secundario.status
+        : principal.status,
+    pagamento: {
+      ...principal.pagamento,
+      ...secundario.pagamento,
+      metodo:
+        secundario.pagamento.metodo !== 'Não informado'
+          ? secundario.pagamento.metodo
+          : principal.pagamento.metodo,
+      status:
+        secundario.pagamento.status || principal.pagamento.status,
+    },
+    itens,
+    subtotal:
+      secundario.subtotal !== 0
+        ? secundario.subtotal
+        : principal.subtotal,
+    taxaEntrega:
+      secundario.taxaEntrega !== 0
+        ? secundario.taxaEntrega
+        : principal.taxaEntrega,
+    total:
+      secundario.total !== 0
+        ? secundario.total
+        : principal.total,
+    resolucaoEstoque,
     criadoEm:
-      textoSeguro(
-        pedido.created_at,
-      ),
-
+      principal.criadoEm || secundario.criadoEm,
     atualizadoEm:
-      textoSeguro(
-        pedido.updated_at,
-      ),
+      secundario.atualizadoEm || principal.atualizadoEm,
   }
 }
 
-/* =========================================================
-   FORMATAÇÃO
-   ========================================================= */
-
-function formatarPreco(
-  valor: number,
-) {
-  return valor.toLocaleString(
-    'pt-BR',
-    {
-      style: 'currency',
-      currency: 'BRL',
-    },
-  )
-}
-
-function formatarData(
-  data: string,
-) {
-  if (!data) {
-    return '—'
-  }
-
-  const dataObj =
-    new Date(data)
-
-  if (
-    Number.isNaN(
-      dataObj.getTime(),
-    )
-  ) {
-    return '—'
-  }
-
-  return dataObj.toLocaleString(
-    'pt-BR',
-    {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    },
-  )
-}
-
-function formatarStatus(
-  status: string,
-) {
-  switch (status) {
-    case 'todos':
-      return 'Todos'
-
-    case 'recebido':
-      return 'Recebido'
-
-    case 'confirmado':
-      return 'Confirmado'
-
-    case 'em_preparo':
-      return 'Em preparo'
-
-    case 'saiu_para_entrega':
-      return 'Saiu para entrega'
-
-    case 'concluido':
-      return 'Concluído'
-
-    case 'cancelado':
-      return 'Cancelado'
-
-    default:
-      return status
-  }
-}
-
-function classeStatus(
-  status: string,
-) {
-  switch (status) {
-    case 'recebido':
-      return 'recebido'
-
-    case 'confirmado':
-      return 'confirmado'
-
-    case 'em_preparo':
-      return 'em_preparo'
-
-    case 'saiu_para_entrega':
-      return 'saiu_para_entrega'
-
-    case 'concluido':
-      return 'concluido'
-
-    case 'cancelado':
-      return 'cancelado'
-
-    default:
-      return 'recebido'
-  }
-}
-
-function formatarPagamento(
-  forma: string,
-) {
-  switch (
-    forma
-      .toLowerCase()
-      .trim()
-  ) {
-    case 'pix':
-      return 'Pix'
-
-    case 'dinheiro':
-      return 'Dinheiro'
-
-    case 'cartao':
-    case 'cartão':
-      return 'Cartão'
-
-    default:
-      return forma || '—'
-  }
-}
-
-function formatarTipoEntrega(
-  tipo: string,
-) {
-  switch (
-    tipo
-      .toLowerCase()
-      .trim()
-  ) {
-    case 'entrega':
-      return 'Entrega'
-
-    case 'retirada':
-    case 'pickup':
-      return 'Retirada'
-
-    default:
-      return tipo || '—'
-  }
-}
-
-function normalizarWhatsApp(
-  numero: string,
-) {
-  return String(
-    numero || '',
-  ).replace(
-    /\D/g,
-    '',
-  )
-}
-
-/* =========================================================
-   STATUS DISPONÍVEIS
-   ========================================================= */
-
-function obterStatusDisponiveis(
-  statusAtual: string,
-): StatusAtualizavel[] {
-  if (
-    statusAtual !==
-      'recebido' &&
-    statusAtual !==
-      'confirmado' &&
-    statusAtual !==
-      'em_preparo' &&
-    statusAtual !==
-      'saiu_para_entrega' &&
-    statusAtual !==
-      'concluido' &&
-    statusAtual !==
-      'cancelado'
-  ) {
-    return []
-  }
-
-  return TRANSICOES_STATUS[
-    statusAtual as StatusAtualizavel
-  ]
-}
-
-/* =========================================================
-   COMPONENTE
-   ========================================================= */
+// =========================================================
+// COMPONENTE
+// =========================================================
 
 export default function PedidosPage() {
+  const router =
+    useRouter()
+
   const [
-    pedidos,
-    setPedidos,
+    todosPedidos,
+    setTodosPedidos,
   ] = useState<Pedido[]>([])
 
   const [
-    carregando,
-    setCarregando,
-  ] = useState(true)
+  taxaSalvando,
+  setTaxaSalvando,
+  ] = useState<string | null>(null)
 
-  const [
-    atualizando,
-    setAtualizando,
-  ] = useState(false)
-
-  const [
-    erro,
-    setErro,
-  ] = useState('')
+   const [
+  taxaSucesso,
+  setTaxaSucesso,
+  ] = useState<string | null>(null)
 
   const [
     filtroStatus,
     setFiltroStatus,
   ] =
-    useState<StatusPedido>(
+    useState<StatusFiltro>(
       'todos',
     )
 
   const [
-    pedidoAberto,
-    setPedidoAberto,
-  ] = useState<
-    string | null
-  >(null)
+    carregando,
+    setCarregando,
+  ] =
+    useState(true)
+
+  const [
+    atualizando,
+    setAtualizando,
+  ] =
+    useState(false)
+
+  const [
+    erro,
+    setErro,
+  ] =
+    useState('')
+
+  // =======================================================
+  // ESTADOS DO PEDIDO CARD
+  // =======================================================
+
+  const [
+    pedidosAbertos,
+    setPedidosAbertos,
+  ] =
+    useState<Set<string>>(
+      new Set(),
+    )
 
   const [
     statusSalvando,
     setStatusSalvando,
-  ] = useState<
-    string | null
-  >(null)
+  ] =
+    useState<string | null>(
+      null,
+    )
 
   const [
     statusSucesso,
     setStatusSucesso,
-  ] = useState<
-    string | null
-  >(null)
+  ] =
+    useState<string | null>(
+      null,
+    )
 
   const [
     estoqueSalvando,
     setEstoqueSalvando,
-  ] = useState<
-    string | null
-  >(null)
+  ] =
+    useState<string | null>(
+      null,
+    )
 
   const [
     estoqueSucesso,
     setEstoqueSucesso,
-  ] = useState<
-    string | null
-  >(null)
+  ] =
+    useState<string | null>(
+      null,
+    )
 
-  /* =======================================================
-     CARREGAR PEDIDOS
-     ======================================================= */
+  // =======================================================
+  // TOGGLE DO PEDIDO
+  // =======================================================
+
+  const togglePedido =
+    useCallback(
+      (pedidoId: string) => {
+        setPedidosAbertos(
+          (atual) => {
+            const proximo =
+              new Set(atual)
+
+            if (
+              proximo.has(
+                pedidoId,
+              )
+            ) {
+              proximo.delete(
+                pedidoId,
+              )
+            } else {
+              proximo.add(
+                pedidoId,
+              )
+            }
+
+            return proximo
+          },
+        )
+      },
+      [],
+    )
+
+  // =========================================================
+  // BUSCAR PEDIDOS
+  // =========================================================
 
   const carregarPedidos =
     useCallback(
       async (
-        mostrarCarregando = true,
+        silencioso = false,
       ) => {
         try {
-          if (
-            mostrarCarregando
-          ) {
-            setCarregando(
-              true,
-            )
+          if (silencioso) {
+            setAtualizando(true)
           } else {
-            setAtualizando(
-              true,
-            )
+            setCarregando(true)
           }
 
           setErro('')
 
-          const response =
-            await fetch(
-              '/api/admin/pedidos?limit=100',
-              {
-                method: 'GET',
-                cache: 'no-store',
-              },
-            )
+          const [
+            respostaPrincipal,
+            respostaPendencias,
+          ] =
+            await Promise.all([
+              fetch(
+                '/api/admin/pedidos?limit=100',
+                {
+                  method: 'GET',
+                  headers: {
+                    Accept:
+                      'application/json',
+                  },
+                  cache:
+                    'no-store',
+                },
+              ),
 
-          const data: RespostaPedidos =
-            await response.json()
+              fetch(
+                '/api/admin/pedidos?filtro=pendencias',
+                {
+                  method: 'GET',
+                  headers: {
+                    Accept:
+                      'application/json',
+                  },
+                  cache:
+                    'no-store',
+                },
+              ),
+            ])
 
           if (
-            !response.ok ||
-            !data.sucesso
+            !respostaPrincipal.ok
           ) {
+            const dados =
+              await respostaPrincipal
+                .json()
+                .catch(
+                  () => null,
+                )
+
             throw new Error(
-              data.mensagem ||
-                data.erro ||
+              dados?.message ||
+                dados?.erro ||
                 'Não foi possível carregar os pedidos.',
             )
           }
 
-          const pedidosNormalizados =
-            Array.isArray(
-              data.pedidos,
-            )
-              ? data.pedidos.map(
-                  normalizarPedido,
-                )
-              : []
+          const principal =
+            (await respostaPrincipal.json()) as RespostaPedidos
 
-          setPedidos(
-            pedidosNormalizados,
+          const pendencias =
+            respostaPendencias.ok
+              ? ((await respostaPendencias.json()) as RespostaPedidos)
+              : null
+
+          const pedidosPrincipal =
+            principal.pedidos ??
+            principal.data ??
+            principal.items ??
+            []
+
+          const pedidosPendencias =
+            pendencias?.pedidos ??
+            pendencias?.data ??
+            pendencias?.items ??
+            []
+
+          const pedidos =
+            pedidosPrincipal.map(
+              normalizarPedido,
+            )
+
+          const pendenciasExternas =
+            pedidosPendencias.map(
+              normalizarPedido,
+            )
+
+          /*
+           * Junta as duas fontes pelo ID.
+           */
+          const mapa =
+            new Map<
+              string,
+              Pedido
+            >()
+
+          pedidos.forEach(
+            (pedido) => {
+              mapa.set(
+                pedido.id,
+                pedido,
+              )
+            },
           )
-        } catch (error) {
+
+          pendenciasExternas.forEach(
+            (pedido) => {
+              const existente = mapa.get(
+                pedido.id,
+              )
+
+              mapa.set(
+                pedido.id,
+                existente
+                  ? mesclarPedidos(
+                      existente,
+                      pedido,
+                    )
+                  : pedido,
+              )
+            },
+          )
+
+          const resultado =
+            Array.from(
+              mapa.values(),
+            ).sort(
+              (
+                a,
+                b,
+              ) =>
+                new Date(
+                  b.criadoEm,
+                ).getTime() -
+                new Date(
+                  a.criadoEm,
+                ).getTime(),
+            )
+
+          setTodosPedidos(
+            resultado,
+          )
+          setErro('')
+        } catch (
+          error
+        ) {
           console.error(
+            'Erro ao carregar pedidos:',
             error,
           )
 
           setErro(
-            error instanceof
-              Error
+            error instanceof Error
               ? error.message
               : 'Não foi possível carregar os pedidos.',
           )
         } finally {
-          setCarregando(
-            false,
-          )
-
-          setAtualizando(
-            false,
-          )
+          setCarregando(false)
+          setAtualizando(false)
         }
       },
       [],
     )
 
-  /* =======================================================
-     PRIMEIRO CARREGAMENTO
-     ======================================================= */
+  // =========================================================
+  // INICIALIZAÇÃO
+  // =========================================================
 
   useEffect(() => {
-    carregarPedidos(true)
+    carregarPedidos()
+
+    return () => {
+      // limpeza intencional
+    }
   }, [
     carregarPedidos,
   ])
 
-  /* =======================================================
-     ATUALIZAÇÃO AUTOMÁTICA
-     ======================================================= */
+  // =========================================================
+  // ATUALIZAÇÃO AUTOMÁTICA
+  // =========================================================
 
   useEffect(() => {
     const intervalo =
       window.setInterval(
         () => {
           carregarPedidos(
-            false,
+            true,
           )
         },
         30000,
       )
 
-    return () => {
+    return () =>
       window.clearInterval(
         intervalo,
       )
-    }
   }, [
     carregarPedidos,
   ])
 
-  /* =======================================================
-     ALTERAR STATUS
-     ======================================================= */
+  // =========================================================
+  // MÉTRICAS
+  // =========================================================
 
-  async function alterarStatus(
-    pedidoId: string,
-    novoStatus: string,
-  ) {
-    const pedido =
-      pedidos.find(
-        (item) =>
-          item.id ===
-          pedidoId,
-      )
+  const pedidosAtencao =
+    useMemo(
+      () =>
+        todosPedidos.filter(
+          (pedido) =>
+            pedido.status ===
+              'cancelado' &&
+            pedido.resolucaoEstoque ===
+              'pendente',
+        ),
+      [todosPedidos],
+    )
 
-    if (!pedido) {
-      return
-    }
+  const pedidosAguardando =
+    useMemo(
+      () =>
+        todosPedidos.filter(
+          (pedido) =>
+            pedido.status ===
+            'recebido',
+        ),
+      [todosPedidos],
+    )
 
-    const statusDisponiveis =
-      obterStatusDisponiveis(
-        pedido.status,
-      )
+  const pedidosEmAndamento =
+    useMemo(
+      () =>
+        todosPedidos.filter(
+          (pedido) =>
+            pedido.status ===
+              'confirmado' ||
+            pedido.status ===
+              'em_preparo' ||
+            pedido.status ===
+              'saiu_para_entrega',
+        ),
+      [todosPedidos],
+    )
 
-    if (
-      !statusDisponiveis.includes(
-        novoStatus as StatusAtualizavel,
-      )
-    ) {
-      setErro(
-        `Não é possível alterar o pedido de "${formatarStatus(
-          pedido.status,
-        )}" para "${formatarStatus(
-          novoStatus,
-        )}".`,
-      )
+  const pedidosConcluidos =
+    useMemo(
+      () =>
+        todosPedidos.filter(
+          (pedido) =>
+            pedido.status ===
+            'concluido',
+        ),
+      [todosPedidos],
+    )
 
-      return
-    }
-
-    try {
-      setStatusSalvando(
-        pedidoId,
-      )
-
-      setStatusSucesso(
-        null,
-      )
-
-      setErro('')
-
-      const response =
-        await fetch(
-          '/api/admin/pedidos',
-          {
-            method: 'PATCH',
-
-            headers: {
-              'Content-Type':
-                'application/json',
-            },
-
-            body: JSON.stringify({
-              pedidoId,
-              status:
-                novoStatus,
-            }),
-          },
-        )
-
-      const data =
-        await response.json()
-
-      if (
-        !response.ok ||
-        !data.sucesso
-      ) {
-        throw new Error(
-          data.mensagem ||
-            data.erro ||
-            'Não foi possível atualizar o status.',
-        )
-      }
-
-      setPedidos(
-        (
-          pedidosAtuais,
-        ) =>
-          pedidosAtuais.map(
-            (
-              pedidoAtual,
-            ) =>
-              pedidoAtual.id ===
-              pedidoId
-                ? {
-                    ...pedidoAtual,
-
-                    status:
-                      novoStatus,
-
-                    atualizadoEm:
-                      data.pedido
-                        ?.updated_at ||
-                      data.pedido
-                        ?.atualizadoEm ||
-                      new Date().toISOString(),
-                  }
-                : pedidoAtual,
-          ),
-      )
-
-      setStatusSucesso(
-        pedidoId,
-      )
-
-      window.setTimeout(
-        () => {
-          setStatusSucesso(
-            (atual) =>
-              atual ===
-              pedidoId
-                ? null
-                : atual,
-          )
-        },
-        2000,
-      )
-
-      await carregarPedidos(
-        false,
-      )
-    } catch (error) {
-      console.error(
-        error,
-      )
-
-      setErro(
-        error instanceof
-          Error
-          ? error.message
-          : 'Não foi possível atualizar o status.',
-      )
-    } finally {
-      setStatusSalvando(
-        null,
-      )
-    }
-  }
-
-  /* =======================================================
-     DEVOLVER PRODUTOS AO ESTOQUE
-     ======================================================= */
-
-  async function devolverEstoque(
-    pedido: Pedido,
-  ) {
-    /*
-     * Segurança 1:
-     * somente pedido cancelado.
-     */
-    if (
-      pedido.status !==
-      'cancelado'
-    ) {
-      setErro(
-        'Só é possível devolver o estoque de um pedido cancelado.',
-      )
-
-      return
-    }
-
-    /*
-     * Segurança 2:
-     * não permitir segunda devolução.
-     */
-    if (
-      pedido.estoqueDevolvido
-    ) {
-      setErro(
-        'O estoque deste pedido já foi devolvido.',
-      )
-
-      return
-    }
-
-    /*
-     * Confirmação antes de alterar
-     * o estoque.
-     */
-    const confirmou =
-      window.confirm(
-        `Deseja devolver os produtos do pedido ${pedido.numeroPedido} ao estoque?\n\nEssa ação não poderá ser repetida.`,
-      )
-
-    if (!confirmou) {
-      return
-    }
-
-    try {
-      setEstoqueSalvando(
-        pedido.id,
-      )
-
-      setEstoqueSucesso(
-        null,
-      )
-
-      setErro('')
-
-      /*
-       * Endpoint específico da devolução.
-       */
-      const response =
-        await fetch(
-          '/api/admin/pedidos/estoque',
-          {
-            method: 'POST',
-
-            headers: {
-              'Content-Type':
-                'application/json',
-            },
-
-            body: JSON.stringify({
-              pedidoId:
-                pedido.id,
-            }),
-          },
-        )
-
-      const data: RespostaEstoque =
-        await response.json()
-
-      if (
-        !response.ok ||
-        !data.sucesso
-      ) {
-        throw new Error(
-          data.mensagem ||
-            data.erro ||
-            'Não foi possível devolver os produtos ao estoque.',
-        )
-      }
-
-      /*
-       * Atualiza imediatamente a interface.
-       */
-      setPedidos(
-        (
-          pedidosAtuais,
-        ) =>
-          pedidosAtuais.map(
-            (
-              pedidoAtual,
-            ) =>
-              pedidoAtual.id ===
-              pedido.id
-                ? {
-                    ...pedidoAtual,
-
-                    estoqueDevolvido:
-                      true,
-
-                    estoqueDevolvidoEm:
-                      data.pedido
-                        ?.stock_restored_at ??
-                      new Date().toISOString(),
-
-                    atualizadoEm:
-                      data.pedido
-                        ?.updated_at ||
-                      new Date().toISOString(),
-                  }
-                : pedidoAtual,
-          ),
-      )
-
-      /*
-       * Mostra confirmação visual.
-       */
-      setEstoqueSucesso(
-        pedido.id,
-      )
-
-      /*
-       * Sincroniza com o banco.
-       */
-      await carregarPedidos(
-        false,
-      )
-    } catch (error) {
-      console.error(
-        error,
-      )
-
-      setErro(
-        error instanceof
-          Error
-          ? error.message
-          : 'Não foi possível devolver os produtos ao estoque.',
-      )
-    } finally {
-      setEstoqueSalvando(
-        null,
-      )
-    }
-  }
-
-  /* =======================================================
-     FILTROS
-     ======================================================= */
+  // =========================================================
+  // PEDIDOS FILTRADOS
+  // =========================================================
 
   const pedidosFiltrados =
-    useMemo(() => {
-      if (
-        filtroStatus ===
-        'todos'
-      ) {
-        return pedidos
-      }
+    useMemo(
+      () => {
+        if (
+          filtroStatus ===
+          'todos'
+        ) {
+          return todosPedidos
+        }
 
-      return pedidos.filter(
-        (pedido) =>
-          pedido.status ===
-          filtroStatus,
-      )
+        if (
+          filtroStatus ===
+          'atencao'
+        ) {
+          return pedidosAtencao
+        }
+
+        return todosPedidos.filter(
+          (pedido) =>
+            pedido.status ===
+            filtroStatus,
+        )
+      },
+      [
+        filtroStatus,
+        pedidosAtencao,
+        todosPedidos,
+      ],
+    )
+
+  // =========================================================
+  // ALTERAR STATUS
+  // =========================================================
+
+  const alterarStatus =
+    useCallback(
+      async (
+        pedidoId: string,
+        status: StatusPedido,
+      ) => {
+        try {
+          setStatusSalvando(
+            pedidoId,
+          )
+
+          setStatusSucesso(
+            null,
+          )
+
+          setErro('')
+
+          const resposta =
+            await fetch(
+              '/api/admin/pedidos',
+              {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type':
+                    'application/json',
+                  Accept:
+                    'application/json',
+                },
+                body:
+                  JSON.stringify({
+                    pedidoId,
+                    status,
+                  }),
+              },
+            )
+
+          const dados =
+            await resposta
+              .json()
+              .catch(
+                () => null,
+              )
+
+          if (
+            !resposta.ok
+          ) {
+            throw new Error(
+              dados?.message ||
+                dados?.erro ||
+                'Não foi possível alterar o status do pedido.',
+            )
+          }
+
+          setTodosPedidos(
+            (pedidos) =>
+              pedidos.map(
+                (pedido) =>
+                  pedido.id ===
+                  pedidoId
+                    ? {
+                        ...pedido,
+                        status,
+                        atualizadoEm:
+                          new Date().toISOString(),
+                        resolucaoEstoque:
+                          status ===
+                          'cancelado'
+                            ? 'pendente'
+                            : pedido.resolucaoEstoque,
+                      }
+                    : pedido,
+              ),
+          )
+
+          setStatusSucesso(
+            pedidoId,
+          )
+
+          window.setTimeout(
+            () => {
+              setStatusSucesso(
+                (atual) =>
+                  atual ===
+                  pedidoId
+                    ? null
+                    : atual,
+              )
+            },
+            1800,
+          )
+        } catch (
+          error
+        ) {
+          console.error(
+            'Erro ao alterar status:',
+            error,
+          )
+
+          setErro(
+            error instanceof Error
+              ? error.message
+              : 'Não foi possível alterar o status do pedido.',
+          )
+        } finally {
+          setStatusSalvando(
+            null,
+          )
+        }
+      },
+      [],
+    )
+
+  // =========================================================
+  // RESOLVER ESTOQUE
+  // =========================================================
+
+  const resolverEstoque =
+    useCallback(
+      async (
+        pedidoId: string,
+        acao:
+          | 'devolver'
+          | 'nao_devolver',
+      ) => {
+        try {
+          setEstoqueSalvando(
+            pedidoId,
+          )
+
+          setEstoqueSucesso(
+            null,
+          )
+
+          setErro('')
+
+          const resposta =
+            await fetch(
+              '/api/admin/pedidos/estoque',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type':
+                    'application/json',
+                  Accept:
+                    'application/json',
+                },
+                body:
+                  JSON.stringify({
+                    pedidoId,
+                    acao,
+                  }),
+              },
+            )
+
+          const dados =
+            await resposta
+              .json()
+              .catch(
+                () => null,
+              )
+
+          /*
+           * 409 significa que o backend detectou
+           * que a decisão já foi realizada.
+           *
+           * Não tratamos como erro visual.
+           * Apenas sincronizamos novamente.
+           */
+          if (
+            resposta.status ===
+            409
+          ) {
+            await carregarPedidos(
+              true,
+            )
+
+            setEstoqueSucesso(
+              pedidoId,
+            )
+
+            return
+          }
+
+          if (
+            !resposta.ok
+          ) {
+            throw new Error(
+              dados?.message ||
+                dados?.erro ||
+                'Não foi possível resolver o estoque.',
+            )
+          }
+
+          const resolucao: ResolucaoEstoque =
+            acao ===
+            'devolver'
+              ? 'devolvido'
+              : 'nao_devolver'
+
+          setTodosPedidos(
+            (pedidos) =>
+              pedidos.map(
+                (pedido) =>
+                  pedido.id ===
+                  pedidoId
+                    ? {
+                        ...pedido,
+                        resolucaoEstoque:
+                          resolucao,
+                      }
+                    : pedido,
+              ),
+          )
+
+          setEstoqueSucesso(
+            pedidoId,
+          )
+
+          /*
+           * Sincroniza novamente com o banco.
+           */
+          await carregarPedidos(
+            true,
+          )
+
+          window.setTimeout(
+            () => {
+              setEstoqueSucesso(
+                (atual) =>
+                  atual ===
+                  pedidoId
+                    ? null
+                    : atual,
+              )
+            },
+            1800,
+          )
+        } catch (
+          error
+        ) {
+          console.error(
+            'Erro ao resolver estoque:',
+            error,
+          )
+
+          setErro(
+            error instanceof Error
+              ? error.message
+              : 'Não foi possível resolver o estoque.',
+          )
+        } finally {
+          setEstoqueSalvando(
+            null,
+          )
+        }
+      },
+      [
+        carregarPedidos,
+      ],
+    )
+
+    // =========================================================
+// ALTERAR TAXA DE ENTREGA
+// =========================================================
+
+const alterarTaxaEntrega =
+  useCallback(
+    async (
+      pedidoId: string,
+      taxaEntrega: number,
+    ) => {
+      try {
+        setTaxaSalvando(
+          pedidoId,
+        )
+
+        setTaxaSucesso(
+          null,
+        )
+
+        setErro('')
+
+        const resposta =
+          await fetch(
+            '/api/admin/pedidos',
+            {
+              method: 'PATCH',
+              headers: {
+                'Content-Type':
+                  'application/json',
+                Accept:
+                  'application/json',
+              },
+              body:
+                JSON.stringify({
+                  pedidoId,
+                  taxaEntrega,
+                }),
+            },
+          )
+
+        const dados =
+          await resposta
+            .json()
+            .catch(
+              () => null,
+            )
+
+        if (
+          !resposta.ok
+        ) {
+          throw new Error(
+            dados?.message ||
+              dados?.erro ||
+              'Não foi possível atualizar a taxa de entrega.',
+          )
+        }
+
+        const novaTaxa =
+          Number(
+            dados?.taxaEntrega ??
+              dados?.pedido?.shipping ??
+              taxaEntrega,
+          )
+
+        const novoTotal =
+          Number(
+            dados?.total ??
+              dados?.pedido?.total ??
+              NaN,
+          )
+
+        setTodosPedidos(
+          (pedidos) =>
+            pedidos.map(
+              (pedido) =>
+                pedido.id ===
+                pedidoId
+                  ? {
+                      ...pedido,
+
+                      taxaEntrega:
+                        Number.isFinite(
+                          novaTaxa,
+                        )
+                          ? novaTaxa
+                          : taxaEntrega,
+
+                      total:
+                        Number.isFinite(
+                          novoTotal,
+                        ) &&
+                        novoTotal >= 0
+                          ? novoTotal
+                          : Math.round(
+                              (
+                                Number(
+                                  pedido.subtotal ||
+                                    0,
+                                ) +
+                                taxaEntrega
+                              ) *
+                                100,
+                            ) / 100,
+
+                      atualizadoEm:
+                        dados?.pedido
+                          ?.updated_at ||
+                        dados?.updated_at ||
+                        new Date().toISOString(),
+                    }
+                  : pedido,
+            ),
+        )
+
+        setTaxaSucesso(
+          pedidoId,
+        )
+
+        window.setTimeout(
+          () => {
+            setTaxaSucesso(
+              (atual) =>
+                atual ===
+                pedidoId
+                  ? null
+                  : atual,
+            )
+          },
+          1800,
+        )
+
+        return true
+      } catch (
+        error
+      ) {
+        console.error(
+          'Erro ao alterar taxa de entrega:',
+          error,
+        )
+
+        setErro(
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível atualizar a taxa de entrega.',
+        )
+
+        return false
+      } finally {
+        setTaxaSalvando(
+          null,
+        )
+      }
+    },
+    [],
+  )
+
+  // =========================================================
+  // WHATSAPP
+  // =========================================================
+
+  const abrirWhatsApp =
+    useCallback(
+      (
+        pedido: Pedido,
+      ) => {
+        const numero =
+          texto(
+            pedido.cliente
+              ?.telefone,
+          ).replace(
+            /\D/g,
+            '',
+          )
+
+        if (!numero) {
+          setErro(
+            'Este pedido não possui WhatsApp cadastrado.',
+          )
+
+          return
+        }
+
+        const mensagem =
+          `Olá, ${pedido.cliente.nome}! ` +
+          `Estamos entrando em contato sobre o pedido ${pedido.numeroPedido}.`
+
+        const url =
+          `https://wa.me/${numero}` +
+          `?text=${encodeURIComponent(
+            mensagem,
+          )}`
+
+        window.open(
+          url,
+          '_blank',
+          'noopener,noreferrer',
+        )
+      },
+      [],
+    )
+
+  // =========================================================
+  // VOLTAR
+  // =========================================================
+
+  const voltar =
+    useCallback(() => {
+      router.back()
     }, [
-      pedidos,
-      filtroStatus,
+      router,
     ])
 
-  /* =======================================================
-     MÉTRICAS
-     ======================================================= */
-
-  const totalPedidos =
-    pedidos.length
-
-  const aguardando =
-    pedidos.filter(
-      (pedido) =>
-        pedido.status ===
-        'recebido',
-    ).length
-
-  const emPreparo =
-    pedidos.filter(
-      (pedido) =>
-        pedido.status ===
-          'confirmado' ||
-        pedido.status ===
-          'em_preparo' ||
-        pedido.status ===
-          'saiu_para_entrega',
-    ).length
-
-  const faturamento =
-    pedidos
-      .filter(
-        (pedido) =>
-          pedido.status !==
-          'cancelado',
-      )
-      .reduce(
-        (
-          total,
-          pedido,
-        ) =>
-          total +
-          numeroSeguro(
-            pedido.valores
-              .total,
-          ),
-        0,
-      )
-
-  /* =======================================================
-     WHATSAPP
-     ======================================================= */
-
-  function abrirWhatsApp(
-    pedido: Pedido,
-  ) {
-    const numero =
-      normalizarWhatsApp(
-        pedido.cliente
-          .whatsapp,
-      )
-
-    if (!numero) {
-      return
-    }
-
-    const mensagem =
-      `Olá, ${pedido.cliente.nome}! Aqui é da Belo Cão. Estou entrando em contato sobre o seu pedido ${pedido.numeroPedido}.`
-
-    window.open(
-      `https://wa.me/${numero}?text=${encodeURIComponent(
-        mensagem,
-      )}`,
-      '_blank',
-      'noopener,noreferrer',
-    )
-  }
-
-  /* =======================================================
-     ABRIR / FECHAR PEDIDO
-     ======================================================= */
-
-  function alternarPedido(
-    id: string,
-  ) {
-    setPedidoAberto(
-      (atual) =>
-        atual === id
-          ? null
-          : id,
-    )
-  }
-
-  /* =========================================================
-     RENDER
-     ========================================================= */
+  // =========================================================
+  // RENDER
+  // =========================================================
 
   return (
     <main
       className={
-        styles.pagina
+        styles.page
       }
     >
       <div
@@ -1242,19 +1508,18 @@ export default function PedidosPage() {
         >
           <div
             className={
-              styles.headerEsquerda
+              styles.headerLeft
             }
           >
             <button
               type="button"
               className={
-                styles.voltar
+                styles.backButton
               }
-              onClick={() => {
-                window.location.href =
-                  '/loja'
-              }}
-              aria-label="Voltar para a loja"
+              onClick={
+                voltar
+              }
+              aria-label="Voltar"
             >
               <ArrowLeft
                 size={18}
@@ -1267,16 +1532,24 @@ export default function PedidosPage() {
                   styles.eyebrow
                 }
               >
-                BELO CÃO
+                Administração
               </span>
 
-              <h1>
+              <h1
+                className={
+                  styles.title
+                }
+              >
                 Pedidos
               </h1>
 
-              <p>
-                Acompanhe e gerencie os
-                pedidos da loja.
+              <p
+                className={
+                  styles.subtitle
+                }
+              >
+                Acompanhe e gerencie
+                os pedidos da loja.
               </p>
             </div>
           </div>
@@ -1284,11 +1557,11 @@ export default function PedidosPage() {
           <button
             type="button"
             className={
-              styles.atualizar
+              styles.refreshButton
             }
             onClick={() =>
               carregarPedidos(
-                false,
+                true,
               )
             }
             disabled={
@@ -1299,7 +1572,7 @@ export default function PedidosPage() {
               <Loader2
                 size={17}
                 className={
-                  styles.spinner
+                  styles.spin
                 }
               />
             ) : (
@@ -1308,31 +1581,79 @@ export default function PedidosPage() {
               />
             )}
 
-            {atualizando
-              ? 'Atualizando...'
-              : 'Atualizar'}
+            <span>
+              Atualizar
+            </span>
           </button>
         </header>
+
+        {/* =================================================
+            ALERTA DE ESTOQUE
+            ================================================= */}
+
+        {pedidosAtencao.length >
+          0 && (
+          <section
+            className={
+              styles.alerta
+            }
+          >
+            <div
+              className={
+                styles.alertaIcone
+              }
+            >
+              <AlertTriangle
+                size={20}
+              />
+            </div>
+
+            <div
+              className={
+                styles.alertaTexto
+              }
+            >
+              <strong>
+                Atenção necessária
+              </strong>
+
+              <span>
+                {pedidosAtencao.length ===
+                1
+                  ? 'Existe 1 pedido cancelado aguardando resolução do estoque.'
+                  : `Existem ${pedidosAtencao.length} pedidos cancelados aguardando resolução do estoque.`}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setFiltroStatus(
+                  'atencao',
+                )
+              }
+              className={
+                styles.alertaButton
+              }
+            >
+              Ver pedidos
+            </button>
+          </section>
+        )}
 
         {/* =================================================
             ERRO
             ================================================= */}
 
         {erro && (
-          <div
+          <section
             className={
-              styles.erro
+              styles.error
             }
           >
-            <div
-              className={
-                styles.erroIcone
-              }
-            >
-              <X
-                size={17}
-              />
-            </div>
+            <AlertTriangle
+              size={18}
+            />
 
             <span>
               {erro}
@@ -1346,10 +1667,10 @@ export default function PedidosPage() {
               aria-label="Fechar erro"
             >
               <X
-                size={16}
+                size={17}
               />
             </button>
-          </div>
+          </section>
         )}
 
         {/* =================================================
@@ -1361,7 +1682,7 @@ export default function PedidosPage() {
             styles.metricas
           }
         >
-          <article
+          <div
             className={
               styles.metrica
             }
@@ -1372,22 +1693,24 @@ export default function PedidosPage() {
               }
             >
               <ShoppingBag
-                size={20}
+                size={18}
               />
             </div>
 
             <div>
               <span>
-                Total de pedidos
+                Total
               </span>
 
               <strong>
-                {totalPedidos}
+                {
+                  todosPedidos.length
+                }
               </strong>
             </div>
-          </article>
+          </div>
 
-          <article
+          <div
             className={
               styles.metrica
             }
@@ -1398,7 +1721,7 @@ export default function PedidosPage() {
               }
             >
               <Clock3
-                size={20}
+                size={18}
               />
             </div>
 
@@ -1408,38 +1731,14 @@ export default function PedidosPage() {
               </span>
 
               <strong>
-                {aguardando}
+                {
+                  pedidosAguardando.length
+                }
               </strong>
             </div>
-          </article>
+          </div>
 
-          <article
-            className={
-              styles.metrica
-            }
-          >
-            <div
-              className={
-                styles.metricaIcone
-              }
-            >
-              <Package
-                size={20}
-              />
-            </div>
-
-            <div>
-              <span>
-                Em andamento
-              </span>
-
-              <strong>
-                {emPreparo}
-              </strong>
-            </div>
-          </article>
-
-          <article
+          <div
             className={
               styles.metrica
             }
@@ -1450,22 +1749,84 @@ export default function PedidosPage() {
               }
             >
               <TrendingUp
-                size={20}
+                size={18}
               />
             </div>
 
             <div>
               <span>
-                Faturamento
+                Em andamento
               </span>
 
               <strong>
-                {formatarPreco(
-                  faturamento,
-                )}
+                {
+                  pedidosEmAndamento.length
+                }
               </strong>
             </div>
-          </article>
+          </div>
+
+          <div
+            className={
+              styles.metrica
+            }
+          >
+            <div
+              className={
+                styles.metricaIcone
+              }
+            >
+              <Check
+                size={18}
+              />
+            </div>
+
+            <div>
+              <span>
+                Concluídos
+              </span>
+
+              <strong>
+                {
+                  pedidosConcluidos.length
+                }
+              </strong>
+            </div>
+          </div>
+
+          <div
+            className={[
+              styles.metrica,
+              pedidosAtencao.length >
+              0
+                ? styles.metricaAtencao
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            <div
+              className={
+                styles.metricaIcone
+              }
+            >
+              <AlertTriangle
+                size={18}
+              />
+            </div>
+
+            <div>
+              <span>
+                Atenção
+              </span>
+
+              <strong>
+                {
+                  pedidosAtencao.length
+                }
+              </strong>
+            </div>
+          </div>
         </section>
 
         {/* =================================================
@@ -1477,1025 +1838,602 @@ export default function PedidosPage() {
             styles.filtros
           }
         >
-          <div
-            className={
-              styles.filtrosTitulo
+          <button
+            type="button"
+            className={[
+              styles.filtro,
+              filtroStatus ===
+              'todos'
+                ? styles.filtroAtivo
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            onClick={() =>
+              setFiltroStatus(
+                'todos',
+              )
             }
           >
+            Todos
+
             <span>
-              Pedidos
-            </span>
-
-            <small>
               {
-                pedidosFiltrados.length
-              }{' '}
-              {pedidosFiltrados.length ===
-              1
-                ? 'pedido'
-                : 'pedidos'}
-            </small>
-          </div>
+                todosPedidos.length
+              }
+            </span>
+          </button>
 
-          <div
-            className={
-              styles.filtrosLista
+          <button
+            type="button"
+            className={[
+              styles.filtro,
+              filtroStatus ===
+              'atencao'
+                ? styles.filtroAtivo
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            onClick={() =>
+              setFiltroStatus(
+                'atencao',
+              )
             }
           >
-            {STATUS.map(
-              (status) => (
+            Atenção
+
+            <span>
+              {
+                pedidosAtencao.length
+              }
+            </span>
+          </button>
+
+          {STATUS_OPTIONS.map(
+            (opcao) => {
+              const quantidade =
+                todosPedidos.filter(
+                  (pedido) =>
+                    pedido.status ===
+                    opcao.value,
+                ).length
+
+              return (
                 <button
-                  key={status}
-                  type="button"
-                  className={
-                    filtroStatus ===
-                    status
-                      ? styles.filtroAtivo
-                      : styles.filtro
+                  key={
+                    opcao.value
                   }
+                  type="button"
+                  className={[
+                    styles.filtro,
+                    filtroStatus ===
+                    opcao.value
+                      ? styles.filtroAtivo
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                   onClick={() =>
                     setFiltroStatus(
-                      status,
+                      opcao.value,
                     )
                   }
                 >
-                  {formatarStatus(
-                    status,
-                  )}
+                  {
+                    opcao.label
+                  }
 
-                  {status !==
-                    'todos' && (
-                    <span>
-                      {
-                        pedidos.filter(
-                          (
-                            pedido,
-                          ) =>
-                            pedido.status ===
-                            status,
-                        ).length
-                      }
-                    </span>
-                  )}
+                  <span>
+                    {
+                      quantidade
+                    }
+                  </span>
                 </button>
-              ),
-            )}
-          </div>
+              )
+            },
+          )}
         </section>
 
         {/* =================================================
-            ESTADOS
+            CONTEÚDO
             ================================================= */}
 
         {carregando ? (
           <section
             className={
-              styles.estado
+              styles.loading
             }
           >
             <Loader2
               size={28}
               className={
-                styles.spinner
+                styles.spin
               }
             />
 
-            <strong>
-              Carregando pedidos...
-            </strong>
-
             <span>
-              Buscando os pedidos mais
-              recentes.
+              Carregando pedidos...
             </span>
           </section>
         ) : pedidosFiltrados.length ===
           0 ? (
           <section
             className={
-              styles.estado
+              styles.empty
             }
           >
             <div
               className={
-                styles.estadoIcone
+                styles.emptyIcon
               }
             >
-              <ShoppingBag
-                size={26}
+              <Package
+                size={28}
               />
             </div>
 
-            <strong>
-              Nenhum pedido encontrado
-            </strong>
+            <h2>
+              Nenhum pedido
+            </h2>
 
-            <span>
-              Não existem pedidos nesse
-              filtro no momento.
-            </span>
+            <p>
+              Não existem pedidos
+              para o filtro
+              selecionado.
+            </p>
           </section>
+        ) : filtroStatus ===
+          'todos' ? (
+          <>
+            {/* =============================================
+                EM ANDAMENTO
+                ============================================= */}
+
+            {todosPedidos.some(
+              (pedido) =>
+                pedido.status !==
+                  'concluido' &&
+                pedido.status !==
+                  'cancelado',
+            ) && (
+              <section
+                className={
+                  styles.secao
+                }
+              >
+                <div
+                  className={
+                    styles.secaoHeader
+                  }
+                >
+                  <div>
+                    <span
+                      className={
+                        styles.secaoEyebrow
+                      }
+                    >
+                      Operação
+                    </span>
+
+                    <h2
+                      className={
+                        styles.secaoTitulo
+                      }
+                    >
+                      Em andamento
+                    </h2>
+                  </div>
+
+                  <span
+                    className={
+                      styles.secaoContador
+                    }
+                  >
+                    {pedidosEmAndamento.length +
+                      pedidosAguardando.length}
+                  </span>
+                </div>
+
+                <div
+                  className={
+                    styles.lista
+                  }
+                >
+                  {todosPedidos
+                    .filter(
+                      (pedido) =>
+                        pedido.status !==
+                          'concluido' &&
+                        pedido.status !==
+                          'cancelado',
+                    )
+                    .map(
+                      (
+                        pedido,
+                      ) => (
+                        <PedidoCard
+                          key={
+                            pedido.id
+                          }
+                          pedido={
+                            pedido
+                          }
+                          aberto={pedidosAbertos.has(
+                            pedido.id,
+                          )}
+                          statusSalvando={
+                            statusSalvando
+                          }
+                          statusSucesso={
+                            statusSucesso
+                          }
+                          estoqueSalvando={
+                            estoqueSalvando
+                          }
+                          estoqueSucesso={
+                            estoqueSucesso
+                          }
+                          taxaSalvando={
+  taxaSalvando
+}
+taxaSucesso={
+  taxaSucesso
+}
+                          onToggle={
+                            togglePedido
+                          }
+                          onStatusChange={
+                            alterarStatus
+                          }
+                          onResolverEstoque={
+                            resolverEstoque
+                          }
+                          onWhatsApp={
+                            abrirWhatsApp
+                          }
+                          onTaxaEntregaChange={
+  alterarTaxaEntrega
+}
+                        />
+                      ),
+                    )}
+                </div>
+              </section>
+            )}
+
+            {/* =============================================
+                ATENÇÃO
+                ============================================= */}
+
+            {pedidosAtencao.length >
+              0 && (
+              <section
+                className={
+                  styles.secao
+                }
+              >
+                <div
+                  className={
+                    styles.secaoHeader
+                  }
+                >
+                  <div>
+                    <span
+                      className={
+                        styles.secaoEyebrow
+                      }
+                    >
+                      Estoque
+                    </span>
+
+                    <h2
+                      className={
+                        styles.secaoTitulo
+                      }
+                    >
+                      Atenção necessária
+                    </h2>
+                  </div>
+
+                  <span
+                    className={
+                      styles.secaoContador
+                    }
+                  >
+                    {
+                      pedidosAtencao.length
+                    }
+                  </span>
+                </div>
+
+                <div
+                  className={
+                    styles.lista
+                  }
+                >
+                  {pedidosAtencao.map(
+                    (
+                      pedido,
+                    ) => (
+                      <PedidoCard
+                        key={
+                          pedido.id
+                        }
+                        pedido={
+                          pedido
+                        }
+                        aberto={pedidosAbertos.has(
+                          pedido.id,
+                        )}
+                        statusSalvando={
+                          statusSalvando
+                        }
+                        statusSucesso={
+                          statusSucesso
+                        }
+                        estoqueSalvando={
+                          estoqueSalvando
+                        }
+                        estoqueSucesso={
+                          estoqueSucesso
+                        }
+                        onToggle={
+                          togglePedido
+                        }
+                        onStatusChange={
+                          alterarStatus
+                        }
+                        onResolverEstoque={
+                          resolverEstoque
+                        }
+                        onWhatsApp={
+                          abrirWhatsApp
+                        }
+                      />
+                    ),
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* =============================================
+                CONCLUÍDOS
+                ============================================= */}
+
+            {todosPedidos.some(
+              (pedido) =>
+                pedido.status ===
+                'concluido',
+            ) && (
+              <section
+                className={
+                  styles.secao
+                }
+              >
+                <div
+                  className={
+                    styles.secaoHeader
+                  }
+                >
+                  <div>
+                    <span
+                      className={
+                        styles.secaoEyebrow
+                      }
+                    >
+                      Histórico
+                    </span>
+
+                    <h2
+                      className={
+                        styles.secaoTitulo
+                      }
+                    >
+                      Concluídos
+                    </h2>
+                  </div>
+
+                  <span
+                    className={
+                      styles.secaoContador
+                    }
+                  >
+                    {
+                      pedidosConcluidos.length
+                    }
+                  </span>
+                </div>
+
+                <div
+                  className={
+                    styles.lista
+                  }
+                >
+                  {todosPedidos
+                    .filter(
+                      (pedido) =>
+                        pedido.status ===
+                        'concluido',
+                    )
+                    .map(
+                      (
+                        pedido,
+                      ) => (
+                        <PedidoCard
+                          key={
+                            pedido.id
+                          }
+                          pedido={
+                            pedido
+                          }
+                          aberto={pedidosAbertos.has(
+                            pedido.id,
+                          )}
+                          statusSalvando={
+                            statusSalvando
+                          }
+                          statusSucesso={
+                            statusSucesso
+                          }
+                          estoqueSalvando={
+                            estoqueSalvando
+                          }
+                          estoqueSucesso={
+                            estoqueSucesso
+                          }
+                          onToggle={
+                            togglePedido
+                          }
+                          onStatusChange={
+                            alterarStatus
+                          }
+                          onResolverEstoque={
+                            resolverEstoque
+                          }
+                          onWhatsApp={
+                            abrirWhatsApp
+                          }
+                        />
+                      ),
+                    )}
+                </div>
+              </section>
+            )}
+          </>
         ) : (
           <section
             className={
-              styles.lista
+              styles.secao
             }
           >
-            {pedidosFiltrados.map(
-              (pedido) => {
-                const aberto =
-                  pedidoAberto ===
-                  pedido.id
+            <div
+              className={
+                styles.secaoHeader
+              }
+            >
+              <div>
+                <span
+                  className={
+                    styles.secaoEyebrow
+                  }
+                >
+                  Pedidos
+                </span>
 
-                const salvando =
-                  statusSalvando ===
-                  pedido.id
+                <h2
+                  className={
+                    styles.secaoTitulo
+                  }
+                >
+                  {filtroStatus ===
+                  'atencao'
+                    ? 'Atenção necessária'
+                    : STATUS_OPTIONS.find(
+                        (
+                          opcao,
+                        ) =>
+                          opcao.value ===
+                          filtroStatus,
+                      )?.label ||
+                      'Pedidos'}
+                </h2>
+              </div>
 
-                const atualizado =
-                  statusSucesso ===
-                  pedido.id
+              <span
+                className={
+                  styles.secaoContador
+                }
+              >
+                {
+                  pedidosFiltrados.length
+                }
+              </span>
+            </div>
 
-                const salvandoEstoque =
-                  estoqueSalvando ===
-                  pedido.id
-
-                const estoqueAtualizado =
-                  estoqueSucesso ===
-                  pedido.id
-
-                const statusDisponiveis =
-                  obterStatusDisponiveis(
-                    pedido.status,
-                  )
-
-                const podeAlterarStatus =
-                  statusDisponiveis.length >
-                  0
-
-                const podeDevolverEstoque =
-                  pedido.status ===
-                    'cancelado' &&
-                  !pedido.estoqueDevolvido
-
-                return (
-                  <article
+            <div
+              className={
+                styles.lista
+              }
+            >
+              {pedidosFiltrados.map(
+                (
+                  pedido,
+                ) => (
+                  <PedidoCard
                     key={
                       pedido.id
                     }
-                    className={`${styles.pedido} ${
-                      aberto
-                        ? styles.pedidoAberto
-                        : ''
-                    }`}
-                  >
-                    {/* =================================
-                        RESUMO
-                        ================================= */}
-
-                    <button
-                      type="button"
-                      className={
-                        styles.pedidoResumo
-                      }
-                      onClick={() =>
-                        alternarPedido(
-                          pedido.id,
-                        )
-                      }
-                    >
-                      <div
-                        className={
-                          styles.pedidoNumero
-                        }
-                      >
-                        <div
-                          className={
-                            styles.pedidoChevron
-                          }
-                        >
-                          {aberto ? (
-                            <ChevronDown
-                              size={18}
-                            />
-                          ) : (
-                            <ChevronRight
-                              size={18}
-                            />
-                          )}
-                        </div>
-
-                        <div>
-                          <strong>
-                            {
-                              pedido.numeroPedido
-                            }
-                          </strong>
-
-                          <span>
-                            {formatarData(
-                              pedido.criadoEm,
-                            )}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div
-                        className={
-                          styles.cliente
-                        }
-                      >
-                        <div
-                          className={
-                            styles.clienteIcone
-                          }
-                        >
-                          <User
-                            size={16}
-                          />
-                        </div>
-
-                        <div>
-                          <strong>
-                            {
-                              pedido
-                                .cliente
-                                .nome
-                            }
-                          </strong>
-
-                          <span>
-                            {
-                              pedido
-                                .cliente
-                                .whatsapp
-                            }
-                          </span>
-                        </div>
-                      </div>
-
-                      <div
-                        className={
-                          styles.tipoEntrega
-                        }
-                      >
-                        <span>
-                          {formatarTipoEntrega(
-                            pedido
-                              .entrega
-                              .tipo,
-                          )}
-                        </span>
-                      </div>
-
-                      <div
-                        className={`${styles.status} ${
-                          styles[
-                            `status-${classeStatus(
-                              pedido.status,
-                            )}` as keyof typeof styles
-                          ]
-                        }`}
-                      >
-                        {formatarStatus(
-                          pedido.status,
-                        )}
-                      </div>
-
-                      <strong
-                        className={
-                          styles.total
-                        }
-                      >
-                        {formatarPreco(
-                          pedido
-                            .valores
-                            .total,
-                        )}
-                      </strong>
-                    </button>
-
-                    {/* =================================
-                        DETALHES
-                        ================================= */}
-
-                    {aberto && (
-                      <div
-                        className={
-                          styles.detalhes
-                        }
-                      >
-                        {/* =============================
-                            STATUS
-                            ============================= */}
-
-                        <div
-                          className={
-                            styles.statusBox
-                          }
-                        >
-                          <div>
-                            <span
-                              className={
-                                styles.label
-                              }
-                            >
-                              Status do pedido
-                            </span>
-
-                            <small>
-                              {podeAlterarStatus
-                                ? 'Atualize o andamento do pedido.'
-                                : 'Este pedido não possui mais etapas disponíveis.'}
-                            </small>
-                          </div>
-
-                          <div
-                            className={
-                              styles.statusControle
-                            }
-                          >
-                            <div
-                              className={`${styles.status} ${
-                                styles[
-                                  `status-${classeStatus(
-                                    pedido.status,
-                                  )}` as keyof typeof styles
-                                ]
-                              }`}
-                            >
-                              {formatarStatus(
-                                pedido.status,
-                              )}
-                            </div>
-
-                            {podeAlterarStatus ? (
-                              <div
-                                className={
-                                  styles.selectWrapper
-                                }
-                              >
-                                <select
-                                  value={
-                                    pedido.status
-                                  }
-                                  disabled={
-                                    salvando
-                                  }
-                                  onChange={(
-                                    event,
-                                  ) =>
-                                    alterarStatus(
-                                      pedido.id,
-                                      event
-                                        .target
-                                        .value,
-                                    )
-                                  }
-                                >
-                                  <option
-                                    value={
-                                      pedido.status
-                                    }
-                                  >
-                                    {formatarStatus(
-                                      pedido.status,
-                                    )}
-                                  </option>
-
-                                  {statusDisponiveis.map(
-                                    (
-                                      status,
-                                    ) => (
-                                      <option
-                                        key={
-                                          status
-                                        }
-                                        value={
-                                          status
-                                        }
-                                      >
-                                        {formatarStatus(
-                                          status,
-                                        )}
-                                      </option>
-                                    ),
-                                  )}
-                                </select>
-
-                                <ChevronDown
-                                  size={16}
-                                  aria-hidden="true"
-                                />
-                              </div>
-                            ) : (
-                              <div
-                                className={
-                                  styles.statusAtualizado
-                                }
-                              >
-                                <Check
-                                  size={15}
-                                />
-
-                                {pedido.status ===
-                                'concluido'
-                                  ? 'Pedido concluído'
-                                  : 'Pedido cancelado'}
-                              </div>
-                            )}
-
-                            {salvando && (
-                              <Loader2
-                                size={17}
-                                className={
-                                  styles.spinner
-                                }
-                              />
-                            )}
-
-                            {atualizado && (
-                              <span
-                                className={
-                                  styles.statusAtualizado
-                                }
-                              >
-                                <Check
-                                  size={15}
-                                />
-
-                                Atualizado
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* =============================
-                            ESTOQUE
-                            ============================= */}
-
-                        {pedido.status ===
-                          'cancelado' && (
-                          <div
-                            className={
-                              styles.estoqueBox
-                            }
-                          >
-                            <div
-                              className={
-                                styles.estoqueInfo
-                              }
-                            >
-                              <div
-                                className={
-                                  styles.estoqueTitulo
-                                }
-                              >
-                                <RotateCcw
-                                  size={14}
-                                />
-
-                                <span>
-                                  Estoque do pedido
-                                </span>
-                              </div>
-
-                              <span
-                                className={
-                                  styles.estoqueDescricao
-                                }
-                              >
-                                {pedido.estoqueDevolvido
-                                  ? 'Os produtos deste pedido já foram devolvidos ao estoque.'
-                                  : 'O cancelamento não altera o estoque. Faça a devolução manual quando necessário.'}
-                              </span>
-                            </div>
-
-                            {pedido.estoqueDevolvido ? (
-                              <div
-                                className={
-                                  styles.estoqueDevolvido
-                                }
-                              >
-                                <Check
-                                  size={14}
-                                />
-
-                                <span>
-                                  Estoque devolvido
-                                </span>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                className={
-                                  styles.devolverEstoque
-                                }
-                                disabled={
-                                  !podeDevolverEstoque ||
-                                  salvandoEstoque
-                                }
-                                onClick={() =>
-                                  devolverEstoque(
-                                    pedido,
-                                  )
-                                }
-                              >
-                                {salvandoEstoque ? (
-                                  <>
-                                    <Loader2
-                                      size={14}
-                                      className={
-                                        styles.spinner
-                                      }
-                                    />
-
-                                    <span>
-                                      Devolvendo...
-                                    </span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <RotateCcw
-                                      size={14}
-                                    />
-
-                                    <span>
-                                      Devolver produtos ao estoque
-                                    </span>
-                                  </>
-                                )}
-                              </button>
-                            )}
-
-                            {estoqueAtualizado &&
-                              !pedido.estoqueDevolvido && (
-                                <span>
-                                  Produtos devolvidos ao estoque.
-                                </span>
-                              )}
-                          </div>
-                        )}
-
-                        {/* =============================
-                            GRID DE INFORMAÇÕES
-                            ============================= */}
-
-                        <div
-                          className={
-                            styles.detalhesGrid
-                          }
-                        >
-                          {/* CLIENTE */}
-
-                          <div
-                            className={
-                              styles.bloco
-                            }
-                          >
-                            <div
-                              className={
-                                styles.blocoTitulo
-                              }
-                            >
-                              <User
-                                size={17}
-                              />
-
-                              <span>
-                                Cliente
-                              </span>
-                            </div>
-
-                            <div
-                              className={
-                                styles.blocoConteudo
-                              }
-                            >
-                              <strong>
-                                {
-                                  pedido
-                                    .cliente
-                                    .nome
-                                }
-                              </strong>
-
-                              <span>
-                                {
-                                  pedido
-                                    .cliente
-                                    .whatsapp
-                                }
-                              </span>
-
-                              <button
-                                type="button"
-                                className={
-                                  styles.whatsapp
-                                }
-                                onClick={() =>
-                                  abrirWhatsApp(
-                                    pedido,
-                                  )
-                                }
-                              >
-                                <MessageCircle
-                                  size={15}
-                                />
-
-                                Chamar no WhatsApp
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* ENTREGA */}
-
-                          <div
-                            className={
-                              styles.bloco
-                            }
-                          >
-                            <div
-                              className={
-                                styles.blocoTitulo
-                              }
-                            >
-                              <Package
-                                size={17}
-                              />
-
-                              <span>
-                                Entrega
-                              </span>
-                            </div>
-
-                            <div
-                              className={
-                                styles.blocoConteudo
-                              }
-                            >
-                              <strong>
-                                {formatarTipoEntrega(
-                                  pedido
-                                    .entrega
-                                    .tipo,
-                                )}
-                              </strong>
-
-                              {pedido.entrega
-                                .rua && (
-                                <span>
-                                  {
-                                    pedido
-                                      .entrega
-                                      .rua
-                                  }
-
-                                  {pedido
-                                    .entrega
-                                    .numero
-                                    ? `, ${pedido.entrega.numero}`
-                                    : ''}
-                                </span>
-                              )}
-
-                              {pedido
-                                .entrega
-                                .complemento && (
-                                <span>
-                                  {
-                                    pedido
-                                      .entrega
-                                      .complemento
-                                  }
-                                </span>
-                              )}
-
-                              {pedido
-                                .entrega
-                                .bairro && (
-                                <span>
-                                  {
-                                    pedido
-                                      .entrega
-                                      .bairro
-                                  }
-                                </span>
-                              )}
-
-                              {pedido
-                                .entrega
-                                .cidade && (
-                                <span>
-                                  {
-                                    pedido
-                                      .entrega
-                                      .cidade
-                                  }
-                                </span>
-                              )}
-
-                              {pedido.entrega
-                                .cep && (
-                                <span>
-                                  CEP:{' '}
-                                  {
-                                    pedido
-                                      .entrega
-                                      .cep
-                                  }
-                                </span>
-                              )}
-
-                              {pedido
-                                .entrega
-                                .referencia && (
-                                <span>
-                                  Referência:{' '}
-                                  {
-                                    pedido
-                                      .entrega
-                                      .referencia
-                                  }
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* PAGAMENTO */}
-
-                          <div
-                            className={
-                              styles.bloco
-                            }
-                          >
-                            <div
-                              className={
-                                styles.blocoTitulo
-                              }
-                            >
-                              <ShoppingBag
-                                size={17}
-                              />
-
-                              <span>
-                                Pagamento
-                              </span>
-                            </div>
-
-                            <div
-                              className={
-                                styles.blocoConteudo
-                              }
-                            >
-                              <strong>
-                                {formatarPagamento(
-                                  pedido
-                                    .pagamento
-                                    .forma,
-                                )}
-                              </strong>
-
-                              {pedido
-                                .pagamento
-                                .trocoPara !==
-                                null && (
-                                <span>
-                                  Troco para:{' '}
-                                  {formatarPreco(
-                                    pedido
-                                      .pagamento
-                                      .trocoPara,
-                                  )}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* VALORES */}
-
-                          <div
-                            className={
-                              styles.bloco
-                            }
-                          >
-                            <div
-                              className={
-                                styles.blocoTitulo
-                              }
-                            >
-                              <TrendingUp
-                                size={17}
-                              />
-
-                              <span>
-                                Valores
-                              </span>
-                            </div>
-
-                            <div
-                              className={
-                                styles.valores
-                              }
-                            >
-                              <div>
-                                <span>
-                                  Subtotal
-                                </span>
-
-                                <strong>
-                                  {formatarPreco(
-                                    pedido
-                                      .valores
-                                      .subtotal,
-                                  )}
-                                </strong>
-                              </div>
-
-                              <div>
-                                <span>
-                                  Frete
-                                </span>
-
-                                <strong>
-                                  {pedido
-                                    .valores
-                                    .frete > 0
-                                    ? formatarPreco(
-                                        pedido
-                                          .valores
-                                          .frete,
-                                      )
-                                    : 'A combinar'}
-                                </strong>
-                              </div>
-
-                              <div
-                                className={
-                                  styles.valorTotal
-                                }
-                              >
-                                <span>
-                                  Total
-                                </span>
-
-                                <strong>
-                                  {formatarPreco(
-                                    pedido
-                                      .valores
-                                      .total,
-                                  )}
-                                </strong>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* =============================
-                            ITENS
-                            ============================= */}
-
-                        <div
-                          className={
-                            styles.itens
-                          }
-                        >
-                          <div
-                            className={
-                              styles.itensHeader
-                            }
-                          >
-                            <div
-                              className={
-                                styles.blocoTitulo
-                              }
-                            >
-                              <ShoppingBag
-                                size={17}
-                              />
-
-                              <span>
-                                Itens do pedido
-                              </span>
-                            </div>
-
-                            <span>
-                              {
-                                pedido.itens
-                                  .length
-                              }{' '}
-                              {pedido.itens
-                                .length ===
-                              1
-                                ? 'item'
-                                : 'itens'}
-                            </span>
-                          </div>
-
-                          <div
-                            className={
-                              styles.itensLista
-                            }
-                          >
-                            {pedido.itens
-                              .length ===
-                            0 ? (
-                              <div
-                                className={
-                                  styles.item
-                                }
-                              >
-                                <div
-                                  className={
-                                    styles.itemInfo
-                                  }
-                                >
-                                  <strong>
-                                    Nenhum item
-                                  </strong>
-
-                                  <span>
-                                    Este pedido não
-                                    possui itens
-                                    registrados.
-                                  </span>
-                                </div>
-                              </div>
-                            ) : (
-                              pedido.itens.map(
-                                (
-                                  item,
-                                ) => (
-                                  <div
-                                    key={
-                                      item.id
-                                    }
-                                    className={
-                                      styles.item
-                                    }
-                                  >
-                                    <div
-                                      className={
-                                        styles.itemInfo
-                                      }
-                                    >
-                                      <strong>
-                                        {
-                                          item.nome
-                                        }
-                                      </strong>
-
-                                      <span>
-                                        {
-                                          item.quantidade
-                                        }{' '}
-                                        ×{' '}
-                                        {formatarPreco(
-                                          item.precoUnitario,
-                                        )}
-                                      </span>
-                                    </div>
-
-                                    <strong>
-                                      {formatarPreco(
-                                        item.subtotal,
-                                      )}
-                                    </strong>
-                                  </div>
-                                ),
-                              )
-                            )}
-                          </div>
-                        </div>
-
-                        {/* =============================
-                            RODAPÉ
-                            ============================= */}
-
-                        <div
-                          className={
-                            styles.pedidoRodape
-                          }
-                        >
-                          <span>
-                            Última atualização:{' '}
-                            {formatarData(
-                              pedido.atualizadoEm,
-                            )}
-                          </span>
-
-                          <span>
-                            ID:{' '}
-                            {pedido.id}
-                          </span>
-                        </div>
-                      </div>
+                    pedido={
+                      pedido
+                    }
+                    aberto={pedidosAbertos.has(
+                      pedido.id,
                     )}
-                  </article>
-                )
-              },
-            )}
+                    statusSalvando={
+                      statusSalvando
+                    }
+                    statusSucesso={
+                      statusSucesso
+                    }
+                    estoqueSalvando={
+                      estoqueSalvando
+                    }
+                    estoqueSucesso={
+                      estoqueSucesso
+                    }
+                    onToggle={
+                      togglePedido
+                    }
+                    onStatusChange={
+                      alterarStatus
+                    }
+                    onResolverEstoque={
+                      resolverEstoque
+                    }
+                    onWhatsApp={
+                      abrirWhatsApp
+                    }
+                  />
+                ),
+              )}
+            </div>
           </section>
         )}
+
+        {/* =================================================
+            FOOTER
+            ================================================= */}
+
+        <footer
+          className={
+            styles.footer
+          }
+        >
+          <div>
+            <span
+              className={
+                styles.footerDot
+              }
+            />
+
+            <span>
+              Atualização automática
+              a cada 30 segundos
+            </span>
+          </div>
+
+          <span>
+            {
+              todosPedidos.length
+            }{' '}
+            {todosPedidos.length ===
+            1
+              ? 'pedido'
+              : 'pedidos'}{' '}
+            carregados
+          </span>
+        </footer>
       </div>
     </main>
   )

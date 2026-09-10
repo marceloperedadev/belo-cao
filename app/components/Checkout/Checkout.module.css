@@ -2,23 +2,34 @@
    BELO CÃO
    CHECKOUT — 3 ETAPAS
    ROXO + BRANCO
-   DESKTOP + MOBILE
+   PREMIUM · EDITORIAL · RESPONSIVO
+   ========================================================= */
+
+
+/* =========================================================
+   OVERLAY
    ========================================================= */
 
 .overlay {
   position: fixed;
   inset: 0;
   z-index: 10000;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   box-sizing: border-box;
   padding: 22px;
+
   background: rgba(52, 32, 57, 0.38);
+
   backdrop-filter: blur(9px);
   -webkit-backdrop-filter: blur(9px);
+
   animation: checkoutFadeIn 0.2s ease both;
 }
+
 
 /* =========================================================
    CONTAINER
@@ -26,25 +37,33 @@
 
 .container {
   position: relative;
+
   width: min(900px, 100%);
   height: min(900px, calc(100dvh - 44px));
   max-height: calc(100dvh - 44px);
+
   display: flex;
   flex-direction: column;
+
   box-sizing: border-box;
   overflow: hidden;
+
   background: #ffffff;
   color: #342039;
+
   border: 1px solid rgba(103, 47, 150, 0.1);
   border-radius: 24px;
+
   box-shadow:
     0 35px 90px rgba(52, 32, 57, 0.18),
     0 12px 35px rgba(52, 32, 57, 0.08);
+
   animation:
     checkoutEnter 0.32s
     cubic-bezier(0.22, 1, 0.36, 1)
     both;
 }
+
 
 /* =========================================================
    HEADER
@@ -52,9 +71,13 @@
 
 .header {
   position: relative;
+
   flex: 0 0 auto;
+
   padding: 23px 30px 24px;
+
   border-bottom: 1px solid rgba(103, 47, 150, 0.08);
+
   background: #ffffff;
 }
 
@@ -64,23 +87,31 @@
 
 .headerEyebrow {
   display: block;
+
   margin-bottom: 7px;
+
   color: #806f88;
+
   font-size: 9px;
   font-weight: 800;
   line-height: 1;
+
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
 .title {
   margin: 0;
+
   color: #342039;
+
   font-size: clamp(29px, 4vw, 40px);
   font-weight: 700;
   line-height: 1.03;
+
   letter-spacing: -0.045em;
 }
+
 
 /* =========================================================
    BOTÃO FECHAR
@@ -88,19 +119,27 @@
 
 .closeButton {
   position: absolute;
+
   top: 22px;
   right: 25px;
+
   width: 37px;
   height: 37px;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   border: 1px solid rgba(103, 47, 150, 0.1);
   border-radius: 50%;
+
   background: #ffffff;
   color: #806f88;
+
   font: inherit;
+
   cursor: pointer;
+
   transition:
     color 0.18s ease,
     background 0.18s ease,
@@ -110,13 +149,17 @@
 
 .closeButton:hover:not(:disabled) {
   background: #eee5f4;
+
   border-color: rgba(103, 47, 150, 0.16);
+
   color: #672f96;
+
   transform: rotate(3deg);
 }
 
 .closeButton:disabled {
   opacity: 0.5;
+
   cursor: not-allowed;
 }
 
@@ -125,34 +168,46 @@
   outline-offset: 3px;
 }
 
+
 /* =========================================================
    PROGRESSO
    ========================================================= */
 
 .progressWrapper {
   flex: 0 0 auto;
+
   padding: 0 30px;
 }
 
 .progress {
   position: relative;
+
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+
   gap: 10px;
+
   margin-top: 25px;
 }
 
 .progressStep {
   position: relative;
   z-index: 2;
+
   display: flex;
   align-items: center;
+
   gap: 8px;
+
   min-width: 0;
+
   color: #b2a5b6;
+
   font-size: 9px;
   font-weight: 700;
+
   letter-spacing: 0.03em;
+
   transition: color 0.2s ease;
 }
 
@@ -160,28 +215,36 @@
   justify-content: flex-start;
 }
 
-.progressStep:nth-child(3) {
+.progressStep:nth-child(2) {
   justify-content: center;
 }
 
-.progressStep:nth-child(5) {
+.progressStep:nth-child(3) {
   justify-content: flex-end;
 }
 
 .progressNumber {
   width: 24px;
   height: 24px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   flex: 0 0 auto;
+
   box-sizing: border-box;
+
   border: 1px solid rgba(103, 47, 150, 0.12);
   border-radius: 50%;
+
   background: #ffffff;
+
   color: #b2a5b6;
+
   font-size: 9px;
   font-weight: 800;
+
   transition:
     color 0.2s ease,
     background 0.2s ease,
@@ -195,6 +258,7 @@
 .progressStep.active .progressNumber {
   border-color: #672f96;
   background: #672f96;
+
   color: #ffffff;
 }
 
@@ -205,6 +269,7 @@
 .progressStep.completed .progressNumber {
   border-color: #672f96;
   background: #eee5f4;
+
   color: #672f96;
 }
 
@@ -214,11 +279,15 @@
 
 .progressLine {
   position: absolute;
+
   top: 12px;
   left: 12px;
   right: 12px;
-  height: 1px;
+
   z-index: 0;
+
+  height: 1px;
+
   background: rgba(103, 47, 150, 0.1);
 }
 
@@ -226,17 +295,23 @@
   background: #672f96;
 }
 
+
 /* =========================================================
    CONTEÚDO
    ========================================================= */
 
 .content {
   flex: 1 1 auto;
+
   min-height: 0;
+
   overflow-y: auto;
   overflow-x: hidden;
+
   padding: 28px 30px 30px;
+
   scrollbar-width: thin;
+
   scrollbar-color:
     rgba(103, 47, 150, 0.2)
     transparent;
@@ -252,8 +327,14 @@
 
 .content::-webkit-scrollbar-thumb {
   background: rgba(103, 47, 150, 0.2);
+
   border-radius: 999px;
 }
+
+.content::-webkit-scrollbar-thumb:hover {
+  background: rgba(103, 47, 150, 0.35);
+}
+
 
 /* =========================================================
    STEP
@@ -262,8 +343,10 @@
 .step {
   width: 100%;
   max-width: 760px;
+
   margin: 0 auto;
 }
+
 
 /* =========================================================
    CABEÇALHO DA ETAPA
@@ -272,47 +355,64 @@
 .stepHeader {
   display: flex;
   align-items: flex-start;
+
   gap: 15px;
+
   margin-bottom: 24px;
 }
 
 .stepIcon {
   width: 42px;
   height: 42px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   flex: 0 0 auto;
+
   border-radius: 12px;
+
   background: #eee5f4;
   color: #672f96;
 }
 
 .stepCounter {
   display: block;
+
   margin-bottom: 5px;
+
   color: #8d55b4;
+
   font-size: 9px;
   font-weight: 800;
+
   letter-spacing: 0.15em;
 }
 
 .stepTitle {
   margin: 0;
+
   color: #342039;
+
   font-size: 17px;
   font-weight: 700;
   line-height: 1.25;
+
   letter-spacing: -0.02em;
 }
 
 .stepDescription {
   max-width: 560px;
+
   margin: 4px 0 0;
+
   color: #806f88;
+
   font-size: 11px;
   line-height: 1.5;
 }
+
 
 /* =========================================================
    FORM
@@ -321,35 +421,44 @@
 .form {
   display: flex;
   flex-direction: column;
+
   gap: 16px;
 }
 
 .formRow {
   display: grid;
+
   grid-template-columns:
     minmax(0, 1fr)
     minmax(0, 1fr);
+
   gap: 13px;
 }
 
 .field {
   min-width: 0;
+
   display: flex;
   flex-direction: column;
+
   gap: 7px;
 }
 
 .field label {
   display: flex;
   align-items: center;
+
   gap: 6px;
+
   color: #342039;
+
   font-size: 10px;
   font-weight: 700;
 }
 
 .field label span {
   color: #a99aaa;
+
   font-size: 8px;
   font-weight: 600;
 }
@@ -357,15 +466,22 @@
 .field input {
   width: 100%;
   min-height: 48px;
+
   box-sizing: border-box;
+
   padding: 0 13px;
+
   border: 1px solid rgba(103, 47, 150, 0.13);
   border-radius: 11px;
+
   outline: 0;
+
   background: #ffffff;
   color: #342039;
+
   font: inherit;
   font-size: 12px;
+
   transition:
     border-color 0.18s ease,
     box-shadow 0.18s ease,
@@ -376,23 +492,32 @@
   color: #b7aab9;
 }
 
+.field input:hover:not(:disabled) {
+  border-color: rgba(103, 47, 150, 0.2);
+}
+
 .field input:focus {
   border-color: rgba(103, 47, 150, 0.55);
+
   background: #ffffff;
+
   box-shadow:
     0 0 0 3px rgba(103, 47, 150, 0.08);
 }
 
 .field input:disabled {
   opacity: 0.65;
+
   cursor: wait;
 }
 
 .field small {
   color: #806f88;
+
   font-size: 8px;
   line-height: 1.35;
 }
+
 
 /* =========================================================
    INPUT COM ÍCONE
@@ -400,24 +525,37 @@
 
 .inputWithIcon {
   min-height: 48px;
+
   display: flex;
   align-items: center;
+
   gap: 9px;
+
   box-sizing: border-box;
+
   padding: 0 13px;
+
   border: 1px solid rgba(103, 47, 150, 0.13);
   border-radius: 11px;
+
   background: #ffffff;
   color: #8d55b4;
+
   transition:
     border-color 0.18s ease,
     box-shadow 0.18s ease,
     background 0.18s ease;
 }
 
+.inputWithIcon:hover {
+  border-color: rgba(103, 47, 150, 0.2);
+}
+
 .inputWithIcon:focus-within {
   border-color: rgba(103, 47, 150, 0.55);
+
   background: #ffffff;
+
   box-shadow:
     0 0 0 3px rgba(103, 47, 150, 0.08);
 }
@@ -426,14 +564,19 @@
   width: 100%;
   min-width: 0;
   min-height: auto;
+
   padding: 0;
+
   border: 0;
   outline: 0;
+
   background: transparent;
   color: #342039;
+
   font: inherit;
   font-size: 12px;
   line-height: 1.2;
+
   box-shadow: none;
 }
 
@@ -441,43 +584,71 @@
   box-shadow: none;
 }
 
+
 /* =========================================================
    CEP
    ========================================================= */
 
 .cepRow {
   display: grid;
+
   grid-template-columns:
     minmax(0, 1fr)
     auto;
+
   gap: 8px;
 }
 
 .cepRow button {
   min-width: 78px;
+
   padding: 0 14px;
+
   border: 1px solid #672f96;
   border-radius: 11px;
+
   background: #672f96;
   color: #ffffff;
+
   font: inherit;
+
   font-size: 10px;
   font-weight: 800;
+
   cursor: pointer;
+
   transition:
     background 0.2s ease,
-    transform 0.2s ease;
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .cepRow button:hover:not(:disabled) {
   background: #43205f;
+  border-color: #43205f;
+
   transform: translateY(-1px);
+
+  box-shadow:
+    0 7px 18px rgba(103, 47, 150, 0.15);
+}
+
+.cepRow button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .cepRow button:disabled {
   opacity: 0.6;
+
   cursor: wait;
 }
+
+.cepRow button:focus-visible {
+  outline: 2px solid #672f96;
+  outline-offset: 3px;
+}
+
 
 /* =========================================================
    SPINNER
@@ -488,33 +659,47 @@
     spinner 0.7s linear infinite;
 }
 
+
 /* =========================================================
    DELIVERY OPTIONS
    ========================================================= */
 
 .deliveryOptions {
   display: grid;
+
   grid-template-columns:
     repeat(2, minmax(0, 1fr));
+
   gap: 12px;
+
   margin-bottom: 23px;
 }
 
 .deliveryOption,
 .paymentOption {
   position: relative;
+
   display: flex;
   align-items: flex-start;
+
   width: 100%;
+
   box-sizing: border-box;
+
   padding: 16px;
+
   border: 1px solid rgba(103, 47, 150, 0.11);
   border-radius: 14px;
+
   background: #ffffff;
   color: #342039;
+
   text-align: left;
+
   font: inherit;
+
   cursor: pointer;
+
   transition:
     border-color 0.2s ease,
     background 0.2s ease,
@@ -525,13 +710,16 @@
 .deliveryOption:hover,
 .paymentOption:hover {
   border-color: rgba(103, 47, 150, 0.28);
+
   transform: translateY(-1px);
 }
 
 .deliveryOption.selected,
 .paymentOption.selected {
   border-color: #672f96;
+
   background: #eee5f4;
+
   box-shadow:
     0 7px 20px rgba(103, 47, 150, 0.08);
 }
@@ -546,12 +734,17 @@
 .paymentIcon {
   width: 40px;
   height: 40px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   flex: 0 0 auto;
+
   margin-right: 12px;
+
   border-radius: 11px;
+
   background: #eee5f4;
   color: #672f96;
 }
@@ -564,16 +757,21 @@
 .deliveryText,
 .paymentText {
   min-width: 0;
+
   flex: 1;
+
   display: flex;
   flex-direction: column;
+
   padding-right: 22px;
 }
 
 .deliveryText strong,
 .paymentText strong {
   margin-bottom: 4px;
+
   color: #342039;
+
   font-size: 12px;
   font-weight: 800;
   line-height: 1.25;
@@ -582,31 +780,41 @@
 .deliveryText span,
 .paymentText span {
   color: #806f88;
+
   font-size: 9px;
   line-height: 1.45;
 }
 
 .radio {
   position: absolute;
+
   top: 17px;
   right: 16px;
+
   width: 16px;
   height: 16px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   border: 1px solid rgba(103, 47, 150, 0.25);
   border-radius: 50%;
+
   background: #ffffff;
 }
 
 .radio span {
   width: 8px;
   height: 8px;
+
   display: block;
+
   border-radius: 50%;
+
   background: #672f96;
 }
+
 
 /* =========================================================
    ADDRESS
@@ -614,18 +822,24 @@
 
 .addressSection {
   padding-top: 22px;
+
   border-top: 1px solid rgba(103, 47, 150, 0.08);
 }
 
 .addressHeader {
   display: flex;
   align-items: center;
+
   gap: 10px;
+
   margin-bottom: 18px;
+
   color: #672f96;
+
   font-size: 11px;
   font-weight: 800;
 }
+
 
 /* =========================================================
    PICKUP
@@ -634,10 +848,14 @@
 .pickupBox {
   display: flex;
   align-items: flex-start;
+
   gap: 14px;
+
   padding: 19px;
+
   border: 1px solid rgba(103, 47, 150, 0.11);
   border-radius: 14px;
+
   background: #eee5f4;
   color: #672f96;
 }
@@ -649,6 +867,7 @@
 
 .pickupBox strong {
   color: #43205f;
+
   font-size: 12px;
   font-weight: 800;
   line-height: 1.35;
@@ -656,10 +875,13 @@
 
 .pickupBox p {
   margin: 7px 0 0;
+
   color: #806f88;
+
   font-size: 10px;
   line-height: 1.5;
 }
+
 
 /* =========================================================
    PAYMENT
@@ -668,6 +890,7 @@
 .paymentOptions {
   display: flex;
   flex-direction: column;
+
   gap: 10px;
 }
 
@@ -682,8 +905,10 @@
 .paymentIcon span {
   font-size: 9px;
   font-weight: 900;
+
   letter-spacing: -0.02em;
 }
+
 
 /* =========================================================
    TROCO
@@ -691,23 +916,31 @@
 
 .changeBox {
   margin-top: 17px;
+
   padding: 18px;
+
   border: 1px solid rgba(103, 47, 150, 0.11);
   border-radius: 14px;
+
   background: #fdfbfe;
 }
 
 .changeResult {
   display: block;
+
   margin-top: 9px;
+
   color: #806f88;
+
   font-size: 9px;
 }
 
 .changeResult strong {
   color: #672f96;
+
   font-weight: 800;
 }
+
 
 /* =========================================================
    RESUMO DO PEDIDO
@@ -715,20 +948,29 @@
 
 .summary {
   margin-top: 24px;
+
   border: 1px solid rgba(103, 47, 150, 0.1);
   border-radius: 15px;
+
   overflow: hidden;
+
   background: #ffffff;
 }
 
 .summaryHeader {
   display: flex;
   align-items: center;
+
   gap: 9px;
+
   padding: 15px 17px;
+
   border-bottom: 1px solid rgba(103, 47, 150, 0.08);
+
   background: #fdfbfe;
+
   color: #672f96;
+
   font-size: 12px;
   font-weight: 800;
 }
@@ -736,6 +978,7 @@
 .summaryItems {
   display: flex;
   flex-direction: column;
+
   padding: 4px 17px;
 }
 
@@ -743,8 +986,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 20px;
+
   padding: 10px 0;
+
   border-bottom: 1px solid rgba(103, 47, 150, 0.06);
 }
 
@@ -754,35 +1000,45 @@
 
 .summaryItem > div {
   min-width: 0;
+
   display: flex;
   flex-direction: column;
+
   gap: 4px;
 }
 
 .summaryItem > div strong {
   overflow: hidden;
+
   color: #342039;
+
   font-size: 10px;
   font-weight: 700;
+
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .summaryItem > div span {
   color: #806f88;
+
   font-size: 9px;
 }
 
 .summaryItem > strong {
   flex: 0 0 auto;
+
   color: #342039;
+
   font-size: 10px;
   font-weight: 700;
 }
 
 .summaryTotals {
   padding: 13px 17px 16px;
+
   border-top: 1px solid rgba(103, 47, 150, 0.08);
+
   background: #fdfbfe;
 }
 
@@ -790,38 +1046,47 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   padding: 4px 0;
 }
 
 .summaryTotals span {
   color: #806f88;
+
   font-size: 10px;
 }
 
 .summaryTotals strong {
   color: #342039;
+
   font-size: 10px;
   font-weight: 700;
 }
 
 .summaryTotal {
   margin-top: 7px;
+
   padding-top: 12px !important;
+
   border-top: 1px solid rgba(103, 47, 150, 0.1);
 }
 
 .summaryTotal span {
   color: #342039;
+
   font-size: 11px;
   font-weight: 800;
 }
 
 .summaryTotal strong {
   color: #672f96;
+
   font-size: 17px;
   font-weight: 800;
+
   letter-spacing: -0.025em;
 }
+
 
 /* =========================================================
    AVISO DE FRETE
@@ -829,19 +1094,26 @@
 
 .shippingNotice {
   margin-top: 10px;
+
   padding: 12px 14px;
+
   border: 1px solid rgba(103, 47, 150, 0.12);
   border-radius: 12px;
+
   background: rgba(103, 47, 150, 0.06);
+
   color: #806f88;
+
   font-size: 9px;
   line-height: 1.5;
 }
 
 .shippingNotice strong {
   color: #672f96;
+
   font-weight: 800;
 }
+
 
 /* =========================================================
    ERRO
@@ -851,14 +1123,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 10px;
+
   max-width: 760px;
+
   margin: 20px auto 0;
+
   padding: 11px 13px;
+
   border: 1px solid rgba(150, 60, 90, 0.16);
   border-radius: 10px;
+
   background: #fff8fa;
+
   color: #7f4055;
+
   font-size: 9px;
   font-weight: 600;
   line-height: 1.45;
@@ -871,15 +1151,33 @@
 .error button {
   width: 24px;
   height: 24px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   flex: 0 0 auto;
+
   border: 0;
+
   background: transparent;
+
   color: #7f4055;
+
   cursor: pointer;
 }
+
+.error button:hover {
+  opacity: 0.75;
+}
+
+.error button:focus-visible {
+  outline: 2px solid #7f4055;
+  outline-offset: 2px;
+
+  border-radius: 4px;
+}
+
 
 /* =========================================================
    FOOTER
@@ -887,30 +1185,50 @@
 
 .footer {
   flex: 0 0 auto;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 20px;
+
   padding: 17px 30px 20px;
+
   border-top: 1px solid rgba(103, 47, 150, 0.1);
+
   background: #ffffff;
+
   box-shadow:
     0 -8px 25px rgba(52, 32, 57, 0.035);
 }
+
+
+/* =========================================================
+   BOTÃO VOLTAR
+   ========================================================= */
 
 .backButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   gap: 7px;
+
   padding: 7px 0;
+
   border: 0;
+
   background: transparent;
+
   color: #806f88;
+
   font: inherit;
+
   font-size: 11px;
   font-weight: 700;
+
   cursor: pointer;
+
   transition:
     color 0.18s ease,
     transform 0.18s ease;
@@ -918,38 +1236,56 @@
 
 .backButton:hover:not(:disabled) {
   color: #672f96;
+
   transform: translateX(-2px);
 }
 
 .backButton:disabled {
   opacity: 0.5;
+
   cursor: not-allowed;
 }
 
 .backButton:focus-visible {
   outline: 2px solid #672f96;
   outline-offset: 4px;
+
   border-radius: 4px;
 }
+
+
+/* =========================================================
+   BOTÃO CONTINUAR
+   ========================================================= */
 
 .continueButton {
   min-width: 175px;
   min-height: 49px;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   gap: 9px;
+
   padding: 0 17px;
+
   border: 1px solid #672f96;
   border-radius: 12px;
+
   background: #672f96;
   color: #ffffff;
+
   font: inherit;
+
   font-size: 11px;
   font-weight: 800;
+
   cursor: pointer;
+
   box-shadow:
     0 8px 22px rgba(103, 47, 150, 0.18);
+
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
@@ -960,7 +1296,9 @@
 .continueButton:hover:not(:disabled) {
   background: #43205f;
   border-color: #43205f;
+
   transform: translateY(-1px);
+
   box-shadow:
     0 11px 28px rgba(103, 47, 150, 0.24);
 }
@@ -971,7 +1309,9 @@
 
 .continueButton:disabled {
   opacity: 0.6;
+
   cursor: not-allowed;
+
   box-shadow: none;
 }
 
@@ -980,9 +1320,15 @@
   outline-offset: 3px;
 }
 
+
+/* =========================================================
+   SETA
+   ========================================================= */
+
 .arrowRight {
   transform: rotate(180deg);
 }
+
 
 /* =========================================================
    ANIMAÇÕES
@@ -1001,6 +1347,7 @@
 @keyframes checkoutEnter {
   from {
     opacity: 0;
+
     transform:
       translateY(14px)
       scale(0.985);
@@ -1008,6 +1355,7 @@
 
   to {
     opacity: 1;
+
     transform:
       translateY(0)
       scale(1);
@@ -1019,6 +1367,7 @@
     transform: rotate(360deg);
   }
 }
+
 
 /* =========================================================
    TABLET
@@ -1032,6 +1381,7 @@
   .container {
     height: calc(100dvh - 28px);
     max-height: calc(100dvh - 28px);
+
     border-radius: 20px;
   }
 
@@ -1056,6 +1406,7 @@
   }
 }
 
+
 /* =========================================================
    MOBILE
    ========================================================= */
@@ -1063,6 +1414,7 @@
 @media (max-width: 560px) {
   .overlay {
     align-items: flex-end;
+
     padding: 0;
   }
 
@@ -1070,6 +1422,7 @@
     width: 100%;
     height: 100dvh;
     max-height: 100dvh;
+
     border: 0;
     border-radius: 0;
   }
@@ -1096,17 +1449,20 @@
 
   .progressStep {
     gap: 6px;
+
     font-size: 8px;
   }
 
   .progressNumber {
     width: 22px;
     height: 22px;
+
     font-size: 8px;
   }
 
   .progressLine {
     top: 11px;
+
     left: 11px;
     right: 11px;
   }
@@ -1120,7 +1476,15 @@
 
   .stepHeader {
     gap: 12px;
+
     margin-bottom: 20px;
+  }
+
+  .stepIcon {
+    width: 39px;
+    height: 39px;
+
+    border-radius: 11px;
   }
 
   .stepTitle {
@@ -1133,11 +1497,24 @@
 
   .formRow {
     grid-template-columns: 1fr;
+
     gap: 14px;
+  }
+
+  .field input {
+    min-height: 47px;
   }
 
   .inputWithIcon {
     min-height: 47px;
+  }
+
+  .cepRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .cepRow button {
+    min-width: 74px;
   }
 
   .deliveryOption,
@@ -1149,6 +1526,7 @@
   .paymentIcon {
     width: 38px;
     height: 38px;
+
     margin-right: 10px;
   }
 
@@ -1170,11 +1548,33 @@
     margin-top: 20px;
   }
 
+  .summaryHeader {
+    padding: 14px 15px;
+  }
+
+  .summaryItems {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  .summaryTotals {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
   .shippingNotice {
     font-size: 8.5px;
   }
 
+  .error {
+    align-items: flex-start;
+
+    font-size: 9px;
+  }
+
   .footer {
+    flex-direction: row;
+
     padding:
       13px
       18px
@@ -1182,10 +1582,13 @@
   }
 
   .continueButton {
+    min-width: 0;
     width: 100%;
+
     min-height: 51px;
   }
 }
+
 
 /* =========================================================
    MOBILE PEQUENO
@@ -1219,7 +1622,12 @@
     padding-left: 15px;
     padding-right: 15px;
   }
+
+  .continueButton {
+    font-size: 10px;
+  }
 }
+
 
 /* =========================================================
    ACESSIBILIDADE
@@ -1236,7 +1644,9 @@
   .deliveryOption,
   .paymentOption,
   .inputWithIcon,
-  .continueButton {
+  .continueButton,
+  .cepRow button,
+  .field input {
     transition: none;
   }
 

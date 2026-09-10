@@ -2,183 +2,307 @@ import { NextResponse } from 'next/server'
 import { Pool } from '@neondatabase/serverless'
 
 /* =========================================================
+   CONFIGURAÇÃO
+   ========================================================= */
+
+export const runtime = 'nodejs'
+
+/* =========================================================
    BANCO
    ========================================================= */
 
 const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL,
 })
 
 /* =========================================================
-   POST — DEVOLVER ESTOQUE MANUALMENTE
+   TIPOS
    ========================================================= */
 
-export async function POST(
-  request: Request,
-) {
-  const client =
-    await pool.connect()
+type AcaoEstoque =
+  | 'devolver'
+  | 'nao_devolver'
+
+type ResolucaoEstoque =
+  | 'pendente'
+  | 'devolvido'
+  | 'nao_devolver'
+
+/* =========================================================
+   POST
+   RESOLVER ESTOQUE DE PEDIDO CANCELADO
+
+   devolver
+   → devolve os produtos ao estoque
+
+   nao_devolver
+   → registra que os produtos não devem voltar
+
+   REGRAS:
+
+   1. Pedido precisa estar cancelado.
+   2. Pedido é bloqueado durante a operação.
+   3. Uma resolução não pode ser repetida.
+   4. A devolução de todos os produtos acontece
+      dentro da mesma transação.
+   5. Se qualquer produto falhar, nada é alterado.
+   ========================================================= */
+
+export async function POST(request: Request) {
+  const client = await pool.connect()
 
   try {
-    const body =
-      await request.json()
+    /* =======================================================
+       LER BODY
+       ======================================================= */
+
+    let body: {
+      pedidoId?: unknown
+      acao?: unknown
+    }
+
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json(
+        {
+          sucesso: false,
+          mensagem: 'Dados inválidos enviados para resolver o estoque.',
+        },
+        { status: 400 },
+      )
+    }
 
     const pedidoId =
-      body?.pedidoId
+      typeof body?.pedidoId === 'string'
+        ? body.pedidoId.trim()
+        : ''
 
-    /* =====================================================
-       VALIDAÇÃO
-       ===================================================== */
+    const acao = body?.acao
+
+    /* =======================================================
+       VALIDAR ID
+       ======================================================= */
+
+    if (!pedidoId) {
+      return NextResponse.json(
+        {
+          sucesso: false,
+          mensagem: 'ID do pedido não informado.',
+        },
+        { status: 400 },
+      )
+    }
+
+    /* =======================================================
+       VALIDAR AÇÃO
+       ======================================================= */
 
     if (
-      typeof pedidoId !==
-        'string' ||
-      !pedidoId.trim()
+      acao !== 'devolver' &&
+      acao !== 'nao_devolver'
     ) {
       return NextResponse.json(
         {
           sucesso: false,
           mensagem:
-            'ID do pedido não informado.',
+            'Informe o que deve acontecer com os produtos do pedido.',
         },
-        {
-          status: 400,
-        },
+        { status: 400 },
       )
     }
 
-    /* =====================================================
-       TRANSAÇÃO
-       ===================================================== */
+    /* =======================================================
+       INICIAR TRANSAÇÃO
+       ======================================================= */
 
-    await client.query(
-      'BEGIN',
+    await client.query('BEGIN')
+
+    /* =======================================================
+       BUSCAR PEDIDO
+
+       FOR UPDATE impede duas ações simultâneas no mesmo pedido.
+       ======================================================= */
+
+    const pedidoResult = await client.query(
+      `
+        SELECT
+          id,
+          order_number,
+          status,
+          stock_restored,
+          stock_resolution
+        FROM public.orders
+        WHERE id = $1
+        FOR UPDATE
+      `,
+      [pedidoId],
     )
 
-    /* =====================================================
-       BUSCAR PEDIDO COM LOCK
-       ===================================================== */
+    if (pedidoResult.rowCount === 0) {
+      await client.query('ROLLBACK')
 
-    const pedidoResult =
-      await client.query(
+      return NextResponse.json(
+        {
+          sucesso: false,
+          mensagem: 'Pedido não encontrado.',
+        },
+        { status: 404 },
+      )
+    }
+
+    const pedido = pedidoResult.rows[0]
+
+    /* =======================================================
+       VALIDAR STATUS
+       ======================================================= */
+
+    if (pedido.status !== 'cancelado') {
+      await client.query('ROLLBACK')
+
+      return NextResponse.json(
+        {
+          sucesso: false,
+          mensagem:
+            'Essa ação só pode ser feita em pedidos cancelados.',
+        },
+        { status: 409 },
+      )
+    }
+
+    /* =======================================================
+       DETERMINAR SITUAÇÃO DO ESTOQUE
+
+       Compatibilidade com pedidos antigos:
+
+       stock_resolution = NULL
+       +
+       stock_restored = false
+
+       → pendente
+
+       stock_restored = true
+       → devolvido
+       ======================================================= */
+
+    const resolucaoAtual: ResolucaoEstoque =
+      pedido.stock_resolution === 'devolvido'
+        ? 'devolvido'
+        : pedido.stock_resolution === 'nao_devolver'
+          ? 'nao_devolver'
+          : pedido.stock_restored === true
+            ? 'devolvido'
+            : 'pendente'
+
+    /* =======================================================
+       IMPEDIR SEGUNDA RESOLUÇÃO
+       ======================================================= */
+
+    if (resolucaoAtual !== 'pendente') {
+      await client.query('ROLLBACK')
+
+      if (resolucaoAtual === 'devolvido') {
+        return NextResponse.json(
+          {
+            sucesso: false,
+            mensagem:
+              'Os produtos deste pedido já foram devolvidos ao estoque.',
+            resolucaoEstoque: 'devolvido',
+            estoqueDevolvido: true,
+          },
+          { status: 409 },
+        )
+      }
+
+      return NextResponse.json(
+        {
+          sucesso: false,
+          mensagem:
+            'Este pedido já foi marcado como não devolvido ao estoque.',
+          resolucaoEstoque: 'nao_devolver',
+          estoqueDevolvido: false,
+        },
+        { status: 409 },
+      )
+    }
+
+    /* =======================================================
+       AÇÃO:
+       NÃO DEVOLVER
+       ======================================================= */
+
+    if (acao === 'nao_devolver') {
+      const updateResult = await client.query(
         `
-          SELECT
+          UPDATE public.orders
+          SET
+            stock_resolution = 'nao_devolver',
+            stock_restored = FALSE,
+            updated_at = NOW()
+          WHERE id = $1
+          RETURNING
             id,
             order_number,
             status,
-            stock_restored
-          FROM public.orders
-          WHERE id = $1
-          FOR UPDATE
+            stock_restored,
+            stock_resolution,
+            updated_at
         `,
         [pedidoId],
       )
 
-    if (
-      pedidoResult.rowCount ===
-      0
-    ) {
-      await client.query(
-        'ROLLBACK',
-      )
+      if (updateResult.rowCount === 0) {
+        throw new Error(
+          'Não foi possível registrar a decisão sobre o estoque.',
+        )
+      }
 
-      return NextResponse.json(
-        {
-          sucesso: false,
-          mensagem:
-            'Pedido não encontrado.',
-        },
-        {
-          status: 404,
-        },
-      )
+      await client.query('COMMIT')
+
+      return NextResponse.json({
+        sucesso: true,
+        mensagem:
+          'Decisão registrada. Os produtos deste pedido não serão devolvidos ao estoque.',
+        pedido: updateResult.rows[0],
+        resolucaoEstoque: 'nao_devolver',
+        estoqueDevolvido: false,
+        itens: [],
+      })
     }
 
-    const pedido =
-      pedidoResult.rows[0]
+    /* =======================================================
+       AÇÃO:
+       DEVOLVER AO ESTOQUE
 
-    /* =====================================================
-       SÓ PEDIDOS CANCELADOS
-       ===================================================== */
+       Primeiro buscamos TODOS os itens.
 
-    if (
-      pedido.status !==
-      'cancelado'
-    ) {
-      await client.query(
-        'ROLLBACK',
-      )
+       Nada é alterado no estoque antes de sabermos
+       que todos os itens podem ser processados.
+       ======================================================= */
 
-      return NextResponse.json(
-        {
-          sucesso: false,
-          mensagem:
-            'Só é possível devolver o estoque de pedidos cancelados.',
-        },
-        {
-          status: 409,
-        },
-      )
-    }
+    const itensResult = await client.query(
+      `
+        SELECT
+          id,
+          product_id,
+          product_name,
+          quantity
+        FROM public.order_items
+        WHERE order_id = $1
+        ORDER BY id
+      `,
+      [pedidoId],
+    )
 
-    /* =====================================================
-       IMPEDIR DUPLA DEVOLUÇÃO
-       ===================================================== */
-
-    if (
-      pedido.stock_restored ===
-      true
-    ) {
-      await client.query(
-        'ROLLBACK',
-      )
-
-      return NextResponse.json(
-        {
-          sucesso: false,
-          mensagem:
-            'O estoque deste pedido já foi devolvido.',
-          estoqueDevolvido:
-            true,
-        },
-        {
-          status: 409,
-        },
-      )
-    }
-
-    /* =====================================================
-       BUSCAR ITENS
-       ===================================================== */
-
-    const itensResult =
-      await client.query(
-        `
-          SELECT
-            id,
-            product_id,
-            product_name,
-            quantity
-          FROM public.order_items
-          WHERE order_id = $1
-          ORDER BY id
-        `,
-        [pedidoId],
-      )
-
-    if (
-      itensResult.rowCount ===
-      0
-    ) {
+    if (itensResult.rowCount === 0) {
       throw new Error(
-        'O pedido não possui itens para devolver ao estoque.',
+        'O pedido não possui produtos para devolver ao estoque.',
       )
     }
 
-    /* =====================================================
-       DEVOLVER CADA ITEM
-       ===================================================== */
+    /* =======================================================
+       LISTA DE PRODUTOS DEVOLVIDOS
+       ======================================================= */
 
     const itensDevolvidos: Array<{
       productId: string
@@ -187,132 +311,125 @@ export async function POST(
       stockAtual: number
     }> = []
 
-    for (
-      const item of
-      itensResult.rows
-    ) {
-      const quantidade =
-        Number(
-          item.quantity,
-        )
+    /* =======================================================
+       PROCESSAR PRODUTOS
 
-      /* ===============================================
+       Importante:
+
+       Cada UPDATE ocorre dentro da transação.
+
+       Se um produto não existir, o catch faz ROLLBACK
+       e nenhum dos produtos anteriores permanece alterado.
+       ======================================================= */
+
+    for (const item of itensResult.rows) {
+      const quantidade = Number(item.quantity)
+
+      /* =====================================================
          VALIDAR QUANTIDADE
-         =============================================== */
+         ===================================================== */
 
       if (
-        !Number.isInteger(
-          quantidade,
-        ) ||
+        !Number.isInteger(quantidade) ||
         quantidade <= 0
       ) {
         throw new Error(
-          `Quantidade inválida no item ${item.id}.`,
+          `Quantidade inválida no produto "${item.product_name}".`,
         )
       }
 
-      /* ===============================================
+      /* =====================================================
          VALIDAR PRODUTO
-         =============================================== */
+         ===================================================== */
 
-      if (
-        !item.product_id
-      ) {
+      if (!item.product_id) {
         throw new Error(
-          `O item "${item.product_name}" não possui product_id.`,
+          `O produto "${item.product_name}" não está vinculado a um produto do estoque.`,
         )
       }
 
-      /* ===============================================
-         DEVOLVER ESTOQUE
-         =============================================== */
+      /* =====================================================
+         DEVOLVER PRODUTO
 
-      const produtoResult =
-        await client.query(
-          `
-            UPDATE public.products
-            SET
-              stock = stock + $1,
-              updated_at = NOW()
-            WHERE id = $2
-            RETURNING
-              id,
-              name,
-              stock
-          `,
-          [
-            quantidade,
-            item.product_id,
-          ],
-        )
+         O UPDATE acontece dentro da transação.
+         ===================================================== */
 
-      if (
-        produtoResult.rowCount ===
-        0
-      ) {
+      const produtoResult = await client.query(
+        `
+          UPDATE public.products
+          SET
+            stock = stock + $1,
+            updated_at = NOW()
+          WHERE id = $2
+          RETURNING
+            id,
+            name,
+            stock
+        `,
+        [
+          quantidade,
+          item.product_id,
+        ],
+      )
+
+      /* =====================================================
+         PRODUTO NÃO EXISTE
+         ===================================================== */
+
+      if (produtoResult.rowCount === 0) {
         throw new Error(
-          `Produto "${item.product_name}" não encontrado.`,
+          `Produto "${item.product_name}" não foi encontrado no estoque.`,
         )
       }
 
-      const produto =
-        produtoResult.rows[0]
+      const produto = produtoResult.rows[0]
 
       itensDevolvidos.push({
-        productId:
-          produto.id,
-
-        productName:
-          produto.name,
-
-        quantity:
-          quantidade,
-
-        stockAtual:
-          Number(
-            produto.stock,
-          ),
+        productId: String(produto.id),
+        productName: String(produto.name),
+        quantity: quantidade,
+        stockAtual: Number(produto.stock),
       })
     }
 
-    /* =====================================================
-       MARCAR ESTOQUE COMO DEVOLVIDO
-       ===================================================== */
+    /* =======================================================
+       MARCAR PEDIDO COMO RESOLVIDO
+       ======================================================= */
 
-    const updateResult =
-      await client.query(
-        `
-          UPDATE public.orders
-          SET
-            stock_restored = TRUE,
-            updated_at = NOW()
-          WHERE id = $1
-          RETURNING
-            id,
-            order_number,
-            status,
-            stock_restored,
-            updated_at
-        `,
-        [pedidoId],
-      )
+    const updateResult = await client.query(
+      `
+        UPDATE public.orders
+        SET
+          stock_restored = TRUE,
+          stock_resolution = 'devolvido',
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING
+          id,
+          order_number,
+          status,
+          stock_restored,
+          stock_resolution,
+          updated_at
+      `,
+      [pedidoId],
+    )
 
-    if (
-      updateResult.rowCount ===
-      0
-    ) {
+    if (updateResult.rowCount === 0) {
       throw new Error(
         'Não foi possível registrar a devolução do estoque.',
       )
     }
 
-    /* =====================================================
-       COMMIT
-       ===================================================== */
+    /* =======================================================
+       FINALIZAR TRANSAÇÃO
+       ======================================================= */
 
-    await client.query(
-      'COMMIT',
-    )
+    await client.query('COMMIT')
+
+    /* =======================================================
+       RESPOSTA
+       ======================================================= */
 
     return NextResponse.json({
       sucesso: true,
@@ -320,27 +437,22 @@ export async function POST(
       mensagem:
         'Produtos devolvidos ao estoque com sucesso.',
 
-      pedido:
-        updateResult.rows[0],
+      pedido: updateResult.rows[0],
 
-      estoqueDevolvido:
-        true,
+      resolucaoEstoque: 'devolvido',
 
-      itens:
-        itensDevolvidos,
+      estoqueDevolvido: true,
+
+      itens: itensDevolvidos,
     })
   } catch (error) {
-    /* =====================================================
+    /* =======================================================
        ROLLBACK
-       ===================================================== */
+       ======================================================= */
 
     try {
-      await client.query(
-        'ROLLBACK',
-      )
-    } catch (
-      rollbackError
-    ) {
+      await client.query('ROLLBACK')
+    } catch (rollbackError) {
       console.error(
         '[POST /api/admin/pedidos/estoque] Erro no rollback:',
         rollbackError,
@@ -355,15 +467,12 @@ export async function POST(
     return NextResponse.json(
       {
         sucesso: false,
-
         mensagem:
           error instanceof Error
             ? error.message
-            : 'Erro ao devolver produtos ao estoque.',
+            : 'Erro ao resolver o estoque do pedido.',
       },
-      {
-        status: 500,
-      },
+      { status: 500 },
     )
   } finally {
     client.release()
